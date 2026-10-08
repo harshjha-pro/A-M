@@ -1,0 +1,19 @@
+{
+  "name": "am-wedding/api",
+  "description": "A&M Wedding Planner — PHP REST API (no framework)",
+  "type": "project",
+  "license": "proprietary",
+  "require": {
+    "php": ">=8.2",
+    "ext-pdo": "*",
+    "ext-pdo_mysql": "*",
+    "ext-mbstring": "*",
+    "ext-json": "*"
+  },
+  "require-dev": {
+    "phpunit/phpunit": "11.5.*"
+  },
+  "autoload": { "psr-4": { "AM\\": "src/" } },
+  "autoload-dev": { "psr-4": { "Tests\\": "tests/" } },
+  "config": { "sort-packages": true, "platform": { "php": "8.2.0" } }
+}

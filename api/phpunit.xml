@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="tests/bootstrap.php"
+         colors="true"
+         cacheDirectory=".phpunit.cache"
+         failOnWarning="true"
+         failOnRisky="true"
+         failOnDeprecation="true"
+         displayDetailsOnTestsThatTriggerWarnings="true">
+  <testsuites>
+    <testsuite name="unit"><directory>tests/Unit</directory></testsuite>
+    <testsuite name="db"><directory>tests/Db</directory></testsuite>
+    <testsuite name="endpoints"><directory>tests/Endpoints</directory></testsuite>
+    <testsuite name="security"><directory>tests/Security</directory></testsuite>
+    <testsuite name="static"><directory>tests/Static</directory></testsuite>
+    <testsuite name="coverage"><directory>tests/Coverage</directory></testsuite>
+    <testsuite name="http"><directory>tests/Http</directory></testsuite>
+  </testsuites>
+  <groups>
+    <exclude><group>http</group></exclude>
+  </groups>
+  <php>
+    <env name="AM_TEST_DB_HOST" value="127.0.0.1" force="false"/>
+    <env name="AM_TEST_DB_PORT" value="3306" force="false"/>
+    <env name="AM_TEST_DB_NAME" value="am_test" force="false"/>
+    <env name="AM_TEST_DB_USER" value="am_test" force="false"/>
+    <env name="AM_TEST_DB_PASS" value="am_test" force="false"/>
+  </php>
+  <source>
+    <include><directory>src</directory></include>
+  </source>
+</phpunit>

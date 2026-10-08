@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# Lays out a site folder exactly like Hostinger (IMPLEMENTATION §6.6):
+#   <out>/public_html/  ← web build + .htaccess + api/index.php
+#   <out>/private/app/  ← PHP code (bootstrap, autoload, src, VERSION). No tests, no dev packages.
+# Usage: tools/make-site.sh <staging|live> <out-dir>     (web must be built first)
+set -euo pipefail
+cd "$(dirname "$0")/.."
+FLAVOUR="${1:?staging or live}"
+OUT="${2:?output folder}"
+DIST="web/dist-$FLAVOUR"
+[ -f "$DIST/index.html" ] || { echo "Missing $DIST — run: (cd web && npm run build:$FLAVOUR)"; exit 1; }
+
+rm -rf "$OUT"
+mkdir -p "$OUT/public_html" "$OUT/private/app" "$OUT/private/logs" "$OUT/private/storage/uploads" "$OUT/private/storage/exports"
+
+# public_html: the built app, then our server files on top
+cp -R "$DIST/." "$OUT/public_html/"
+cp public_html/.htaccess "$OUT/public_html/.htaccess"
+mkdir -p "$OUT/public_html/assets" "$OUT/public_html/api"
+cp public_html/assets/.htaccess "$OUT/public_html/assets/.htaccess"
+cp public_html/api/index.php "$OUT/public_html/api/index.php"
+
+# private/app: only what runs on the server
+cp api/bootstrap.php api/autoload.php "$OUT/private/app/"
+cp -R api/src "$OUT/private/app/src"
+cp VERSION "$OUT/private/app/VERSION"
+# Composer packages: none needed at runtime in Session 1 (our own autoloader is used).
+echo "Site folder ready: $OUT ($FLAVOUR, version $(cat VERSION))"
