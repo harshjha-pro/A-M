@@ -149,6 +149,18 @@ final class HttpRulesTest extends TestCase
         }
     }
 
+    public function test_every_file_index_html_points_to_is_there(): void
+    {
+        $index = $this->fetch('/')['body'];
+        preg_match_all('/(?:src|href)="(\/[^"#?]+)"/', $index, $m);
+        $this->assertNotEmpty($m[1]);
+        foreach (array_unique($m[1]) as $path) {
+            $r = $this->fetch($path);
+            $this->assertSame(200, $r['status'], "$path is referenced by index.html but missing");
+            $this->assertStringNotContainsString('<div id="root">', $r['body'], "$path fell back to the app page");
+        }
+    }
+
     public function test_static_folders_never_fall_back_to_the_app(): void
     {
         $this->assertSame(404, $this->fetch('/assets/missing-abc.js')['status']);

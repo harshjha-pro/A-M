@@ -1,6 +1,6 @@
 # Test report — Session 02 — Login and members
 
-Date: 2026-10-08T18:34Z · App version: 1.0.2 · DB: **MySQL 8.0.46-0ubuntu0.24.04.4** (sandbox, same major as Hostinger) · PHP 8.3.6 · Node v22.22.0 · Web server for .htaccess tests: Apache/2.4.58 (Ubuntu)
+Date: 2026-10-08T18:39Z · App version: 1.0.2 · DB: **MySQL 8.0.46-0ubuntu0.24.04.4** (sandbox, same major as Hostinger) · PHP 8.3.6 · Node v22.22.0 · Web server for .htaccess tests: Apache/2.4.58 (Ubuntu)
 
 Overall: **GREEN — all suites passed**
 
@@ -10,8 +10,8 @@ Overall: **GREEN — all suites passed**
 | Endpoint coverage | 20/100 operations built and tested (the rest arrive session by session) |
 | Vitest (formats, API client, shell, routes, axe) | Tests 88 passed (88) |
 | Build (staging + live) | JS 96.86 kB gz · CSS 4.88 kB gz |
-| HTTP rules (real requests) | Apache 2.4.58 + real .htaccess: PASS · php -S + tools/router.php: PASS — OK (10 tests, 208 assertions) OK (10 tests, 205 assertions)  |
-| Playwright smoke (android, small-iphone, small-android; Chromium, not Safari) | 21 passed (33.1s) |
+| HTTP rules (real requests) | Apache 2.4.58 + real .htaccess: PASS · php -S + tools/router.php: PASS — OK (11 tests, 223 assertions) OK (11 tests, 220 assertions)  |
+| Playwright smoke (android, small-iphone, small-android; Chromium, not Safari) | 21 passed (33.9s) |
 
 Database checks: 001 → 002 → 003 apply with finished_at set; second run of each stops at its guard with data unchanged (DS-28); seed_demo.sql loads (61 families, Devanagari intact) and its second run stops at user id 1.
 

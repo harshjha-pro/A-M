@@ -31,8 +31,10 @@ for FLAVOUR in staging live; do
     find . \( -name '.env' -o -name '*.key' -o -name 'config.php' \) -delete
     zip -qrX "$DEST/1-server.zip" private/app private/logs private/storage public_html/api/index.php
     zip -qrX "$DEST/2-assets.zip" public_html/assets -x 'public_html/assets/.htaccess'
-    zip -qrX "$DEST/3-shell.zip" public_html/index.html public_html/manifest.webmanifest public_html/.htaccess \
-      public_html/ios-class.js public_html/icons public_html/assets/.htaccess
+    # Shell = every file and folder at the top of public_html except assets/ (2-assets),
+    # api/ (1-server) and version.json (uploaded last, on its own) — so nothing new is ever forgotten.
+    SHELL_ITEMS=$(cd public_html && find . -mindepth 1 -maxdepth 1 ! -name assets ! -name api ! -name version.json | sed 's#^\./#public_html/#' | sort)
+    zip -qrX "$DEST/3-shell.zip" $SHELL_ITEMS public_html/assets/.htaccess
     cp public_html/version.json "$DEST/version.json"
   )
 done
