@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>%AM_APP_TITLE%</title>
+    <meta name="robots" content="noindex, nofollow">
+    <meta name="description" content="Ayush &amp; Mahi's wedding planner for the family.">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <link rel="icon" href="/icons/favicon-48.png" type="image/png">
+
+    <!-- Status bar / Android task switcher colours (DESIGN §2.6) -->
+    <meta name="theme-color" content="#FBF7F0" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#17120F" media="(prefers-color-scheme: dark)">
+
+    <!-- iPhone -->
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon-180.png">
+    <meta name="apple-mobile-web-app-title" content="%AM_APP_SHORT%">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <!-- Stop iOS turning amounts like 1250000 into phone links; we make tel: links ourselves -->
+    <meta name="format-detection" content="telephone=no">
+
+    <!-- Adds class="ios" for Dynamic Type (DESIGN §2.7). A file, not inline: the CSP blocks inline scripts. -->
+    <script src="/ios-class.js"></script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <noscript>Please turn on JavaScript to use A&amp;M Wedding.</noscript>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

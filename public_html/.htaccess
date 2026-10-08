@@ -1,0 +1,57 @@
+# A&M Wedding — public_html/.htaccess (IMPLEMENTATION §6.6). Same file on staging and live.
+# tools/router.php copies these rules for tests in the sandbox: change both together.
+Options -Indexes
+DirectoryIndex index.html
+AddDefaultCharset utf-8
+AddType application/manifest+json .webmanifest
+
+RewriteEngine On
+
+# 0. Only our two hostnames (protects against the app showing up under another address)
+RewriteCond %{HTTP_HOST} !^(wedding|staging-wedding)\.lumorrahouse\.com$ [NC]
+RewriteRule ^ - [R=404,L]
+
+# 1. HTTPS only (hPanel "Force HTTPS" does the same; both is fine)
+RewriteCond %{HTTPS} !=on
+RewriteCond %{HTTP:X-Forwarded-Proto} !=https
+RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
+
+# 2. Block dotfiles (.env, .git, .htaccess) except .well-known (SSL renewals)
+RewriteRule (^|/)\.(?!well-known/) - [R=404,L]
+
+# 3. Block file types that must never be served
+RewriteRule \.(env|ini|log|sql|gz|enc|zip|bak|sh|lock|md|ya?ml|key|php~)$ - [R=404,L,NC]
+RewriteRule (^|/)composer\.(json|lock)$ - [R=404,L,NC]
+
+# 4. API: every /api/... request goes to the one PHP entry file
+RewriteCond %{REQUEST_URI} !^/api/index\.php$
+RewriteRule ^api/ api/index.php [L,QSA]
+
+# 5. App: unknown paths load the app (deep links). Missing static files stay 404,
+#    and so do /private, /uploads, /storage (never served from here, SEC-05).
+RewriteCond %{REQUEST_URI} !^/(api|assets|icons|install-guide|splash|templates|private|uploads|storage)(/|$)
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteRule ^ index.html [L]
+
+<IfModule mod_headers.c>
+  Header always set Strict-Transport-Security "max-age=31536000"
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set X-Frame-Options "DENY"
+  Header always set Referrer-Policy "no-referrer"
+  Header always set Cross-Origin-Resource-Policy "same-origin"
+  Header always set X-Robots-Tag "noindex, nofollow"
+  Header always unset X-Powered-By
+  Header unset X-Powered-By
+
+  # App pages and scripts only. The PHP API sends its own CSP ("default-src 'none'").
+  <FilesMatch "\.(html|js)$">
+    Header set Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
+    Header set Permissions-Policy "camera=(self), microphone=(), geolocation=(), payment=(), usb=()"
+    Header set Cross-Origin-Opener-Policy "same-origin"
+  </FilesMatch>
+
+  # These decide which version runs: always ask the server
+  <FilesMatch "^(index\.html|sw\.js|manifest\.webmanifest|version\.json|reset\.html|reset\.js)$">
+    Header set Cache-Control "no-cache"
+  </FilesMatch>
+</IfModule>

@@ -1,0 +1,3248 @@
+openapi: 3.1.0
+info:
+  title: A&M Wedding API
+  version: 1.2.0-draft
+  summary: REST contract between the A&M Wedding PWA and its PHP backend.
+  description: |
+    Single-wedding planner. Same origin as the PWA, JSON only, no CORS.
+    - IDs in URLs and JSON are ULID public_ids. Numeric IDs never leave the server.
+    - Date-times are ISO 8601 UTC with Z. Dates are IST calendar dates. Money is integer paise.
+    - Every reply uses the envelope {ok, data, meta} or {ok:false, error, meta}.
+    - Every write while logged in sends X-CSRF-Token and Idempotency-Key.
+    - Every PATCH, PUT on an existing record, and single-record DELETE sends If-Match with the version.
+    - All requests should send X-Client-Version and X-Device.
+    - x-permission on each operation: All, Ed (Owner, Partner, Family), Adm (Owner, Partner), Own, $ (money users), Self.
+servers:
+  - url: https://{subdomain}.lumorrahouse.com/api/v1
+    variables:
+      subdomain:
+        default: wedding
+        description: wedding.lumorrahouse.com (API14). Read from APP_URL in .env.
+security:
+  - sessionCookie: []
+tags:
+  - name: Auth
+  - name: Members
+  - name: Settings
+  - name: Dashboard
+  - name: Events
+  - name: Tasks
+  - name: Guests
+  - name: Imports
+  - name: Money
+  - name: Documents
+  - name: History
+  - name: Trash
+  - name: Export
+  - name: Sync
+  - name: Health
+
+paths:
+  # ---------------------------------------------------------------- Auth
+  /auth/login:
+    post:
+      tags: [Auth]
+      operationId: login
+      summary: Log in with phone and password
+      x-permission: Anyone
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LoginRequest' }
+      responses:
+        '200':
+          description: Logged in. Sets the __Host-am_session cookie.
+          headers:
+            Set-Cookie: { schema: { type: string }, description: '__Host-am_session=...; Max-Age=7776000; Path=/; Secure; HttpOnly; SameSite=Lax' }
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Ok'
+                  - properties: { data: { $ref: '#/components/schemas/AuthResult' } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        default: { $ref: '#/components/responses/Error' }
+  /auth/logout:
+    post:
+      tags: [Auth]
+      operationId: logout
+      summary: Log out this phone
+      x-permission: Self
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      responses:
+        '200': { $ref: '#/components/responses/Empty' }
+        default: { $ref: '#/components/responses/Error' }
+  /auth/logout-all:
+    post:
+      tags: [Auth]
+      operationId: logoutAll
+      summary: Log out all my phones
+      x-permission: Self
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      responses:
+        '200':
+          description: All my sessions revoked
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Ok'
+                  - properties: { data: { type: object, properties: { sessions_revoked: { type: integer } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /session:
+    get:
+      tags: [Auth]
+      operationId: getSession
+      summary: Current user, permissions and CSRF token. This is the refresh (slides the 90 days).
+      x-permission: Self
+      responses:
+        '200':
+          description: Session info
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Ok'
+                  - properties: { data: { $ref: '#/components/schemas/SessionInfo' } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        default: { $ref: '#/components/responses/Error' }
+  /auth/password/change:
+    post:
+      tags: [Auth]
+      operationId: changePassword
+      summary: Change my password. Other sessions are revoked; this one gets a new cookie.
+      x-permission: Self
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IdempotencyKey' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [current_password, new_password]
+              properties:
+                current_password: { type: string }
+                new_password: { $ref: '#/components/schemas/NewPassword' }
+      responses:
+        '200':
+          description: Changed
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Ok'
+                  - properties: { data: { $ref: '#/components/schemas/AuthResult' } }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+        default: { $ref: '#/components/responses/Error' }
+  /auth/password-reset/request:
+    post:
+      tags: [Auth]
+      operationId: requestPasswordReset
+      summary: Email a reset link. Off until MAIL_ENABLED. Always 202.
+      x-permission: Anyone
+      x-release: Off in R1 (API1)
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                phone: { type: string }
+                email: { type: string, format: email }
+      responses:
+        '202': { $ref: '#/components/responses/Empty' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        default: { $ref: '#/components/responses/Error' }
+  /auth/password-link/inspect:
+    post:
+      tags: [Auth]
+      operationId: inspectPasswordLink
+      summary: Check an invite or reset link before showing the form
+      x-permission: Anyone
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LinkToken' }
+      responses:
+        '200':
+          description: Link is valid
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Ok'
+                  - properties:
+                      data:
+                        type: object
+                        properties:
+                          purpose: { type: string, enum: [invite, reset] }
+                          name: { type: string }
+                          phone_masked: { type: string, examples: ['+91 98••• ••345'] }
+                          expires_at: { $ref: '#/components/schemas/DateTime' }
+        '410': { $ref: '#/components/responses/Gone' }
+        default: { $ref: '#/components/responses/Error' }
+  /auth/password-link/complete:
+    post:
+      tags: [Auth]
+      operationId: completePasswordLink
+      summary: Set a password from a link and log in
+      x-permission: Anyone
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/LinkToken'
+                - type: object
+                  required: [new_password]
+                  properties:
+                    new_password: { $ref: '#/components/schemas/NewPassword' }
+      responses:
+        '200':
+          description: Password set, logged in (cookie set)
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Ok'
+                  - properties: { data: { $ref: '#/components/schemas/AuthResult' } }
+        '410': { $ref: '#/components/responses/Gone' }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+        default: { $ref: '#/components/responses/Error' }
+  /setup/owner:
+    post:
+      tags: [Auth]
+      operationId: setupOwner
+      summary: First run only. Creates the Owner. Disabled once an owner exists.
+      x-permission: Holder of SETUP_TOKEN
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [setup_token, name, phone, password]
+              properties:
+                setup_token: { type: string }
+                name: { type: string, minLength: 1, maxLength: 80 }
+                phone: { $ref: '#/components/schemas/Phone' }
+                password: { $ref: '#/components/schemas/NewPassword' }
+      responses:
+        '201':
+          description: Owner created and logged in
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Ok'
+                  - properties: { data: { $ref: '#/components/schemas/AuthResult' } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '410': { $ref: '#/components/responses/Gone' }
+        default: { $ref: '#/components/responses/Error' }
+
+  # ---------------------------------------------------------------- Members
+  /members:
+    get:
+      tags: [Members]
+      operationId: listMembers
+      summary: All members (not paged). Family and Viewer get id, name, phone, role, left only.
+      x-permission: All
+      parameters:
+        - { name: include_inactive, in: query, schema: { type: boolean }, description: Adm only }
+      responses:
+        '200': { $ref: '#/components/responses/MemberList' }
+        default: { $ref: '#/components/responses/Error' }
+    post:
+      tags: [Members]
+      operationId: createMember
+      summary: Add a member and set a password or make an invite link
+      x-permission: Adm
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IdempotencyKey' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/MemberCreate' }
+      responses:
+        '201':
+          description: Created. Secrets appear once and are never stored in the idempotent reply.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Ok'
+                  - properties: { data: { $ref: '#/components/schemas/MemberCreated' } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+        default: { $ref: '#/components/responses/Error' }
+  /members/{id}:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    get:
+      tags: [Members]
+      operationId: getMember
+      summary: One member with last seen and devices
+      x-permission: Adm, Self
+      responses:
+        '200': { $ref: '#/components/responses/MemberOne' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        default: { $ref: '#/components/responses/Error' }
+    patch:
+      tags: [Members]
+      operationId: updateMember
+      summary: Edit a member. Deactivate with is_active false. Members are never deleted.
+      x-permission: Adm; Self (name only)
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IfMatch' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/MemberUpdate' }
+      responses:
+        '200': { $ref: '#/components/responses/MemberOne' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+        default: { $ref: '#/components/responses/Error' }
+  /members/{id}/password-reset:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    post:
+      tags: [Members]
+      operationId: resetMemberPassword
+      summary: Admin reset. Revokes all of that member's sessions.
+      x-permission: Adm (Partner cannot reset the Owner)
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IdempotencyKey' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [mode]
+              properties:
+                mode: { type: string, enum: [set, generate, link] }
+                password: { $ref: '#/components/schemas/NewPassword' }
+      responses:
+        '200':
+          description: Reset done
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Ok'
+                  - properties:
+                      data:
+                        type: object
+                        properties:
+                          password_once: { type: [string, 'null'] }
+                          setup_link: { type: [string, 'null'] }
+                          setup_link_expires_at: { oneOf: [ { $ref: '#/components/schemas/DateTime' }, { type: 'null' } ] }
+                          sessions_revoked: { type: integer }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        default: { $ref: '#/components/responses/Error' }
+  /me/sessions:
+    get:
+      tags: [Members]
+      operationId: mySessions
+      summary: My logged-in phones
+      x-permission: Self
+      responses:
+        '200':
+          description: Sessions
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Ok'
+                  - properties:
+                      data:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            device_label: { type: [string, 'null'] }
+                            last_used_at: { $ref: '#/components/schemas/DateTime' }
+                            current: { type: boolean }
+        default: { $ref: '#/components/responses/Error' }
+
+  # ---------------------------------------------------------------- Settings & safety
+  /settings:
+    get:
+      tags: [Settings]
+      operationId: getSettings
+      summary: Wedding facts (total budget only for money users)
+      x-permission: All
+      responses:
+        '200': { $ref: '#/components/responses/SettingsOne' }
+        default: { $ref: '#/components/responses/Error' }
+    patch:
+      tags: [Settings]
+      operationId: updateSettings
+      summary: Edit wedding facts
+      x-permission: Adm
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IfMatch' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SettingsUpdate' }
+      responses:
+        '200': { $ref: '#/components/responses/SettingsOne' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+        default: { $ref: '#/components/responses/Error' }
+  /settings/history:
+    get:
+      tags: [Settings, History]
+      operationId: settingsHistory
+      summary: History of settings changes
+      x-permission: Adm
+      parameters: [ { $ref: '#/components/parameters/Cursor' }, { $ref: '#/components/parameters/Limit' } ]
+      responses:
+        '200': { $ref: '#/components/responses/HistoryList' }
+        default: { $ref: '#/components/responses/Error' }
+  /backups:
+    get:
+      tags: [Settings]
+      operationId: listBackups
+      summary: Last backup runs
+      x-permission: Adm
+      parameters:
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 60, default: 7 } }
+      responses:
+        '200':
+          description: Backup runs, newest first
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Ok'
+                  - properties: { data: { type: array, items: { $ref: '#/components/schemas/BackupRun' } } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        default: { $ref: '#/components/responses/Error' }
+  /restore-drills:
+    get:
+      tags: [Settings]
+      operationId: listRestoreDrills
+      summary: Restore drill log
+      x-permission: Adm
+      responses:
+        '200':
+          description: Drills
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Ok'
+                  - properties: { data: { type: array, items: { $ref: '#/components/schemas/RestoreDrill' } } }
+        default: { $ref: '#/components/responses/Error' }
+    post:
+      tags: [Settings]
+      operationId: createRestoreDrill
+      summary: Log a restore drill
+      x-permission: Adm
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IdempotencyKey' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RestoreDrillInput' }
+      responses:
+        '201': { $ref: '#/components/responses/RestoreDrillOne' }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+        default: { $ref: '#/components/responses/Error' }
+  /restore-drills/{id}:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    patch:
+      tags: [Settings]
+      operationId: updateRestoreDrill
+      summary: Fix a drill entry
+      x-permission: Adm
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IfMatch' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RestoreDrillInput' }
+      responses:
+        '200': { $ref: '#/components/responses/RestoreDrillOne' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        default: { $ref: '#/components/responses/Error' }
+    delete:
+      tags: [Settings]
+      operationId: deleteRestoreDrill
+      summary: Soft delete a drill entry
+      x-permission: Adm
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IfMatch' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      responses:
+        '200': { $ref: '#/components/responses/Deleted' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        default: { $ref: '#/components/responses/Error' }
+
+  # ---------------------------------------------------------------- Dashboard & calendar
+  /dashboard:
+    get:
+      tags: [Dashboard]
+      operationId: getDashboard
+      summary: All Home cards this user may see, in one call
+      x-permission: All (cards filtered by role and money)
+      parameters:
+        - { name: payments_window_days, in: query, schema: { type: integer, minimum: 1, maximum: 90, default: 14 } }
+      responses:
+        '200':
+          description: Cards
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Ok'
+                  - properties: { data: { $ref: '#/components/schemas/Dashboard' } }
+        default: { $ref: '#/components/responses/Error' }
+  /calendar:
+    get:
+      tags: [Dashboard]
+      operationId: getCalendar
+      summary: Events, open tasks with a due date, and due payments ($) in a date range
+      x-permission: All (payments only $)
+      parameters:
+        - { name: from, in: query, required: true, schema: { $ref: '#/components/schemas/Date' } }
+        - { name: to, in: query, required: true, schema: { $ref: '#/components/schemas/Date' }, description: Max 93 days after from }
+        - { name: types, in: query, schema: { type: string, examples: ['event,task,payment'] } }
+        - { name: mine, in: query, schema: { type: boolean } }
+        - { name: include_undated, in: query, schema: { type: boolean } }
+      responses:
+        '200':
+          description: Days with items
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Ok'
+                  - properties:
+                      data:
+                        type: object
+                        properties:
+                          days:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                date: { $ref: '#/components/schemas/Date' }
+                                items: { type: array, items: { $ref: '#/components/schemas/CalendarItem' } }
+                          undated: { type: array, items: { $ref: '#/components/schemas/Event' } }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+        default: { $ref: '#/components/responses/Error' }
+
+  # ---------------------------------------------------------------- Events
+  /events:
+    get:
+      tags: [Events]
+      operationId: listEvents
+      summary: All events (not paged)
+      x-permission: All
+      parameters:
+        - { name: guests_invited, in: query, schema: { type: boolean } }
+      responses:
+        '200':
+          description: Events
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Ok'
+                  - properties: { data: { type: array, items: { $ref: '#/components/schemas/Event' } } }
+        default: { $ref: '#/components/responses/Error' }
+    post:
+      tags: [Events]
+      operationId: createEvent
+      summary: Add a custom event
+      x-permission: Adm
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IdempotencyKey' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/EventCreate' }
+      responses:
+        '201': { $ref: '#/components/responses/EventOne' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+        default: { $ref: '#/components/responses/Error' }
+  /events/{id}:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    get:
+      tags: [Events]
+      operationId: getEvent
+      summary: Event page with counts
+      x-permission: All
+      responses:
+        '200': { $ref: '#/components/responses/EventOne' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        default: { $ref: '#/components/responses/Error' }
+    patch:
+      tags: [Events]
+      operationId: updateEvent
+      summary: Edit an event
+      x-permission: Adm
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IfMatch' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/EventUpdate' }
+      responses:
+        '200': { $ref: '#/components/responses/EventOne' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+        default: { $ref: '#/components/responses/Error' }
+    delete:
+      tags: [Events]
+      operationId: deleteEvent
+      summary: Soft delete; invitations go in the same batch
+      x-permission: Adm
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IfMatch' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      responses:
+        '200': { $ref: '#/components/responses/Deleted' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        default: { $ref: '#/components/responses/Error' }
+  /events/{id}/headcount:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    get:
+      tags: [Events]
+      operationId: getEventHeadcount
+      summary: People coming, waiting, not asked, not coming, Jain
+      x-permission: All
+      responses:
+        '200':
+          description: Headcount
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Ok'
+                  - properties: { data: { $ref: '#/components/schemas/Headcount' } }
+        '404': { $ref: '#/components/responses/NotFound' }
+        default: { $ref: '#/components/responses/Error' }
+  /events/{id}/delete-preview:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    get:
+      tags: [Events]
+      operationId: eventDeletePreview
+      summary: Counts shown in the delete dialog
+      x-permission: Adm
+      responses:
+        '200':
+          description: Counts
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Ok'
+                  - properties:
+                      data:
+                        type: object
+                        properties:
+                          tasks: { type: integer }
+                          invitations: { type: integer }
+                          payments: { type: integer }
+                          documents: { type: integer }
+        default: { $ref: '#/components/responses/Error' }
+  /events/{id}/restore: { $ref: '#/components/pathItems/Restore' }
+
+  # ---------------------------------------------------------------- Tasks
+  /tasks:
+    get:
+      tags: [Tasks]
+      operationId: listTasks
+      summary: Tasks with view chips, filters and search
+      x-permission: All
+      parameters:
+        - { name: view, in: query, schema: { type: string, enum: [mine, all, today, week, overdue, no_date, closed] } }
+        - { name: status, in: query, schema: { type: string }, description: 'Comma list of todo, doing, waiting, done, cancelled' }
+        - { name: event, in: query, schema: { $ref: '#/components/schemas/Ulid' } }
+        - { name: tag, in: query, schema: { $ref: '#/components/schemas/Ulid' } }
+        - { name: assignee, in: query, schema: { $ref: '#/components/schemas/Ulid' } }
+        - { name: priority, in: query, schema: { type: string, enum: [urgent, normal, low] } }
+        - { name: vendor, in: query, schema: { $ref: '#/components/schemas/Ulid' } }
+        - { name: household, in: query, schema: { $ref: '#/components/schemas/Ulid' } }
+        - { $ref: '#/components/parameters/Q' }
+        - { name: sort, in: query, schema: { type: string, enum: [default, due_date, -created_at, title] } }
+        - { $ref: '#/components/parameters/Limit' }
+        - { $ref: '#/components/parameters/Cursor' }
+      responses:
+        '200':
+          description: Page of tasks. meta.chip_counts has mine, today, week, overdue, no_date.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/OkPage'
+                  - properties: { data: { type: array, items: { $ref: '#/components/schemas/Task' } } }
+        default: { $ref: '#/components/responses/Error' }
+    post:
+      tags: [Tasks]
+      operationId: createTask
+      summary: Create a task
+      x-permission: Ed
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IdempotencyKey' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TaskCreate' }
+      responses:
+        '201': { $ref: '#/components/responses/TaskOne' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+        default: { $ref: '#/components/responses/Error' }
+  /tasks/{id}:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    get:
+      tags: [Tasks]
+      operationId: getTask
+      summary: One task with assignees, tags and checklist
+      x-permission: All
+      responses:
+        '200': { $ref: '#/components/responses/TaskOne' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        default: { $ref: '#/components/responses/Error' }
+    patch:
+      tags: [Tasks]
+      operationId: updateTask
+      summary: Edit a task. Lists given here replace the whole list and bump the task version.
+      x-permission: Ed
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IfMatch' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TaskUpdate' }
+      responses:
+        '200': { $ref: '#/components/responses/TaskOne' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+        default: { $ref: '#/components/responses/Error' }
+    delete:
+      tags: [Tasks]
+      operationId: deleteTask
+      summary: Soft delete with checklist, assignees and tags
+      x-permission: Adm any task; Family own tasks only (created by or assigned to them)
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IfMatch' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      responses:
+        '200': { $ref: '#/components/responses/Deleted' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        default: { $ref: '#/components/responses/Error' }
+  /tasks/{id}/done:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    post:
+      tags: [Tasks]
+      operationId: markTaskDone
+      summary: Tick done. If already done, 200 with meta.already_done.
+      x-permission: Ed
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IfMatch' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      responses:
+        '200': { $ref: '#/components/responses/TaskOne' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        default: { $ref: '#/components/responses/Error' }
+  /tasks/{id}/restore: { $ref: '#/components/pathItems/Restore' }
+  /tasks/{id}/items:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    post:
+      tags: [Tasks]
+      operationId: addTaskItem
+      summary: Add a checklist item. key = the item's UUID = Idempotency-Key.
+      x-permission: Ed
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IdempotencyKey' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [key, text]
+              properties:
+                key: { $ref: '#/components/schemas/Uuid' }
+                text: { type: string, minLength: 1, maxLength: 200 }
+                sort_order: { type: integer }
+      responses:
+        '201': { $ref: '#/components/responses/TaskItemOne' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+        default: { $ref: '#/components/responses/Error' }
+  /tasks/{id}/items/{key}:
+    parameters:
+      - { $ref: '#/components/parameters/Id' }
+      - { name: key, in: path, required: true, schema: { $ref: '#/components/schemas/Uuid' } }
+    patch:
+      tags: [Tasks]
+      operationId: updateTaskItem
+      summary: Tick, rename or reorder one item. If-Match is the item's version.
+      x-permission: Ed
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IfMatch' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                text: { type: string, minLength: 1, maxLength: 200 }
+                is_done: { type: boolean }
+                sort_order: { type: integer }
+      responses:
+        '200': { $ref: '#/components/responses/TaskItemOne' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        default: { $ref: '#/components/responses/Error' }
+    delete:
+      tags: [Tasks]
+      operationId: deleteTaskItem
+      summary: Remove an item (soft)
+      x-permission: Ed
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IfMatch' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      responses:
+        '200': { $ref: '#/components/responses/Deleted' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        default: { $ref: '#/components/responses/Error' }
+  /tags:
+    get:
+      tags: [Tasks]
+      operationId: listTags
+      summary: All tags with task counts
+      x-permission: All
+      responses:
+        '200':
+          description: Tags
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Ok'
+                  - properties: { data: { type: array, items: { $ref: '#/components/schemas/Tag' } } }
+        default: { $ref: '#/components/responses/Error' }
+    post:
+      tags: [Tasks]
+      operationId: createTag
+      summary: Create a tag
+      x-permission: Ed
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IdempotencyKey' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TagInput' }
+      responses:
+        '201': { $ref: '#/components/responses/TagOne' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+        default: { $ref: '#/components/responses/Error' }
+  /tags/{id}:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    patch:
+      tags: [Tasks]
+      operationId: renameTag
+      summary: Rename a tag
+      x-permission: Adm
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IfMatch' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TagInput' }
+      responses:
+        '200': { $ref: '#/components/responses/TagOne' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        default: { $ref: '#/components/responses/Error' }
+    delete:
+      tags: [Tasks]
+      operationId: deleteTag
+      summary: Soft delete; removes it from tasks in the same batch
+      x-permission: Adm
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IfMatch' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      responses:
+        '200': { $ref: '#/components/responses/Deleted' }
+        default: { $ref: '#/components/responses/Error' }
+  /tags/{id}/restore: { $ref: '#/components/pathItems/Restore' }
+
+  # ---------------------------------------------------------------- Guests
+  /households:
+    get:
+      tags: [Guests]
+      operationId: listHouseholds
+      summary: Guest list (families). meta.totals.people for the filter.
+      x-permission: All
+      parameters:
+        - { $ref: '#/components/parameters/Q' }
+        - { name: side, in: query, schema: { type: string, enum: [bride, groom, both] } }
+        - { name: event, in: query, schema: { $ref: '#/components/schemas/Ulid' } }
+        - { name: rsvp, in: query, schema: { type: string }, description: 'Comma list of not_asked, waiting, coming, not_coming. Needs event.' }
+        - { name: group, in: query, schema: { type: string } }
+        - { name: area, in: query, schema: { type: string } }
+        - { name: food, in: query, schema: { $ref: '#/components/schemas/Food' } }
+        - { name: vip, in: query, schema: { type: boolean } }
+        - { name: no_phone, in: query, schema: { type: boolean } }
+        - { name: possible_duplicates, in: query, schema: { type: boolean } }
+        - { name: sort, in: query, schema: { type: string, enum: [name, -created_at, area, group] } }
+        - { $ref: '#/components/parameters/Limit' }
+        - { $ref: '#/components/parameters/Cursor' }
+      responses:
+        '200':
+          description: Page of families
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/OkPage'
+                  - properties: { data: { type: array, items: { $ref: '#/components/schemas/Household' } } }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+        default: { $ref: '#/components/responses/Error' }
+    post:
+      tags: [Guests]
+      operationId: createHousehold
+      summary: Add a family, optionally with invitations
+      x-permission: Ed
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IdempotencyKey' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/HouseholdCreate' }
+      responses:
+        '201': { $ref: '#/components/responses/HouseholdOne' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+        default: { $ref: '#/components/responses/Error' }
+  /households/duplicate-check:
+    get:
+      tags: [Guests]
+      operationId: householdDuplicateCheck
+      summary: Duplicate hints while typing
+      x-permission: Ed
+      parameters:
+        - { name: phone, in: query, schema: { type: string } }
+        - { name: alt_phone, in: query, schema: { type: string } }
+        - { name: name, in: query, schema: { type: string } }
+        - { name: city, in: query, schema: { type: string } }
+        - { name: exclude, in: query, schema: { $ref: '#/components/schemas/Ulid' } }
+      responses:
+        '200':
+          description: Matches
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Ok'
+                  - properties:
+                      data:
+                        type: object
+                        properties:
+                          phone_matches: { type: array, items: { $ref: '#/components/schemas/Match' } }
+                          name_matches: { type: array, items: { $ref: '#/components/schemas/Match' } }
+        default: { $ref: '#/components/responses/Error' }
+  /households/suggestions:
+    get:
+      tags: [Guests]
+      operationId: householdSuggestions
+      summary: Autocomplete values
+      x-permission: Ed
+      parameters:
+        - { name: field, in: query, required: true, schema: { type: string, enum: [group_name, area, relation, city] } }
+        - { $ref: '#/components/parameters/Q' }
+      responses:
+        '200':
+          description: Up to 20 values
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Ok'
+                  - properties: { data: { type: array, items: { type: string }, maxItems: 20 } }
+        default: { $ref: '#/components/responses/Error' }
+  /households/export:
+    get:
+      tags: [Guests, Export]
+      operationId: exportHouseholdsCsv
+      summary: Filtered guest list as CSV (UTF-8 BOM, IST, formula-safe). Audited.
+      x-permission: Adm
+      parameters:
+        - { $ref: '#/components/parameters/Q' }
+        - { name: side, in: query, schema: { type: string, enum: [bride, groom, both] } }
+        - { name: event, in: query, schema: { $ref: '#/components/schemas/Ulid' } }
+        - { name: rsvp, in: query, schema: { type: string } }
+      responses:
+        '200':
+          description: CSV file
+          content:
+            text/csv:
+              schema: { type: string }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        default: { $ref: '#/components/responses/Error' }
+  /households/bulk:
+    post:
+      tags: [Guests]
+      operationId: bulkHouseholds
+      summary: One action on up to 2,000 families, one batch, one Undo
+      x-permission: Ed; the delete action is Adm only
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IdempotencyKey' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/BulkRequest' }
+      responses:
+        '200':
+          description: Done
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Ok'
+                  - properties: { data: { $ref: '#/components/schemas/BulkResult' } }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        default: { $ref: '#/components/responses/Error' }
+  /households/{id}:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    get:
+      tags: [Guests]
+      operationId: getHousehold
+      summary: Family page with invitations
+      x-permission: All
+      responses:
+        '200': { $ref: '#/components/responses/HouseholdOne' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        default: { $ref: '#/components/responses/Error' }
+    patch:
+      tags: [Guests]
+      operationId: updateHousehold
+      summary: Edit a family (only changed fields)
+      x-permission: Ed
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IfMatch' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/HouseholdUpdate' }
+      responses:
+        '200': { $ref: '#/components/responses/HouseholdOne' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+        default: { $ref: '#/components/responses/Error' }
+    delete:
+      tags: [Guests]
+      operationId: deleteHousehold
+      summary: Soft delete with invitations
+      x-permission: Ed
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IfMatch' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      responses:
+        '200': { $ref: '#/components/responses/Deleted' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        default: { $ref: '#/components/responses/Error' }
+  /households/{id}/restore: { $ref: '#/components/pathItems/Restore' }
+  /households/{id}/invitations/{event_id}:
+    parameters:
+      - { $ref: '#/components/parameters/Id' }
+      - { name: event_id, in: path, required: true, schema: { $ref: '#/components/schemas/Ulid' } }
+    put:
+      tags: [Guests]
+      operationId: inviteHousehold
+      summary: Invite (create or revive). Already invited returns 200 unchanged.
+      x-permission: Ed
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IdempotencyKey' } ]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                expected_adults: { type: [integer, 'null'], minimum: 0, maximum: 50 }
+                expected_children: { type: [integer, 'null'], minimum: 0, maximum: 50 }
+      responses:
+        '200': { $ref: '#/components/responses/InvitationOne' }
+        '201': { $ref: '#/components/responses/InvitationOne' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+        default: { $ref: '#/components/responses/Error' }
+    patch:
+      tags: [Guests]
+      operationId: updateInvitation
+      summary: RSVP and expected counts. If-Match is the invitation's version.
+      x-permission: Ed
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IfMatch' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/InvitationUpdate' }
+      responses:
+        '200': { $ref: '#/components/responses/InvitationOne' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+        default: { $ref: '#/components/responses/Error' }
+    delete:
+      tags: [Guests]
+      operationId: uninviteHousehold
+      summary: Remove from event (soft, with Undo)
+      x-permission: Ed
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IfMatch' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      responses:
+        '200': { $ref: '#/components/responses/Deleted' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        default: { $ref: '#/components/responses/Error' }
+  /households/{id}/invitations/{event_id}/whatsapp-opened:
+    parameters:
+      - { $ref: '#/components/parameters/Id' }
+      - { name: event_id, in: path, required: true, schema: { $ref: '#/components/schemas/Ulid' } }
+    post:
+      tags: [Guests]
+      operationId: recordWhatsappOpened
+      summary: Record a WhatsApp reminder tap. No version bump. Never means sent.
+      x-permission: Ed
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IdempotencyKey' } ]
+      responses:
+        '200':
+          description: Recorded
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Ok'
+                  - properties: { data: { type: object, properties: { last_reminder_opened_at: { $ref: '#/components/schemas/DateTime' } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+        default: { $ref: '#/components/responses/Error' }
+
+  # ---------------------------------------------------------------- Imports
+  /imports/preview:
+    post:
+      tags: [Imports]
+      operationId: previewImport
+      summary: Check rows. Writes nothing.
+      x-permission: Adm
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IdempotencyKey' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ImportRequest' }
+      responses:
+        '200':
+          description: Preview
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Ok'
+                  - properties: { data: { $ref: '#/components/schemas/ImportPreview' } }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        default: { $ref: '#/components/responses/Error' }
+  /imports:
+    get:
+      tags: [Imports]
+      operationId: listImports
+      summary: Past imports
+      x-permission: Adm
+      parameters: [ { $ref: '#/components/parameters/Cursor' }, { $ref: '#/components/parameters/Limit' } ]
+      responses:
+        '200':
+          description: Imports
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/OkPage'
+                  - properties: { data: { type: array, items: { $ref: '#/components/schemas/Import' } } }
+        default: { $ref: '#/components/responses/Error' }
+    post:
+      tags: [Imports]
+      operationId: runImport
+      summary: Run the import in one transaction and one batch
+      x-permission: Adm
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IdempotencyKey' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ImportRequest' }
+      responses:
+        '201':
+          description: Imported
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Ok'
+                  - properties: { data: { $ref: '#/components/schemas/Import' } }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        default: { $ref: '#/components/responses/Error' }
+  /imports/{id}:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    get:
+      tags: [Imports]
+      operationId: getImport
+      summary: One import
+      x-permission: Adm
+      responses:
+        '200':
+          description: Import
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Ok'
+                  - properties: { data: { $ref: '#/components/schemas/Import' } }
+        '404': { $ref: '#/components/responses/NotFound' }
+        default: { $ref: '#/components/responses/Error' }
+  /imports/{id}/undo:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    post:
+      tags: [Imports]
+      operationId: undoImport
+      summary: Undo this import (no 10-minute limit). Rows edited since are kept and listed.
+      x-permission: Adm
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IdempotencyKey' } ]
+      responses:
+        '200': { $ref: '#/components/responses/UndoDone' }
+        default: { $ref: '#/components/responses/Error' }
+
+  # ---------------------------------------------------------------- Money
+  /money/summary:
+    get:
+      tags: [Money]
+      operationId: moneySummary
+      summary: Totals card and per-category table
+      x-permission: $
+      responses:
+        '200':
+          description: Summary
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Ok'
+                  - properties: { data: { $ref: '#/components/schemas/MoneySummary' } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        default: { $ref: '#/components/responses/Error' }
+  /budget-categories:
+    get:
+      tags: [Money]
+      operationId: listCategories
+      summary: Budget categories
+      x-permission: $
+      responses:
+        '200':
+          description: Categories
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Ok'
+                  - properties: { data: { type: array, items: { $ref: '#/components/schemas/BudgetCategory' } } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        default: { $ref: '#/components/responses/Error' }
+    post:
+      tags: [Money]
+      operationId: createCategory
+      summary: Add a category
+      x-permission: $
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IdempotencyKey' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CategoryInput' }
+      responses:
+        '201': { $ref: '#/components/responses/CategoryOne' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+        default: { $ref: '#/components/responses/Error' }
+  /budget-categories/{id}:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    patch:
+      tags: [Money]
+      operationId: updateCategory
+      summary: Rename, plan or reorder
+      x-permission: $
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IfMatch' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CategoryInput' }
+      responses:
+        '200': { $ref: '#/components/responses/CategoryOne' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+        default: { $ref: '#/components/responses/Error' }
+    delete:
+      tags: [Money]
+      operationId: deleteCategory
+      summary: Delete. With payments, move_payments_to is required. Fallback can't be deleted.
+      x-permission: Adm
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IfMatch' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                move_payments_to: { $ref: '#/components/schemas/Ulid' }
+      responses:
+        '200': { $ref: '#/components/responses/Deleted' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+        default: { $ref: '#/components/responses/Error' }
+  /budget-categories/{id}/restore: { $ref: '#/components/pathItems/Restore' }
+  /vendors:
+    get:
+      tags: [Money]
+      operationId: listVendors
+      summary: Vendor contacts (amounts only for $)
+      x-permission: All
+      parameters:
+        - { $ref: '#/components/parameters/Q' }
+        - { name: category, in: query, schema: { $ref: '#/components/schemas/VendorCategory' } }
+        - { name: booked, in: query, schema: { type: boolean } }
+        - { name: sort, in: query, schema: { type: string, enum: [name, -created_at] } }
+        - { $ref: '#/components/parameters/Limit' }
+        - { $ref: '#/components/parameters/Cursor' }
+      responses:
+        '200':
+          description: Vendors
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/OkPage'
+                  - properties: { data: { type: array, items: { $ref: '#/components/schemas/Vendor' } } }
+        default: { $ref: '#/components/responses/Error' }
+    post:
+      tags: [Money]
+      operationId: createVendor
+      summary: Add a vendor
+      x-permission: Ed (agreed amount only $)
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IdempotencyKey' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/VendorCreate' }
+      responses:
+        '201': { $ref: '#/components/responses/VendorOne' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+        default: { $ref: '#/components/responses/Error' }
+  /vendors/{id}:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    get:
+      tags: [Money]
+      operationId: getVendor
+      summary: Vendor page. Money users also get balance.
+      x-permission: All
+      responses:
+        '200': { $ref: '#/components/responses/VendorOne' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        default: { $ref: '#/components/responses/Error' }
+    patch:
+      tags: [Money]
+      operationId: updateVendor
+      summary: Edit a vendor
+      x-permission: Ed (agreed amount only $)
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IfMatch' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/VendorUpdate' }
+      responses:
+        '200': { $ref: '#/components/responses/VendorOne' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+        default: { $ref: '#/components/responses/Error' }
+    delete:
+      tags: [Money]
+      operationId: deleteVendor
+      summary: Soft delete. Payments keep the link.
+      x-permission: Adm
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IfMatch' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      responses:
+        '200': { $ref: '#/components/responses/Deleted' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        default: { $ref: '#/components/responses/Error' }
+  /vendors/{id}/restore: { $ref: '#/components/pathItems/Restore' }
+  /payments:
+    get:
+      tags: [Money]
+      operationId: listPayments
+      summary: Payments and expenses. meta.totals has amount_paise, due_paise, paid_paise.
+      x-permission: $
+      parameters:
+        - { name: status, in: query, schema: { type: string, enum: [due, overdue, paid, no_date] } }
+        - { name: kind, in: query, schema: { type: string, enum: [payment, expense] } }
+        - { name: category, in: query, schema: { $ref: '#/components/schemas/Ulid' } }
+        - { name: vendor, in: query, schema: { $ref: '#/components/schemas/Ulid' } }
+        - { name: event, in: query, schema: { $ref: '#/components/schemas/Ulid' } }
+        - { name: month, in: query, schema: { type: string, pattern: '^\\d{4}-(0[1-9]|1[0-2])$' } }
+        - { $ref: '#/components/parameters/Q' }
+        - { name: sort, in: query, schema: { type: string, enum: [due_date, -paid_on, -amount_paise] } }
+        - { $ref: '#/components/parameters/Limit' }
+        - { $ref: '#/components/parameters/Cursor' }
+      responses:
+        '200':
+          description: Payments
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/OkPage'
+                  - properties: { data: { type: array, items: { $ref: '#/components/schemas/Payment' } } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        default: { $ref: '#/components/responses/Error' }
+    post:
+      tags: [Money]
+      operationId: createPayment
+      summary: Add a payment or expense (optionally creating the vendor)
+      x-permission: $
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IdempotencyKey' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PaymentCreate' }
+      responses:
+        '201': { $ref: '#/components/responses/PaymentOne' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+        default: { $ref: '#/components/responses/Error' }
+  /payments/{id}:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    get:
+      tags: [Money]
+      operationId: getPayment
+      summary: One payment with receipts
+      x-permission: $
+      responses:
+        '200': { $ref: '#/components/responses/PaymentOne' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        default: { $ref: '#/components/responses/Error' }
+    patch:
+      tags: [Money]
+      operationId: updatePayment
+      summary: Edit a payment
+      x-permission: $
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IfMatch' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PaymentUpdate' }
+      responses:
+        '200': { $ref: '#/components/responses/PaymentOne' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+        default: { $ref: '#/components/responses/Error' }
+    delete:
+      tags: [Money]
+      operationId: deletePayment
+      summary: Soft delete with receipts
+      x-permission: $
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IfMatch' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      responses:
+        '200': { $ref: '#/components/responses/Deleted' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        default: { $ref: '#/components/responses/Error' }
+  /payments/{id}/mark-paid:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    post:
+      tags: [Money]
+      operationId: markPaymentPaid
+      summary: Mark a due payment paid
+      x-permission: $
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IfMatch' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PaidDetails' }
+      responses:
+        '200': { $ref: '#/components/responses/PaymentOne' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+        default: { $ref: '#/components/responses/Error' }
+  /payments/{id}/pay-part:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    post:
+      tags: [Money]
+      operationId: payPart
+      summary: New Paid row + Due row reduced, in one batch
+      x-permission: $
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IfMatch' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/PaidDetails'
+                - type: object
+                  required: [amount_paise]
+                  properties:
+                    amount_paise: { $ref: '#/components/schemas/AmountPaise' }
+      responses:
+        '200':
+          description: Both rows
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Ok'
+                  - properties:
+                      data:
+                        type: object
+                        properties:
+                          paid: { $ref: '#/components/schemas/Payment' }
+                          due: { $ref: '#/components/schemas/Payment' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+        default: { $ref: '#/components/responses/Error' }
+  /payments/{id}/restore: { $ref: '#/components/pathItems/Restore' }
+
+  # ---------------------------------------------------------------- Documents
+  /documents:
+    get:
+      tags: [Documents]
+      operationId: listDocuments
+      summary: Documents this user may see
+      x-permission: All (filtered by visibility)
+      parameters:
+        - { name: type, in: query, schema: { $ref: '#/components/schemas/DocumentType' } }
+        - { name: vendor, in: query, schema: { $ref: '#/components/schemas/Ulid' } }
+        - { name: event, in: query, schema: { $ref: '#/components/schemas/Ulid' } }
+        - { name: payment, in: query, schema: { $ref: '#/components/schemas/Ulid' } }
+        - { $ref: '#/components/parameters/Q' }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 200, default: 30 } }
+        - { $ref: '#/components/parameters/Cursor' }
+      responses:
+        '200':
+          description: Documents
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/OkPage'
+                  - properties: { data: { type: array, items: { $ref: '#/components/schemas/Document' } } }
+        default: { $ref: '#/components/responses/Error' }
+    post:
+      tags: [Documents]
+      operationId: uploadDocument
+      summary: Upload one file (max 10 MB; JPEG, PNG, WebP, PDF) with details
+      x-permission: Ed (payment link needs $; is_private Adm)
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IdempotencyKey' } ]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema: { $ref: '#/components/schemas/DocumentUpload' }
+            encoding:
+              file: { contentType: 'image/jpeg, image/png, image/webp, application/pdf' }
+      responses:
+        '201': { $ref: '#/components/responses/DocumentOne' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '415': { $ref: '#/components/responses/UnsupportedMediaType' }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+        default: { $ref: '#/components/responses/Error' }
+  /documents/{id}:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    get:
+      tags: [Documents]
+      operationId: getDocument
+      summary: Document details
+      x-permission: Visible to user
+      responses:
+        '200': { $ref: '#/components/responses/DocumentOne' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        default: { $ref: '#/components/responses/Error' }
+    patch:
+      tags: [Documents]
+      operationId: updateDocument
+      summary: Edit details. The file never changes.
+      x-permission: Adm; Family own uploads
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IfMatch' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DocumentUpdate' }
+      responses:
+        '200': { $ref: '#/components/responses/DocumentOne' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        default: { $ref: '#/components/responses/Error' }
+    delete:
+      tags: [Documents]
+      operationId: deleteDocument
+      summary: Soft delete (file stays on disk)
+      x-permission: Adm; Family own uploads
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IfMatch' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      responses:
+        '200': { $ref: '#/components/responses/Deleted' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        default: { $ref: '#/components/responses/Error' }
+  /documents/{id}/file:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    get:
+      tags: [Documents]
+      operationId: downloadDocumentFile
+      summary: Stream the file after an auth and visibility check. Never a public URL.
+      x-permission: Visible to user
+      parameters:
+        - { name: download, in: query, schema: { type: boolean }, description: 'true = Content-Disposition attachment' }
+        - { name: Range, in: header, schema: { type: string }, description: Single byte range }
+      responses:
+        '200':
+          description: File bytes
+          headers:
+            ETag: { schema: { type: string }, description: SHA-256 of the file }
+            Cache-Control: { schema: { type: string, const: 'private, no-store' } }
+          content:
+            image/jpeg: { schema: { type: string, contentMediaType: image/jpeg } }
+            image/png: { schema: { type: string, contentMediaType: image/png } }
+            image/webp: { schema: { type: string, contentMediaType: image/webp } }
+            application/pdf: { schema: { type: string, contentMediaType: application/pdf } }
+        '206': { description: Partial content }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        default: { $ref: '#/components/responses/Error' }
+  /documents/{id}/restore: { $ref: '#/components/pathItems/Restore' }
+
+  # ---------------------------------------------------------------- History
+  /{resource}/{id}/history:
+    parameters:
+      - name: resource
+        in: path
+        required: true
+        schema: { type: string, enum: [households, tasks, events, vendors, payments, documents, budget-categories, tags, members] }
+      - { $ref: '#/components/parameters/Id' }
+    get:
+      tags: [History]
+      operationId: recordHistory
+      summary: Plain-sentence history of one record. Money fields hidden for non-money users.
+      x-permission: Anyone who can see the record
+      parameters: [ { $ref: '#/components/parameters/Cursor' }, { $ref: '#/components/parameters/Limit' } ]
+      responses:
+        '200': { $ref: '#/components/responses/HistoryList' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        default: { $ref: '#/components/responses/Error' }
+  /activity:
+    get:
+      tags: [History]
+      operationId: activityFeed
+      summary: Activity feed
+      x-permission: Adm
+      parameters:
+        - { name: user, in: query, schema: { $ref: '#/components/schemas/Ulid' } }
+        - { name: type, in: query, schema: { type: string } }
+        - { name: action, in: query, schema: { type: string } }
+        - { name: from, in: query, schema: { $ref: '#/components/schemas/Date' } }
+        - { name: to, in: query, schema: { $ref: '#/components/schemas/Date' } }
+        - { $ref: '#/components/parameters/Cursor' }
+        - { $ref: '#/components/parameters/Limit' }
+      responses:
+        '200': { $ref: '#/components/responses/HistoryList' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        default: { $ref: '#/components/responses/Error' }
+
+  # ---------------------------------------------------------------- Undo & Trash
+  /undo/{batch_id}:
+    parameters: [ { $ref: '#/components/parameters/BatchId' } ]
+    post:
+      tags: [Trash]
+      operationId: undoBatch
+      summary: Undo own action within 10 minutes
+      x-permission: The person who acted
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IdempotencyKey' } ]
+      responses:
+        '200': { $ref: '#/components/responses/UndoDone' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        default: { $ref: '#/components/responses/Error' }
+  /trash:
+    get:
+      tags: [Trash]
+      operationId: listTrash
+      summary: Deleted items, one row per batch, newest first
+      x-permission: Adm
+      parameters:
+        - { name: type, in: query, schema: { type: string } }
+        - { name: user, in: query, schema: { $ref: '#/components/schemas/Ulid' } }
+        - { name: from, in: query, schema: { $ref: '#/components/schemas/Date' } }
+        - { name: to, in: query, schema: { $ref: '#/components/schemas/Date' } }
+        - { $ref: '#/components/parameters/Cursor' }
+        - { $ref: '#/components/parameters/Limit' }
+      responses:
+        '200':
+          description: Batches
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/OkPage'
+                  - properties: { data: { type: array, items: { $ref: '#/components/schemas/TrashBatch' } } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        default: { $ref: '#/components/responses/Error' }
+  /trash/{batch_id}:
+    parameters: [ { $ref: '#/components/parameters/BatchId' } ]
+    get:
+      tags: [Trash]
+      operationId: getTrashBatch
+      summary: Items inside one batch
+      x-permission: Adm
+      responses:
+        '200':
+          description: Batch and items
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Ok'
+                  - properties:
+                      data:
+                        type: object
+                        properties:
+                          batch: { $ref: '#/components/schemas/TrashBatch' }
+                          items: { type: array, items: { $ref: '#/components/schemas/TrashItem' } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        default: { $ref: '#/components/responses/Error' }
+    delete:
+      tags: [Trash]
+      operationId: purgeBatch
+      summary: Purge for good. Later. Always 403 before 16 May 2027.
+      x-permission: Own
+      x-release: Later
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IdempotencyKey' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [confirm, export_id]
+              properties:
+                confirm: { type: string, const: DELETE FOREVER }
+                export_id: { $ref: '#/components/schemas/Ulid' }
+      responses:
+        '403': { $ref: '#/components/responses/Forbidden' }
+        default: { $ref: '#/components/responses/Error' }
+  /trash/{batch_id}/restore:
+    parameters: [ { $ref: '#/components/parameters/BatchId' } ]
+    post:
+      tags: [Trash]
+      operationId: restoreBatch
+      summary: Restore a whole batch or chosen items
+      x-permission: Adm
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IdempotencyKey' } ]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                items:
+                  type: array
+                  items:
+                    type: object
+                    required: [type, id]
+                    properties:
+                      type: { type: string }
+                      id: { $ref: '#/components/schemas/Ulid' }
+      responses:
+        '200':
+          description: Restore result
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Ok'
+                  - properties: { data: { $ref: '#/components/schemas/RestoreResult' } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        default: { $ref: '#/components/responses/Error' }
+
+  # ---------------------------------------------------------------- Export
+  /exports:
+    get:
+      tags: [Export]
+      operationId: listExports
+      summary: Recent exports
+      x-permission: Adm
+      responses:
+        '200':
+          description: Exports
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Ok'
+                  - properties: { data: { type: array, items: { $ref: '#/components/schemas/Export' } } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        default: { $ref: '#/components/responses/Error' }
+    post:
+      tags: [Export]
+      operationId: createExport
+      summary: Take a consistent snapshot and prepare the ZIP
+      x-permission: Adm
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IdempotencyKey' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [kind]
+              properties:
+                kind: { type: string, const: full }
+      responses:
+        '201':
+          description: Ready. download_urls carry a 24 h token (only in this reply).
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Ok'
+                  - properties: { data: { $ref: '#/components/schemas/Export' } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        default: { $ref: '#/components/responses/Error' }
+  /exports/{id}:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    get:
+      tags: [Export]
+      operationId: getExport
+      summary: One export
+      x-permission: Adm
+      responses:
+        '200':
+          description: Export
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Ok'
+                  - properties: { data: { $ref: '#/components/schemas/Export' } }
+        '404': { $ref: '#/components/responses/NotFound' }
+        default: { $ref: '#/components/responses/Error' }
+  /exports/{id}/download:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    get:
+      tags: [Export]
+      operationId: downloadExport
+      summary: Stream the ZIP (built while streaming). Admin session or the export token.
+      x-permission: Adm, or holder of the export token
+      security:
+        - sessionCookie: []
+        - exportToken: []
+      parameters:
+        - { name: part, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+      responses:
+        '200':
+          description: ZIP stream
+          headers:
+            Content-Disposition: { schema: { type: string }, description: 'attachment; filename="wedding-export_2026-10-08.zip"' }
+          content:
+            application/zip: { schema: { type: string, contentMediaType: application/zip } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '410': { $ref: '#/components/responses/Gone' }
+        default: { $ref: '#/components/responses/Error' }
+
+  # ---------------------------------------------------------------- Sync & health
+  /sync:
+    get:
+      tags: [Sync]
+      operationId: sync
+      summary: Changes since a timestamp, for the read-only offline cache
+      x-permission: All (rows filtered as in normal endpoints)
+      parameters:
+        - { name: since, in: query, schema: { $ref: '#/components/schemas/DateTime' }, description: Omit for a full snapshot }
+        - { $ref: '#/components/parameters/Cursor' }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 1000, default: 500 } }
+        - { name: types, in: query, schema: { type: string }, description: 'Comma list, e.g. events,households,invitations' }
+      responses:
+        '200':
+          description: Changes
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Ok'
+                  - properties: { data: { $ref: '#/components/schemas/SyncResult' } }
+        default: { $ref: '#/components/responses/Error' }
+  /health:
+    get:
+      tags: [Health]
+      operationId: health
+      summary: Health. Anonymous gets ok/fail only; admins get details.
+      x-permission: Anyone (details Adm)
+      security: [ {}, { sessionCookie: [] } ]
+      responses:
+        '200':
+          description: Healthy (or amber)
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/HealthPublic'
+                  - allOf:
+                      - $ref: '#/components/schemas/Ok'
+                      - properties: { data: { $ref: '#/components/schemas/Health' } }
+        '503':
+          description: Database or backup check is red
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/HealthPublic' }
+
+  /client-log:
+    post:
+      tags: [Health]
+      operationId: clientLog
+      summary: Phone-side error report (TESTING §9.3). Written to private/logs/client-error.log only.
+      description: |
+        Anyone, with or without a session. No Idempotency-Key (a duplicate line is harmless).
+        CSRF and Origin are checked when logged in. 30 per hour per session (or IP without one).
+        message max 500 characters, stack max 2,000; longer text is cut. Phone numbers are masked.
+      x-permission: Anyone
+      security: [ {}, { sessionCookie: [], csrfHeader: [] } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                at: { type: string, maxLength: 40 }
+                app_version: { type: string, maxLength: 20 }
+                device: { type: string, maxLength: 60 }
+                screen: { type: string, maxLength: 100 }
+                code: { type: string, maxLength: 60 }
+                message: { type: string, maxLength: 500 }
+                request_id: { type: string, maxLength: 40 }
+                stack: { type: string, maxLength: 2000 }
+      responses:
+        '200':
+          description: Logged
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Ok' }
+        default: { $ref: '#/components/responses/Error' }
+components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: __Host-am_session
+      description: HttpOnly; Secure; SameSite=Lax; Path=/; 90 days sliding.
+    csrfHeader:
+      type: apiKey
+      in: header
+      name: X-CSRF-Token
+      description: From POST /auth/login or GET /session. Required on every write while logged in.
+    exportToken:
+      type: apiKey
+      in: query
+      name: t
+      description: 24-hour token for one export's download only.
+
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      schema: { $ref: '#/components/schemas/Ulid' }
+    BatchId:
+      name: batch_id
+      in: path
+      required: true
+      schema: { $ref: '#/components/schemas/Ulid' }
+    IfMatch:
+      name: If-Match
+      in: header
+      required: true
+      description: The record version you loaded, quoted. Missing gives 428 version_required.
+      schema: { type: string, pattern: '^"[1-9][0-9]*"$', examples: ['"3"'] }
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      description: UUID v4. For creates it is the new record's client_uuid. Kept across retries. Stored 48 h.
+      schema: { $ref: '#/components/schemas/Uuid' }
+    Cursor:
+      name: cursor
+      in: query
+      schema: { type: string }
+    Limit:
+      name: limit
+      in: query
+      schema: { type: integer, minimum: 1, maximum: 200, default: 50 }
+    Q:
+      name: q
+      in: query
+      schema: { type: string, minLength: 2, maxLength: 80 }
+
+  responses:
+    Error:
+      description: Any error (see API.md §2.3 for codes)
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+    Unauthorized:
+      description: not_logged_in, session_ended or login_failed
+      content: { application/json: { schema: { $ref: '#/components/schemas/ErrorEnvelope' } } }
+    Forbidden:
+      description: forbidden, csrf_failed, no_money_access, access_ended, undo_expired, purge_not_allowed_yet
+      content: { application/json: { schema: { $ref: '#/components/schemas/ErrorEnvelope' } } }
+    NotFound:
+      description: not_found
+      content: { application/json: { schema: { $ref: '#/components/schemas/ErrorEnvelope' } } }
+    Conflict:
+      description: version_conflict, record_deleted, duplicate_found or request_in_progress
+      content: { application/json: { schema: { $ref: '#/components/schemas/ErrorEnvelope' } } }
+    Gone:
+      description: link_invalid or export_expired
+      content: { application/json: { schema: { $ref: '#/components/schemas/ErrorEnvelope' } } }
+    PayloadTooLarge:
+      description: file_too_big
+      content: { application/json: { schema: { $ref: '#/components/schemas/ErrorEnvelope' } } }
+    UnsupportedMediaType:
+      description: file_type_not_allowed
+      content: { application/json: { schema: { $ref: '#/components/schemas/ErrorEnvelope' } } }
+    Unprocessable:
+      description: validation_failed (with fields), rule_blocked, checksum_mismatch, idempotency_key_reused
+      content: { application/json: { schema: { $ref: '#/components/schemas/ErrorEnvelope' } } }
+    TooManyRequests:
+      description: rate_limited or login_locked
+      headers:
+        Retry-After: { schema: { type: integer } }
+      content: { application/json: { schema: { $ref: '#/components/schemas/ErrorEnvelope' } } }
+    Empty:
+      description: OK, no data
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/Ok'
+              - properties: { data: { type: object, maxProperties: 0 } }
+    Deleted:
+      description: Soft-deleted. meta.undo holds the batch for Undo.
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/Ok'
+              - properties: { data: { type: object } }
+    UndoDone:
+      description: Undo result
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/Ok'
+              - properties: { data: { $ref: '#/components/schemas/UndoResult' } }
+    HistoryList:
+      description: History lines
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/OkPage'
+              - properties: { data: { type: array, items: { $ref: '#/components/schemas/HistoryLine' } } }
+    MemberList:
+      description: Members
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/Ok'
+              - properties: { data: { type: array, items: { $ref: '#/components/schemas/Member' } } }
+    MemberOne:
+      description: Member
+      headers: { ETag: { $ref: '#/components/headers/ETag' } }
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/Ok'
+              - properties: { data: { $ref: '#/components/schemas/Member' } }
+    SettingsOne:
+      description: Settings
+      headers: { ETag: { $ref: '#/components/headers/ETag' } }
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/Ok'
+              - properties: { data: { $ref: '#/components/schemas/Settings' } }
+    RestoreDrillOne:
+      description: Restore drill
+      headers: { ETag: { $ref: '#/components/headers/ETag' } }
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/Ok'
+              - properties: { data: { $ref: '#/components/schemas/RestoreDrill' } }
+    EventOne:
+      description: Event
+      headers: { ETag: { $ref: '#/components/headers/ETag' } }
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/Ok'
+              - properties: { data: { $ref: '#/components/schemas/Event' } }
+    TaskOne:
+      description: Task
+      headers: { ETag: { $ref: '#/components/headers/ETag' } }
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/Ok'
+              - properties: { data: { $ref: '#/components/schemas/Task' } }
+    TaskItemOne:
+      description: Checklist item
+      headers: { ETag: { $ref: '#/components/headers/ETag' } }
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/Ok'
+              - properties: { data: { $ref: '#/components/schemas/TaskItem' } }
+    TagOne:
+      description: Tag
+      headers: { ETag: { $ref: '#/components/headers/ETag' } }
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/Ok'
+              - properties: { data: { $ref: '#/components/schemas/Tag' } }
+    HouseholdOne:
+      description: Family
+      headers: { ETag: { $ref: '#/components/headers/ETag' } }
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/Ok'
+              - properties: { data: { $ref: '#/components/schemas/Household' } }
+    InvitationOne:
+      description: Invitation
+      headers: { ETag: { $ref: '#/components/headers/ETag' } }
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/Ok'
+              - properties: { data: { $ref: '#/components/schemas/Invitation' } }
+    CategoryOne:
+      description: Budget category
+      headers: { ETag: { $ref: '#/components/headers/ETag' } }
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/Ok'
+              - properties: { data: { $ref: '#/components/schemas/BudgetCategory' } }
+    VendorOne:
+      description: Vendor
+      headers: { ETag: { $ref: '#/components/headers/ETag' } }
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/Ok'
+              - properties: { data: { $ref: '#/components/schemas/Vendor' } }
+    PaymentOne:
+      description: Payment
+      headers: { ETag: { $ref: '#/components/headers/ETag' } }
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/Ok'
+              - properties: { data: { $ref: '#/components/schemas/Payment' } }
+    DocumentOne:
+      description: Document
+      headers: { ETag: { $ref: '#/components/headers/ETag' } }
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/Ok'
+              - properties: { data: { $ref: '#/components/schemas/Document' } }
+
+  headers:
+    ETag:
+      description: Record version, quoted
+      schema: { type: string, examples: ['"4"'] }
+
+  # Shared path item, referenced by every /{resource}/{id}/restore path.
+  pathItems:
+    Restore:
+      parameters: [ { $ref: '#/components/parameters/Id' } ]
+      post:
+        tags: [Trash]
+        summary: Restore one record and its same-batch children
+        x-permission: Adm
+        security: [ { sessionCookie: [], csrfHeader: [] } ]
+        parameters: [ { $ref: '#/components/parameters/IfMatch' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+        responses:
+          '200':
+            description: Restored record (warnings in meta.warnings)
+            content:
+              application/json:
+                schema: { $ref: '#/components/schemas/Ok' }
+          '403': { $ref: '#/components/responses/Forbidden' }
+          '404': { $ref: '#/components/responses/NotFound' }
+          '422': { $ref: '#/components/responses/Unprocessable' }
+          default: { $ref: '#/components/responses/Error' }
+
+  schemas:
+    # ---- primitives
+    Ulid: { type: string, pattern: '^[0-9A-HJKMNP-TV-Z]{26}$', examples: ['01JA7Q3M2K8V5R1T9W4X6Y0Z2B'] }
+    Uuid: { type: string, format: uuid }
+    DateTime: { type: string, format: date-time, pattern: 'Z$', examples: ['2027-02-14T12:30:00Z'] }
+    Date: { type: string, format: date, examples: ['2026-10-20'] }
+    Time: { type: string, pattern: '^([01][0-9]|2[0-3]):[0-5][0-9]$', examples: ['18:00'] }
+    Phone: { type: string, pattern: '^\\+[1-9][0-9]{7,14}$', examples: ['+919829012345'] }
+    Paise: { type: integer, minimum: 0, examples: [12500000] }
+    AmountPaise: { type: integer, minimum: 1, maximum: 1000000000 }
+    NewPassword: { type: string, minLength: 6, maxLength: 128, description: 'Not the phone number, not in the top-100 list' }
+    Notes: { type: [string, 'null'], maxLength: 5000 }
+    Side: { type: string, enum: [bride, groom, both] }
+    Food: { type: string, enum: [veg, jain, mixed] }
+    Rsvp: { type: string, enum: [not_asked, waiting, coming, not_coming] }
+    Role: { type: string, enum: [owner, partner, family, viewer] }
+    EventType: { type: string, enum: [engagement, roka, haldi, mehndi, sangeet, mayra, wedding, reception, other] }
+    TaskStatus: { type: string, enum: [todo, doing, waiting, done, cancelled] }
+    Priority: { type: string, enum: [urgent, normal, low] }
+    VendorCategory: { type: string, enum: [venue, caterer, tent_decor, photo_video, makeup, mehndi_artist, band_dj, florist, transport, printer, pandit, jeweller, tailor, other] }
+    PaymentStatus: { type: string, enum: [due, paid] }
+    PaymentMethod: { type: string, enum: [cash, upi, bank, cheque, card, other] }
+    DocumentType: { type: string, enum: [contract, quotation, receipt, booking, id, photo, other] }
+    Ref:
+      type: [object, 'null']
+      required: [id, name]
+      properties:
+        id: { $ref: '#/components/schemas/Ulid' }
+        name: { type: string }
+        deleted: { type: boolean }
+        left: { type: boolean, description: Members only - deactivated or access ended }
+    Standard:
+      type: object
+      properties:
+        id: { $ref: '#/components/schemas/Ulid' }
+        version: { type: integer, minimum: 1 }
+        created_at: { $ref: '#/components/schemas/DateTime' }
+        created_by: { $ref: '#/components/schemas/Ref' }
+        updated_at: { $ref: '#/components/schemas/DateTime' }
+        updated_by: { $ref: '#/components/schemas/Ref' }
+
+    # ---- envelope
+    Meta:
+      type: object
+      required: [request_id, server_time]
+      properties:
+        request_id: { type: string }
+        server_time: { $ref: '#/components/schemas/DateTime' }
+        undo:
+          type: object
+          properties:
+            batch_id: { $ref: '#/components/schemas/Ulid' }
+            until: { $ref: '#/components/schemas/DateTime' }
+            summary: { type: string }
+        warnings: { type: array, items: { type: string } }
+      additionalProperties: true
+    PageMeta:
+      allOf:
+        - $ref: '#/components/schemas/Meta'
+        - type: object
+          properties:
+            total: { type: integer }
+            totals: { type: object, additionalProperties: { type: integer } }
+            next_cursor: { type: [string, 'null'] }
+            has_more: { type: boolean }
+    Ok:
+      type: object
+      required: [ok, data, meta]
+      properties:
+        ok: { const: true }
+        data: {}
+        meta: { $ref: '#/components/schemas/Meta' }
+    OkPage:
+      type: object
+      required: [ok, data, meta]
+      properties:
+        ok: { const: true }
+        data: { type: array }
+        meta: { $ref: '#/components/schemas/PageMeta' }
+    Error:
+      type: object
+      required: [code, message]
+      properties:
+        code: { type: string, examples: [validation_failed] }
+        message: { type: string, description: Plain English, safe to show }
+        fields: { type: object, additionalProperties: { type: string } }
+        reason: { type: string }
+        rule: { type: string }
+        retry_after_seconds: { type: integer }
+        max_bytes: { type: integer }
+        current: { type: object, description: 'version_conflict: the record now' }
+        current_version: { type: integer }
+        your_version: { type: integer }
+        changed_by: { $ref: '#/components/schemas/Ref' }
+        changed_at: { $ref: '#/components/schemas/DateTime' }
+        changed_fields: { type: array, items: { type: string } }
+        deleted_by: { $ref: '#/components/schemas/Ref' }
+        deleted_at: { $ref: '#/components/schemas/DateTime' }
+        can_restore: { type: boolean }
+        matches: { type: array, items: { $ref: '#/components/schemas/Match' } }
+      additionalProperties: true
+    ErrorEnvelope:
+      type: object
+      required: [ok, error, meta]
+      properties:
+        ok: { const: false }
+        error: { $ref: '#/components/schemas/Error' }
+        meta: { $ref: '#/components/schemas/Meta' }
+
+    # ---- auth & members
+    LoginRequest:
+      type: object
+      required: [phone, password]
+      properties:
+        phone: { type: string, maxLength: 20 }
+        password: { type: string, maxLength: 128 }
+    LinkToken:
+      type: object
+      required: [token]
+      properties:
+        token: { type: string, minLength: 40, maxLength: 64 }
+    AuthUser:
+      type: object
+      properties:
+        id: { $ref: '#/components/schemas/Ulid' }
+        name: { type: string }
+        phone: { $ref: '#/components/schemas/Phone' }
+        role: { $ref: '#/components/schemas/Role' }
+        can_see_money: { type: boolean }
+        access_ends_on: { oneOf: [ { $ref: '#/components/schemas/Date' }, { type: 'null' } ] }
+        must_change_password: { type: boolean }
+    AuthResult:
+      type: object
+      required: [user, csrf_token]
+      properties:
+        user: { $ref: '#/components/schemas/AuthUser' }
+        csrf_token: { type: string }
+    Permissions:
+      type: object
+      properties:
+        money: { type: boolean }
+        edit: { type: boolean }
+        admin: { type: boolean }
+        owner: { type: boolean }
+        events_write: { type: boolean }
+        trash: { type: boolean }
+        export: { type: boolean }
+        activity: { type: boolean }
+    SessionInfo:
+      type: object
+      properties:
+        user: { $ref: '#/components/schemas/AuthUser' }
+        permissions: { $ref: '#/components/schemas/Permissions' }
+        csrf_token: { type: string }
+        settings_brief:
+          type: object
+          properties:
+            bride_side_label: { type: string }
+            groom_side_label: { type: string }
+            wedding_start_date: { $ref: '#/components/schemas/Date' }
+            wedding_end_date: { $ref: '#/components/schemas/Date' }
+    Member:
+      allOf:
+        - $ref: '#/components/schemas/Standard'
+        - type: object
+          properties:
+            name: { type: string, maxLength: 80 }
+            phone: { $ref: '#/components/schemas/Phone' }
+            email: { type: [string, 'null'] }
+            role: { $ref: '#/components/schemas/Role' }
+            can_see_money: { type: boolean }
+            is_active: { type: boolean }
+            access_ends_on: { oneOf: [ { $ref: '#/components/schemas/Date' }, { type: 'null' } ] }
+            left: { type: boolean }
+            last_seen_at: { oneOf: [ { $ref: '#/components/schemas/DateTime' }, { type: 'null' } ] }
+            has_logged_in: { type: boolean }
+    MemberCreate:
+      type: object
+      required: [name, phone, role, password_mode]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 80 }
+        phone: { type: string }
+        role: { type: string, enum: [partner, family, viewer] }
+        can_see_money: { type: boolean, default: false }
+        access_ends_on: { oneOf: [ { $ref: '#/components/schemas/Date' }, { type: 'null' } ] }
+        email: { type: [string, 'null'], format: email }
+        password_mode: { type: string, enum: [set, generate, link] }
+        password: { $ref: '#/components/schemas/NewPassword' }
+    MemberCreated:
+      type: object
+      properties:
+        member: { $ref: '#/components/schemas/Member' }
+        password_once: { type: [string, 'null'] }
+        setup_link: { type: [string, 'null'] }
+        setup_link_expires_at: { oneOf: [ { $ref: '#/components/schemas/DateTime' }, { type: 'null' } ] }
+    MemberUpdate:
+      type: object
+      minProperties: 1
+      properties:
+        name: { type: string, minLength: 1, maxLength: 80 }
+        phone: { type: string }
+        role: { type: string, enum: [partner, family, viewer] }
+        can_see_money: { type: boolean }
+        is_active: { type: boolean }
+        access_ends_on: { oneOf: [ { $ref: '#/components/schemas/Date' }, { type: 'null' } ] }
+        email: { type: [string, 'null'], format: email }
+
+    # ---- settings & safety
+    Settings:
+      type: object
+      properties:
+        version: { type: integer }
+        bride_name: { type: string }
+        groom_name: { type: string }
+        bride_side_label: { type: string }
+        groom_side_label: { type: string }
+        wedding_start_date: { $ref: '#/components/schemas/Date' }
+        wedding_end_date: { $ref: '#/components/schemas/Date' }
+        city: { type: string }
+        total_budget_paise: { type: [integer, 'null'], minimum: 0, description: Money users only }
+        timezone: { type: string, const: Asia/Kolkata }
+        currency: { type: string, const: INR }
+        updated_at: { $ref: '#/components/schemas/DateTime' }
+        updated_by: { $ref: '#/components/schemas/Ref' }
+    SettingsUpdate:
+      type: object
+      minProperties: 1
+      properties:
+        bride_name: { type: string, minLength: 1, maxLength: 80 }
+        groom_name: { type: string, minLength: 1, maxLength: 80 }
+        bride_side_label: { type: string, minLength: 1, maxLength: 40 }
+        groom_side_label: { type: string, minLength: 1, maxLength: 40 }
+        wedding_start_date: { $ref: '#/components/schemas/Date' }
+        wedding_end_date: { $ref: '#/components/schemas/Date' }
+        city: { type: string, minLength: 1, maxLength: 60 }
+        total_budget_paise: { type: [integer, 'null'], minimum: 0 }
+    BackupRun:
+      type: object
+      properties:
+        kind: { type: string, enum: [nightly_db, manual_db, pre_migration] }
+        status: { type: string, enum: [running, ok, failed] }
+        started_at: { $ref: '#/components/schemas/DateTime' }
+        finished_at: { oneOf: [ { $ref: '#/components/schemas/DateTime' }, { type: 'null' } ] }
+        file_name: { type: [string, 'null'] }
+        size_bytes: { type: [integer, 'null'] }
+        destination: { type: [string, 'null'] }
+        audit_row_count: { type: [integer, 'null'] }
+        audit_max_id: { type: [integer, 'null'] }
+        error: { type: [string, 'null'] }
+    RestoreDrillInput:
+      type: object
+      properties:
+        done_on: { $ref: '#/components/schemas/Date' }
+        result: { type: string, enum: [passed, failed] }
+        backup_file: { type: [string, 'null'], maxLength: 120 }
+        notes: { $ref: '#/components/schemas/Notes' }
+    RestoreDrill:
+      allOf:
+        - $ref: '#/components/schemas/Standard'
+        - $ref: '#/components/schemas/RestoreDrillInput'
+        - type: object
+          properties:
+            done_by: { $ref: '#/components/schemas/Ref' }
+
+    # ---- dashboard & calendar
+    Dashboard:
+      type: object
+      description: Only cards the user may see are present.
+      properties:
+        countdown:
+          type: object
+          properties:
+            days_to_wedding: { type: [integer, 'null'] }
+            wedding_day: { type: [integer, 'null'], description: '1..3 during the wedding' }
+            next_event: { oneOf: [ { $ref: '#/components/schemas/Event' }, { type: 'null' } ] }
+        my_tasks: { type: object, properties: { items: { type: array, items: { $ref: '#/components/schemas/Task' } }, total: { type: integer } } }
+        overdue: { type: object, properties: { total: { type: integer } } }
+        payments_due:
+          type: object
+          properties:
+            items: { type: array, items: { $ref: '#/components/schemas/Payment' } }
+            total: { type: integer }
+            total_paise: { $ref: '#/components/schemas/Paise' }
+            window_days: { type: integer }
+        headcount: { type: array, items: { $ref: '#/components/schemas/Headcount' } }
+        budget: { $ref: '#/components/schemas/MoneySummary' }
+        safety: { $ref: '#/components/schemas/Health' }
+        recent_activity: { type: array, items: { $ref: '#/components/schemas/HistoryLine' } }
+        start_here: { type: array, items: { type: object, properties: { key: { type: string }, done: { type: boolean } } } }
+    CalendarItem:
+      type: object
+      properties:
+        type: { type: string, enum: [event, task, payment] }
+        id: { $ref: '#/components/schemas/Ulid' }
+        title: { type: string }
+        date: { $ref: '#/components/schemas/Date' }
+        time: { oneOf: [ { $ref: '#/components/schemas/Time' }, { type: 'null' } ] }
+        start_at: { oneOf: [ { $ref: '#/components/schemas/DateTime' }, { type: 'null' } ] }
+        end_at: { oneOf: [ { $ref: '#/components/schemas/DateTime' }, { type: 'null' } ] }
+        status: { type: [string, 'null'] }
+        overdue: { type: boolean }
+        side: { oneOf: [ { $ref: '#/components/schemas/Side' }, { type: 'null' } ] }
+        linked_event: { $ref: '#/components/schemas/Ref' }
+
+    # ---- events
+    EventFields:
+      type: object
+      properties:
+        name: { type: string, minLength: 1, maxLength: 80 }
+        type: { $ref: '#/components/schemas/EventType' }
+        side: { $ref: '#/components/schemas/Side' }
+        guests_invited: { type: boolean }
+        start_at: { oneOf: [ { $ref: '#/components/schemas/DateTime' }, { type: 'null' } ] }
+        end_at: { oneOf: [ { $ref: '#/components/schemas/DateTime' }, { type: 'null' } ] }
+        all_day: { type: boolean }
+        venue_name: { type: [string, 'null'], maxLength: 120 }
+        venue_address: { type: [string, 'null'], maxLength: 300 }
+        map_url: { type: [string, 'null'], maxLength: 500, pattern: '^https://' }
+        dress_code: { type: [string, 'null'], maxLength: 120 }
+        notes: { $ref: '#/components/schemas/Notes' }
+    EventCreate:
+      allOf:
+        - $ref: '#/components/schemas/EventFields'
+        - type: object
+          required: [name, type]
+          properties:
+            allow_duplicate: { type: boolean }
+    EventUpdate:
+      allOf:
+        - $ref: '#/components/schemas/EventFields'
+        - type: object
+          minProperties: 1
+    Event:
+      allOf:
+        - $ref: '#/components/schemas/Standard'
+        - $ref: '#/components/schemas/EventFields'
+        - type: object
+          properties:
+            sort_order: { type: integer }
+            counts:
+              type: object
+              properties:
+                tasks: { type: integer }
+                invitations: { type: integer }
+                payments: { type: integer, description: Money users only }
+                documents: { type: integer }
+            headcount: { $ref: '#/components/schemas/Headcount' }
+    Headcount:
+      type: object
+      properties:
+        event: { $ref: '#/components/schemas/Ref' }
+        families_invited: { type: integer }
+        families_coming: { type: integer }
+        families_not_coming: { type: integer }
+        people_coming: { type: integer }
+        people_waiting: { type: integer }
+        people_not_asked: { type: integer }
+        people_up_to: { type: integer }
+        jain_coming: { type: integer }
+
+    # ---- tasks
+    TaskItem:
+      type: object
+      properties:
+        key: { $ref: '#/components/schemas/Uuid' }
+        version: { type: integer }
+        text: { type: string, maxLength: 200 }
+        is_done: { type: boolean }
+        sort_order: { type: integer }
+        done_by: { $ref: '#/components/schemas/Ref' }
+        done_at: { oneOf: [ { $ref: '#/components/schemas/DateTime' }, { type: 'null' } ] }
+    TaskFields:
+      type: object
+      properties:
+        title: { type: string, minLength: 1, maxLength: 200 }
+        notes: { $ref: '#/components/schemas/Notes' }
+        status: { $ref: '#/components/schemas/TaskStatus' }
+        priority: { $ref: '#/components/schemas/Priority' }
+        due_date: { oneOf: [ { $ref: '#/components/schemas/Date' }, { type: 'null' } ] }
+        due_time: { oneOf: [ { $ref: '#/components/schemas/Time' }, { type: 'null' } ], description: Needs due_date }
+        event_id: { oneOf: [ { $ref: '#/components/schemas/Ulid' }, { type: 'null' } ] }
+        vendor_id: { oneOf: [ { $ref: '#/components/schemas/Ulid' }, { type: 'null' } ] }
+        household_id: { oneOf: [ { $ref: '#/components/schemas/Ulid' }, { type: 'null' } ] }
+        assignee_ids: { type: array, maxItems: 10, items: { $ref: '#/components/schemas/Ulid' } }
+        tag_ids: { type: array, maxItems: 10, items: { $ref: '#/components/schemas/Ulid' } }
+        new_tags: { type: array, maxItems: 10, items: { type: string, minLength: 1, maxLength: 30 } }
+        items:
+          type: array
+          maxItems: 100
+          items:
+            type: object
+            required: [key, text]
+            properties:
+              key: { $ref: '#/components/schemas/Uuid' }
+              text: { type: string, minLength: 1, maxLength: 200 }
+              is_done: { type: boolean }
+              sort_order: { type: integer }
+    TaskCreate:
+      allOf:
+        - $ref: '#/components/schemas/TaskFields'
+        - type: object
+          required: [title]
+          properties:
+            allow_duplicate: { type: boolean }
+    TaskUpdate:
+      allOf:
+        - $ref: '#/components/schemas/TaskFields'
+        - type: object
+          minProperties: 1
+    Task:
+      allOf:
+        - $ref: '#/components/schemas/Standard'
+        - type: object
+          properties:
+            title: { type: string }
+            notes: { $ref: '#/components/schemas/Notes' }
+            status: { $ref: '#/components/schemas/TaskStatus' }
+            priority: { $ref: '#/components/schemas/Priority' }
+            due_date: { oneOf: [ { $ref: '#/components/schemas/Date' }, { type: 'null' } ] }
+            due_time: { oneOf: [ { $ref: '#/components/schemas/Time' }, { type: 'null' } ] }
+            overdue: { type: boolean }
+            postpone_count: { type: integer }
+            event: { $ref: '#/components/schemas/Ref' }
+            vendor: { $ref: '#/components/schemas/Ref' }
+            household: { $ref: '#/components/schemas/Ref' }
+            assignees: { type: array, items: { $ref: '#/components/schemas/Ref' } }
+            tags: { type: array, items: { $ref: '#/components/schemas/Ref' } }
+            items: { type: array, items: { $ref: '#/components/schemas/TaskItem' } }
+            completed_at: { oneOf: [ { $ref: '#/components/schemas/DateTime' }, { type: 'null' } ] }
+            completed_by: { $ref: '#/components/schemas/Ref' }
+    TagInput:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 30 }
+    Tag:
+      allOf:
+        - $ref: '#/components/schemas/Standard'
+        - type: object
+          properties:
+            name: { type: string }
+            task_count: { type: integer }
+
+    # ---- guests
+    HouseholdFields:
+      type: object
+      properties:
+        name: { type: string, minLength: 1, maxLength: 120 }
+        phone: { type: [string, 'null'] }
+        alt_phone: { type: [string, 'null'] }
+        side: { $ref: '#/components/schemas/Side' }
+        group_name: { type: [string, 'null'], maxLength: 80 }
+        relation: { type: [string, 'null'], maxLength: 40 }
+        area: { type: [string, 'null'], maxLength: 80 }
+        city: { type: [string, 'null'], maxLength: 60 }
+        address: { type: [string, 'null'], maxLength: 300 }
+        adults: { type: integer, minimum: 0, maximum: 50 }
+        children: { type: integer, minimum: 0, maximum: 50 }
+        food: { $ref: '#/components/schemas/Food' }
+        jain_count: { type: integer, minimum: 0, maximum: 100 }
+        is_vip: { type: boolean }
+        notes: { $ref: '#/components/schemas/Notes' }
+    HouseholdCreate:
+      allOf:
+        - $ref: '#/components/schemas/HouseholdFields'
+        - type: object
+          required: [name, side]
+          properties:
+            invite_event_ids: { type: array, items: { $ref: '#/components/schemas/Ulid' } }
+            allow_duplicate: { type: boolean }
+    HouseholdUpdate:
+      allOf:
+        - $ref: '#/components/schemas/HouseholdFields'
+        - type: object
+          minProperties: 1
+          properties:
+            allow_duplicate: { type: boolean }
+    Household:
+      allOf:
+        - $ref: '#/components/schemas/Standard'
+        - $ref: '#/components/schemas/HouseholdFields'
+        - type: object
+          properties:
+            people: { type: integer }
+            possible_duplicate: { type: boolean }
+            invitations: { type: array, items: { $ref: '#/components/schemas/Invitation' } }
+    Invitation:
+      type: object
+      properties:
+        household_id: { $ref: '#/components/schemas/Ulid' }
+        event: { $ref: '#/components/schemas/Ref' }
+        version: { type: integer }
+        rsvp: { $ref: '#/components/schemas/Rsvp' }
+        expected_adults: { type: [integer, 'null'] }
+        expected_children: { type: [integer, 'null'] }
+        people: { type: integer }
+        rsvp_note: { type: [string, 'null'] }
+        rsvp_updated_at: { oneOf: [ { $ref: '#/components/schemas/DateTime' }, { type: 'null' } ] }
+        rsvp_updated_by: { $ref: '#/components/schemas/Ref' }
+        last_reminder_opened_at: { oneOf: [ { $ref: '#/components/schemas/DateTime' }, { type: 'null' } ] }
+    InvitationUpdate:
+      type: object
+      minProperties: 1
+      properties:
+        rsvp: { $ref: '#/components/schemas/Rsvp' }
+        expected_adults: { type: [integer, 'null'], minimum: 0, maximum: 50 }
+        expected_children: { type: [integer, 'null'], minimum: 0, maximum: 50 }
+        rsvp_note: { type: [string, 'null'], maxLength: 200 }
+    Match:
+      type: object
+      properties:
+        id: { $ref: '#/components/schemas/Ulid' }
+        name: { type: string }
+        side: { type: [string, 'null'] }
+        phone: { type: [string, 'null'] }
+        added_by: { $ref: '#/components/schemas/Ref' }
+        match_on: { type: string, enum: [phone, alt_phone, name_city, title, same_vendor_amount, sha256] }
+    BulkRequest:
+      type: object
+      required: [action, as_of]
+      properties:
+        action: { type: string, enum: [invite, uninvite, set_rsvp, set_side, delete] }
+        event_id: { $ref: '#/components/schemas/Ulid' }
+        rsvp: { $ref: '#/components/schemas/Rsvp' }
+        side: { $ref: '#/components/schemas/Side' }
+        as_of: { $ref: '#/components/schemas/DateTime' }
+        ids: { type: array, maxItems: 2000, items: { $ref: '#/components/schemas/Ulid' } }
+        filter: { type: object, description: Same keys as GET /households, applied on the server }
+      oneOf:
+        - required: [ids]
+        - required: [filter]
+    BulkResult:
+      type: object
+      properties:
+        affected: { type: integer }
+        skipped:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { $ref: '#/components/schemas/Ulid' }
+              name: { type: string }
+              reason: { type: string, enum: [changed_since_loaded, already_invited, not_invited, deleted] }
+              changed_by: { $ref: '#/components/schemas/Ref' }
+        batch_id: { $ref: '#/components/schemas/Ulid' }
+
+    # ---- imports
+    ImportRow:
+      type: object
+      required: [row_no]
+      properties:
+        row_no: { type: integer, minimum: 1 }
+        name: { type: [string, 'null'] }
+        phone: { type: [string, 'null'] }
+        alt_phone: { type: [string, 'null'] }
+        side: { type: [string, 'null'] }
+        group_name: { type: [string, 'null'] }
+        relation: { type: [string, 'null'] }
+        area: { type: [string, 'null'] }
+        city: { type: [string, 'null'] }
+        address: { type: [string, 'null'] }
+        adults: { type: [integer, 'null'] }
+        children: { type: [integer, 'null'] }
+        food: { type: [string, 'null'] }
+        jain_count: { type: [integer, 'null'] }
+        is_vip: { type: [boolean, 'null'] }
+        notes: { type: [string, 'null'] }
+        event_ids: { type: array, items: { $ref: '#/components/schemas/Ulid' } }
+        decision: { type: string, enum: [add, skip, add_anyway, update_existing], description: Only for POST /imports }
+        update_target_id: { $ref: '#/components/schemas/Ulid' }
+    ImportRequest:
+      type: object
+      required: [source, rows]
+      properties:
+        source: { type: string, enum: [xlsx, csv, paste, vcf] }
+        file_name: { type: [string, 'null'], maxLength: 255 }
+        defaults:
+          type: object
+          properties:
+            side: { $ref: '#/components/schemas/Side' }
+            event_ids: { type: array, items: { $ref: '#/components/schemas/Ulid' } }
+            city: { type: [string, 'null'] }
+        rows: { type: array, maxItems: 3000, items: { $ref: '#/components/schemas/ImportRow' } }
+    ImportPreview:
+      type: object
+      properties:
+        counts:
+          type: object
+          properties:
+            new: { type: integer }
+            duplicates: { type: integer }
+            errors: { type: integer }
+            skipped_examples: { type: integer }
+        rows:
+          type: array
+          items:
+            type: object
+            properties:
+              row_no: { type: integer }
+              status: { type: string, enum: [new, duplicate, error, skipped_example] }
+              errors: { type: object, additionalProperties: { type: string } }
+              matches: { type: array, items: { $ref: '#/components/schemas/Match' } }
+              normalised: { $ref: '#/components/schemas/ImportRow' }
+    Import:
+      allOf:
+        - $ref: '#/components/schemas/Standard'
+        - type: object
+          properties:
+            source: { type: string }
+            file_name: { type: [string, 'null'] }
+            rows_read: { type: integer }
+            created_count: { type: integer }
+            updated_count: { type: integer }
+            skipped_count: { type: integer }
+            error_count: { type: integer }
+            invitations_count: { type: integer }
+            batch_id: { $ref: '#/components/schemas/Ulid' }
+            undone_at: { oneOf: [ { $ref: '#/components/schemas/DateTime' }, { type: 'null' } ] }
+
+    # ---- money
+    CategoryInput:
+      type: object
+      properties:
+        name: { type: string, minLength: 1, maxLength: 60 }
+        planned_paise: { $ref: '#/components/schemas/Paise' }
+        sort_order: { type: integer }
+    BudgetCategory:
+      allOf:
+        - $ref: '#/components/schemas/Standard'
+        - type: object
+          properties:
+            name: { type: string }
+            planned_paise: { $ref: '#/components/schemas/Paise' }
+            spent_paise: { $ref: '#/components/schemas/Paise' }
+            due_paise: { $ref: '#/components/schemas/Paise' }
+            left_paise: { type: integer, description: Can be negative }
+            is_over: { type: boolean }
+            is_fallback: { type: boolean }
+            sort_order: { type: integer }
+            deleted: { type: boolean, description: True only when shown because it still holds live money }
+    MoneySummary:
+      type: object
+      properties:
+        planned_paise: { $ref: '#/components/schemas/Paise' }
+        spent_paise: { $ref: '#/components/schemas/Paise' }
+        still_to_pay_paise: { $ref: '#/components/schemas/Paise' }
+        left_paise: { type: integer }
+        free_paise: { type: integer, description: 'Negative = Over by' }
+        not_yet_split_paise: { type: integer }
+        categories: { type: array, items: { $ref: '#/components/schemas/BudgetCategory' } }
+    VendorFields:
+      type: object
+      properties:
+        name: { type: string, minLength: 1, maxLength: 120 }
+        category: { $ref: '#/components/schemas/VendorCategory' }
+        contact_person: { type: [string, 'null'], maxLength: 80 }
+        phone: { type: [string, 'null'] }
+        alt_phone: { type: [string, 'null'] }
+        agreed_amount_paise: { type: [integer, 'null'], minimum: 0, description: Money users only }
+        is_booked: { type: boolean }
+        notes: { $ref: '#/components/schemas/Notes' }
+    VendorCreate:
+      allOf:
+        - $ref: '#/components/schemas/VendorFields'
+        - type: object
+          required: [name, category]
+          properties:
+            allow_duplicate: { type: boolean }
+    VendorUpdate:
+      allOf:
+        - $ref: '#/components/schemas/VendorFields'
+        - type: object
+          minProperties: 1
+    Vendor:
+      allOf:
+        - $ref: '#/components/schemas/Standard'
+        - $ref: '#/components/schemas/VendorFields'
+        - type: object
+          properties:
+            balance:
+              type: object
+              description: Money users only
+              properties:
+                agreed_paise: { type: [integer, 'null'] }
+                paid_paise: { $ref: '#/components/schemas/Paise' }
+                due_paise: { $ref: '#/components/schemas/Paise' }
+                not_scheduled_paise: { type: integer, description: 'Negative = more than agreed' }
+    PaidDetails:
+      type: object
+      required: [paid_on, method]
+      properties:
+        paid_on: { $ref: '#/components/schemas/Date' }
+        method: { $ref: '#/components/schemas/PaymentMethod' }
+        paid_by: { type: [string, 'null'], maxLength: 60 }
+        reference: { type: [string, 'null'], maxLength: 60 }
+    PaymentFields:
+      type: object
+      properties:
+        title: { type: string, minLength: 1, maxLength: 120 }
+        amount_paise: { $ref: '#/components/schemas/AmountPaise' }
+        category_id: { $ref: '#/components/schemas/Ulid' }
+        vendor_id: { oneOf: [ { $ref: '#/components/schemas/Ulid' }, { type: 'null' } ] }
+        event_id: { oneOf: [ { $ref: '#/components/schemas/Ulid' }, { type: 'null' } ] }
+        status: { $ref: '#/components/schemas/PaymentStatus' }
+        due_date: { oneOf: [ { $ref: '#/components/schemas/Date' }, { type: 'null' } ] }
+        paid_on: { oneOf: [ { $ref: '#/components/schemas/Date' }, { type: 'null' } ] }
+        method: { oneOf: [ { $ref: '#/components/schemas/PaymentMethod' }, { type: 'null' } ] }
+        paid_by: { type: [string, 'null'], maxLength: 60 }
+        reference: { type: [string, 'null'], maxLength: 60 }
+        notes: { $ref: '#/components/schemas/Notes' }
+    PaymentCreate:
+      allOf:
+        - $ref: '#/components/schemas/PaymentFields'
+        - type: object
+          required: [title, amount_paise]
+          properties:
+            new_vendor:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string, minLength: 1, maxLength: 120 }
+                category: { $ref: '#/components/schemas/VendorCategory' }
+                phone: { type: [string, 'null'] }
+            allow_duplicate: { type: boolean }
+    PaymentUpdate:
+      allOf:
+        - $ref: '#/components/schemas/PaymentFields'
+        - type: object
+          minProperties: 1
+    Payment:
+      allOf:
+        - $ref: '#/components/schemas/Standard'
+        - type: object
+          properties:
+            title: { type: string }
+            kind: { type: string, enum: [payment, expense] }
+            amount_paise: { $ref: '#/components/schemas/AmountPaise' }
+            status: { $ref: '#/components/schemas/PaymentStatus' }
+            overdue: { type: boolean }
+            no_date: { type: boolean }
+            due_date: { oneOf: [ { $ref: '#/components/schemas/Date' }, { type: 'null' } ] }
+            paid_on: { oneOf: [ { $ref: '#/components/schemas/Date' }, { type: 'null' } ] }
+            method: { oneOf: [ { $ref: '#/components/schemas/PaymentMethod' }, { type: 'null' } ] }
+            paid_by: { type: [string, 'null'] }
+            reference: { type: [string, 'null'] }
+            notes: { $ref: '#/components/schemas/Notes' }
+            category: { $ref: '#/components/schemas/Ref' }
+            vendor: { $ref: '#/components/schemas/Ref' }
+            event: { $ref: '#/components/schemas/Ref' }
+            split_from: { $ref: '#/components/schemas/Ref' }
+            receipt_count: { type: integer }
+
+    # ---- documents
+    DocumentUpload:
+      type: object
+      required: [file, sha256, type]
+      properties:
+        file: { type: string, contentMediaType: application/octet-stream, description: Max 10 MB }
+        sha256: { type: string, pattern: '^[0-9a-f]{64}$' }
+        type: { $ref: '#/components/schemas/DocumentType' }
+        title: { type: string, maxLength: 120 }
+        payment_id: { $ref: '#/components/schemas/Ulid' }
+        vendor_id: { $ref: '#/components/schemas/Ulid' }
+        event_id: { $ref: '#/components/schemas/Ulid' }
+        is_private: { type: boolean }
+        notes: { type: string, maxLength: 5000 }
+        allow_duplicate: { type: boolean }
+    DocumentUpdate:
+      type: object
+      minProperties: 1
+      properties:
+        title: { type: string, minLength: 1, maxLength: 120 }
+        type: { $ref: '#/components/schemas/DocumentType' }
+        payment_id: { oneOf: [ { $ref: '#/components/schemas/Ulid' }, { type: 'null' } ] }
+        vendor_id: { oneOf: [ { $ref: '#/components/schemas/Ulid' }, { type: 'null' } ] }
+        event_id: { oneOf: [ { $ref: '#/components/schemas/Ulid' }, { type: 'null' } ] }
+        is_private: { type: boolean }
+        notes: { $ref: '#/components/schemas/Notes' }
+    Document:
+      allOf:
+        - $ref: '#/components/schemas/Standard'
+        - type: object
+          properties:
+            title: { type: string }
+            type: { $ref: '#/components/schemas/DocumentType' }
+            is_private: { type: boolean }
+            notes: { $ref: '#/components/schemas/Notes' }
+            file:
+              type: object
+              properties:
+                id: { $ref: '#/components/schemas/Ulid' }
+                original_name: { type: string }
+                mime_type: { type: string, enum: [image/jpeg, image/png, image/webp, application/pdf] }
+                size_bytes: { type: integer, maximum: 10485760 }
+                sha256: { type: string }
+                width_px: { type: [integer, 'null'] }
+                height_px: { type: [integer, 'null'] }
+            payment: { $ref: '#/components/schemas/Ref' }
+            vendor: { $ref: '#/components/schemas/Ref' }
+            event: { $ref: '#/components/schemas/Ref' }
+            file_url: { type: string, examples: ['/api/v1/documents/01JA7V4K2C8M0Q4S6T8V0W2X4Y/file'] }
+
+    # ---- history, undo, trash
+    HistoryLine:
+      type: object
+      properties:
+        at: { $ref: '#/components/schemas/DateTime' }
+        action: { type: string }
+        user: { $ref: '#/components/schemas/Ref' }
+        device: { type: [string, 'null'] }
+        entity:
+          type: object
+          properties:
+            type: { type: string }
+            id: { $ref: '#/components/schemas/Ulid' }
+            name: { type: string }
+        sentence: { type: string }
+        changes:
+          type: array
+          items:
+            type: object
+            properties:
+              field: { type: string }
+              label: { type: string }
+              from: {}
+              to: {}
+        batch_id: { oneOf: [ { $ref: '#/components/schemas/Ulid' }, { type: 'null' } ] }
+    UndoResult:
+      type: object
+      properties:
+        batch_id: { $ref: '#/components/schemas/Ulid' }
+        undone: { type: integer }
+        skipped:
+          type: array
+          items:
+            type: object
+            properties:
+              type: { type: string }
+              id: { $ref: '#/components/schemas/Ulid' }
+              name: { type: string }
+              reason: { type: string }
+              changed_by: { $ref: '#/components/schemas/Ref' }
+        message: { type: string }
+        already_undone: { type: boolean }
+    TrashBatch:
+      type: object
+      properties:
+        batch_id: { $ref: '#/components/schemas/Ulid' }
+        action: { type: string }
+        entity_type: { type: string }
+        summary: { type: string }
+        item_count: { type: integer }
+        user: { $ref: '#/components/schemas/Ref' }
+        deleted_at: { $ref: '#/components/schemas/DateTime' }
+        restorable: { type: boolean }
+    TrashItem:
+      type: object
+      properties:
+        type: { type: string }
+        id: { type: [string, 'null'], description: 'public_id; null for children without one (invitations)' }
+        name: { type: string }
+        child_count: { type: integer }
+    RestoreResult:
+      type: object
+      properties:
+        restored: { type: integer }
+        blocked:
+          type: array
+          items:
+            type: object
+            properties:
+              type: { type: string }
+              id: { type: [string, 'null'] }
+              name: { type: string }
+              reason: { type: string }
+        warnings: { type: array, items: { type: string } }
+        already_restored: { type: boolean }
+
+    # ---- export, sync, health
+    Export:
+      type: object
+      properties:
+        id: { $ref: '#/components/schemas/Ulid' }
+        kind: { type: string, enum: [full, guest_csv] }
+        status: { type: string, enum: [queued, running, ready, failed, expired] }
+        parts: { type: integer }
+        size_bytes: { type: [integer, 'null'] }
+        files_bytes: { type: [integer, 'null'] }
+        created_at: { $ref: '#/components/schemas/DateTime' }
+        expires_at: { oneOf: [ { $ref: '#/components/schemas/DateTime' }, { type: 'null' } ] }
+        download_urls: { type: array, items: { type: string } }
+        requested_by: { $ref: '#/components/schemas/Ref' }
+        error: { type: [string, 'null'] }
+    SyncResult:
+      type: object
+      properties:
+        server_time: { $ref: '#/components/schemas/DateTime' }
+        next_since: { $ref: '#/components/schemas/DateTime' }
+        has_more: { type: boolean }
+        cursor: { type: [string, 'null'] }
+        full_resync_required: { type: boolean }
+        changes:
+          type: object
+          properties:
+            settings: { oneOf: [ { $ref: '#/components/schemas/Settings' }, { type: 'null' } ] }
+            members: { type: array, items: { $ref: '#/components/schemas/Member' } }
+            events: { type: array, items: { $ref: '#/components/schemas/Event' } }
+            households: { type: array, items: { $ref: '#/components/schemas/Household' } }
+            invitations: { type: array, items: { $ref: '#/components/schemas/Invitation' } }
+            tasks: { type: array, items: { $ref: '#/components/schemas/Task' } }
+            tags: { type: array, items: { $ref: '#/components/schemas/Tag' } }
+            vendors: { type: array, items: { $ref: '#/components/schemas/Vendor' } }
+            documents: { type: array, items: { $ref: '#/components/schemas/Document' } }
+            payments: { type: array, items: { $ref: '#/components/schemas/Payment' } }
+            budget_categories: { type: array, items: { $ref: '#/components/schemas/BudgetCategory' } }
+        deleted:
+          type: array
+          items:
+            type: object
+            required: [type, deleted_at]
+            properties:
+              type: { type: string }
+              id: { $ref: '#/components/schemas/Ulid' }
+              household_id: { $ref: '#/components/schemas/Ulid' }
+              event_id: { $ref: '#/components/schemas/Ulid' }
+              deleted_at: { $ref: '#/components/schemas/DateTime' }
+    HealthPublic:
+      type: object
+      required: [status]
+      properties:
+        status: { type: string, enum: [ok, fail] }
+    HealthCheck:
+      type: object
+      required: [status]
+      properties:
+        status: { type: string, enum: [green, amber, red, not_in_use] }
+      additionalProperties: true
+    Health:
+      type: object
+      properties:
+        status: { type: string, enum: [green, amber, red] }
+        checked_at: { $ref: '#/components/schemas/DateTime' }
+        app_version: { type: string }
+        checks:
+          type: object
+          properties:
+            database: { $ref: '#/components/schemas/HealthCheck' }
+            storage: { $ref: '#/components/schemas/HealthCheck' }
+            backup: { $ref: '#/components/schemas/HealthCheck' }
+            audit_log: { $ref: '#/components/schemas/HealthCheck' }
+            restore_drill: { $ref: '#/components/schemas/HealthCheck' }
+            reminders: { $ref: '#/components/schemas/HealthCheck' }
+            last_export: { type: object }
+        trash_batches: { type: integer }
+        server_time: { $ref: '#/components/schemas/DateTime' }
+        php_version: { type: string }

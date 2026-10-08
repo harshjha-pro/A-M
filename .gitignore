@@ -1,0 +1,41 @@
+# Secrets — never in Git or a ZIP (CONTEXT §8, IMPLEMENTATION §4.6)
+.env
+.env.*
+!.env.example
+config.php
+!scripts/backup/config.example.php
+backup.key
+*.key
+
+# Dependencies and builds
+vendor/
+node_modules/
+dist/
+web/dist/
+web/dist-*/
+dist-*/
+build/
+.phpunit.cache/
+.phpunit.result.cache
+coverage/
+
+# Exports, backups, logs, uploads
+*.sql.gz
+*.sql.gz.enc
+wedding-export_*.zip
+deploy-session*.zip
+project-source-session*.zip
+storage/
+logs/
+*.log
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# Test output
+test-results/
+playwright-report/

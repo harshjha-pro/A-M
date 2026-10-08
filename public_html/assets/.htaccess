@@ -1,0 +1,4 @@
+# public_html/assets/.htaccess — hashed file names never change, so phones keep them a year.
+<IfModule mod_headers.c>
+  Header set Cache-Control "public, max-age=31536000, immutable"
+</IfModule>
