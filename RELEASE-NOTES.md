@@ -1,67 +1,56 @@
-# Release notes — Session 01 · Scaffold · version 1.0.1
+# Release notes — Session 02 · Login and members · version 1.0.2
 
 **Goes to:** STAGING only (`staging-wedding.lumorrahouse.com`). Live opens in Session 4.
-**Migrations:** first time — run `001`, `002`, `003`, then `STAGING-ONLY_seed_demo.sql` on the **staging** database.
-**.env:** new file `private/.env` (first time). See step 4.
+**Migrations:** none. Nothing to run in phpMyAdmin (the tables were created in Session 1).
+**.env:** no change needed on staging. (`SETUP_TOKEN` is only used on live in Session 4: staging already has demo people.)
 
-## What's in this build
-- PHP API skeleton: router, JSON errors, safety headers, `GET /api/v1/health`, `POST /api/v1/client-log`.
-- App shell: bottom nav (Home · Calendar · Tasks · Guests · More), empty Release 1 pages, ivory theme, light/dark from the phone.
-- `.htaccess`: HTTPS only, only our two addresses, secrets never served, `/api` routing, deep links.
-- Nothing can be saved yet (log in arrives in Session 2). No offline / install features yet (Sessions 12–14).
+## What's new
+- **Log in** with phone + password. 90-day login that renews itself. 5 wrong passwords lock that phone for 15 minutes.
+- **Members** (Settings → Members): add someone as Partner, Family or Viewer; "Can see money" switch; optional end date; three ways to give a password — **send a link** on WhatsApp (they choose their own, valid 72 hours), **make one** (like `rose-4821`), or type one. Turn access off; reset a password (they're logged out on every phone).
+- **My account**: change your name and password, choose colours (same as phone / light / dark), see your phones, log out, log out everywhere.
+- **Wedding details**: names, dates, city, total budget (budget only for money people). Only Ayush and Mahi can edit.
+- **Safety under every save** (built early, option A): one database transaction per save, a full before/after record in the audit log, protection against double saves on weak networks, and "someone else changed this" checks.
+- Every page now needs a login. Viewers see no edit buttons; Money hides for people without money access.
 
-## Upload, first time (≈ 45 minutes, on a computer)
-`<site>` below = `staging-wedding.lumorrahouse.com`. `u000000000` = your Hostinger user (shown in File Manager's path bar).
+## Upload (standard, ≈ 10 minutes)
+Same as Session 1, without the first-time steps:
+1. File Manager → `domains/staging-wedding.lumorrahouse.com/` → New folder `_incoming` → upload `deploy-session02.zip` → Extract.
+2. From `_incoming/deploy-session02/staging/` extract, **into the site folder** (`domains/staging-wedding.lumorrahouse.com/`), overwrite Yes:
+   1. `1-server.zip`  2. `2-assets.zip`  3. `3-shell.zip`
+3. Copy `staging/version.json` into `public_html/` (overwrite) — **last**.
+4. Delete `_incoming`.
+5. Open `https://staging-wedding.lumorrahouse.com/api/v1/health` → `{"status":"ok"}`.
 
-1. **Create the website** — hPanel → **Websites → Add website** → empty PHP/HTML site → *use an existing domain* → `staging-wedding.lumorrahouse.com`. Wait 5–10 min. File Manager must show `domains/staging-wedding.lumorrahouse.com/public_html/`. If hPanel only offers *Domains → Subdomains*, stop and tell Claude.
-2. **SSL + HTTPS** — Websites → Manage (staging) → **Security → SSL** → Install the free certificate if not Active → turn **Force HTTPS** on.
-3. **PHP** — Manage → **Advanced → PHP Configuration**: version **8.3**; Extensions: tick `pdo_mysql, mbstring, intl, gd, zip, curl, openssl, fileinfo, sodium`; Options: `display_errors` **Off**, `upload_max_filesize 12M`, `post_max_size 16M`, `memory_limit 256M`, `max_execution_time 300`. Save each tab.
-4. **Database + .env**
-   - Manage → **Databases → Management** → new database `amstaging`, user `amstaging`, a generated 20+ character password (save it in your password manager). Real names get your prefix: `u000000000_amstaging`.
-   - File Manager → open `domains/<site>/` (the folder that **contains** `public_html`) → **New folder** `private`.
-   - Inside `private` → **New file** `.env` → paste the contents of `.env.example` (in the project ZIP) → change these lines → Save:
-     ```
-     APP_ENV=staging
-     APP_URL=https://staging-wedding.lumorrahouse.com
-     DB_NAME=u000000000_amstaging
-     DB_USER=u000000000_amstaging
-     DB_PASS=<the database password>
-     STORAGE_ROOT=/home/u000000000/domains/staging-wedding.lumorrahouse.com/private/storage
-     LOG_DIR=/home/u000000000/domains/staging-wedding.lumorrahouse.com/private/logs
-     BACKUP_EXPECTED=false
-     ```
-     Leave `SETUP_TOKEN`, SMTP and VAPID lines as they are for now.
-   - Right-click `.env` → **Permissions** → `600`. Right-click `private` → Permissions → `700`. (Turn on *Show hidden files* if `.env` disappears from view.)
-5. **phpMyAdmin** (Databases → phpMyAdmin → Enter, on `u000000000_amstaging`) → **Import** each file from `migrations/` in this order, Character set **utf-8**, *Enable foreign key checks* ticked, **Go**:
-   1. `001_init.sql` 2. `002_open_answers.sql` 3. `003_api_support.sql` 4. `STAGING-ONLY_seed_demo.sql`
-   Then **SQL** tab → `SELECT version, name, finished_at FROM schema_migrations;` → 3 rows, each with a date in `finished_at`.
-   **Never run `STAGING-ONLY_seed_demo.sql` on the live database.**
-6. **Upload the files** — File Manager → `domains/<site>/` → New folder `_incoming` → open it → **Upload** `deploy-session01.zip` → right-click → **Extract** (here).
-   1. Open `_incoming/deploy-session01/staging/`.
-   2. Right-click `1-server.zip` → Extract → destination `domains/<site>/` (the site folder, **not** public_html) → overwrite Yes.
-   3. Same for `2-assets.zip`, then `3-shell.zip`.
-   4. **Copy** `version.json` → into `domains/<site>/public_html/` → overwrite Yes. *(Always last.)*
-   5. In `public_html/`, delete Hostinger's placeholder file if there is one (`default.php`, or an `index.php` directly in `public_html` — **not** `public_html/api/index.php`).
-   6. Delete the `_incoming` folder.
-   7. Check `private/` now has `app/`, `logs/`, `storage/` and your `.env`; set `private/logs` and `private/storage` permission `700`.
+## Demo logins on staging (from the demo data; password `demo-1234` for all)
+| Who | Phone | Role |
+|---|---|---|
+| Ayush Porwal | 98290 00001 | Owner |
+| Mahi Jagetiya | 98290 00002 | Partner |
+| Sunita Porwal (Mummy) | 98290 00003 | Family, sees money |
+| Rajendra Porwal (Papa) | 98290 00004 | Family, sees money |
+| Kavita Jagetiya | 98290 00005 | Family, no money |
+| कमला देवी पोरवाल (Dadi) | 98290 00006 | Viewer |
 
-## Checks (Android Chrome **and** iPhone Safari)
+## Checks — Android (Chrome) **and** iPhone (Safari)
 | # | Do | Pass when |
 |---|---|---|
-| 1.1 | Open `https://staging-wedding.lumorrahouse.com` | Padlock; Home says **A&M Wedding — version 1.0.1**; *Server: ✓ Connected*; text big and easy to read |
-| 1.2 | Open `https://staging-wedding.lumorrahouse.com/api/v1/health` | Shows `{"status":"ok"}` |
-| 1.3 | Open `…/.env`, `…/private/`, `…/private/.env`, `…/api/.env` | "Not Found" (or Forbidden). Never any text like `DB_PASS` |
-| 1.4 | Type `http://staging-wedding.lumorrahouse.com` (no s) | Jumps to `https://` |
-| 1.5 | On a computer: securityheaders.com → the staging address | HSTS, Content-Security-Policy, X-Content-Type-Options, X-Frame-Options, Referrer-Policy present (grade A expected) |
-| 1.6 | Tap each bottom tab | Each opens its page; the active tab has a pink pill **and** a bold word |
-| 1.7 | More → Money → **← Back** | Back on More |
-| 1.8 | Open `…/tasks` directly (paste the link) | Tasks page opens (no error page) |
-| 1.9 | Phone dark mode on, reopen | App turns dark, text still clear |
-| 1.10 | iPhone: Settings → Display → Text Size bigger. Android: Settings → Font size bigger. Reopen | App text grows; nothing cut off |
+| 2.1 | Open the staging address | The **Log in** page (not Home) |
+| 2.2 | Log in as Ayush (98290 00001 / demo-1234) | Home says "Namaste, Ayush Porwal" |
+| 2.3 | Close the browser completely, open the address again | Still logged in |
+| 2.4 | More → Settings → Members → **Add member**: your own second number (or a family member's), Family, **Send a link** → **Share on WhatsApp** | WhatsApp opens with "Namaste … open this link …" |
+| 2.5 | On the **other phone**, tap that link in WhatsApp (if it opens inside WhatsApp, tap ⋯ → Open in Chrome / Safari) | "Welcome, … Choose a password." → set one → Home opens, logged in |
+| 2.6 | Tap the same link again | "This link has expired or was already used…" |
+| 2.7 | On phone A (Ayush): Members → that person → **Reset password** → Make a password for me → confirm | A new password shows once, with Share on WhatsApp |
+| 2.8 | On phone B: open any page that loads (e.g. Members) | A "Please log in again" box appears over the page. **Cancel** → Log in page says "Your password was changed. Please log in again." Logging in with the new password works |
+| 2.9 | Log out on phone B. Type a wrong password 6 times | 6th try: "Too many tries. Wait 15 minutes or ask Ayush or Mahi." |
+| 2.10 | Log in as Dadi (98290 00006) on the iPhone | No "Add member", no "Edit" on Wedding details, no Money under More |
+| 2.11 | As Kavita (98290 00005): More | No Money row |
+| 2.12 | My account → Colours → Dark, then Light, then Same as my phone | The app changes at once; stays after closing and reopening |
+| 2.13 | As Ayush: Settings → Wedding details → Edit → City → Save | "Saved ✓ HH:MM" in Indian time |
+| 2.14 | Repeat checks 1.2–1.5 from Session 1 (health, `/.env`, http→https, securityheaders.com) | Same as before |
 
-**If 1.1 shows "Not reachable" or 1.2 shows `{"status":"fail"}`:** the database values in `private/.env` are wrong, or step 5 wasn't finished. File Manager → `private/logs/php-error.log` → copy the last 3 lines into the next chat.
-**If you see a Hostinger page instead of the app:** `3-shell.zip` was extracted into the wrong folder, or `public_html/default.php` is still there.
-**If you see "500" or a blank page on `/api/v1/health`:** PHP version is below 8.2 (step 3), or `1-server.zip` was extracted inside `public_html` instead of the site folder.
+**Can't log in at all?** Check `/api/v1/health` first. If that says `ok`, send me the time you tried and the last 3 lines of `private/logs/php-error.log`.
+**iPhone:** if you added the app to the Home Screen earlier, it has its own login — log in there once more (normal for iPhone).
 
 ## Old files to delete later
-None (first deploy).
+After 14 days (about 22 Oct): files in `public_html/assets/` that are **not** in this ZIP's `2-assets.zip` (they belong to Session 1).

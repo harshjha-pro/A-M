@@ -13,11 +13,8 @@ use Throwable;
  * Builds the API and runs one request through the chain (IMPLEMENTATION §2.3):
  *
  *   RequestId → SecurityHeaders → ErrorHandler → MethodGuard → RouteMatch →
- *   JsonBody → MaintenanceGuard → ClientVersion → RateLimit → Session →
- *   AuthRequired → Csrf → Idempotency → controller
- *
- * Session, Csrf and Idempotency are stubs until Sessions 2–3: there is no way
- * to log in yet, so every non-anonymous route answers 401.
+ *   JsonBody → MaintenanceGuard → ClientVersion → Session → RateLimit →
+ *   AuthRequired → Csrf → Idempotency → controller (writes inside UnitOfWork)
  */
 final class App
 {
@@ -87,8 +84,8 @@ final class App
             new Middleware\JsonBody(),
             new Middleware\MaintenanceGuard(),
             new Middleware\ClientVersion(),
-            new Middleware\RateLimit(),
             new Middleware\Session(),
+            new Middleware\RateLimit(),
             new Middleware\AuthRequired(),
             new Middleware\Csrf(),
             new Middleware\Idempotency(),

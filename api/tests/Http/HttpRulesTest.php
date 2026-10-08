@@ -189,6 +189,36 @@ final class HttpRulesTest extends TestCase
         $this->assertSame(301, $api['status'], 'API too');
     }
 
+    public function test_setup_login_and_session_over_real_http(): void
+    {
+        $origin = ['Origin' => 'https://' . self::HOST, 'Content-Type' => 'application/json'];
+        $token = (string) getenv('AM_HTTP_SETUP_TOKEN');
+        $phone = '+9198290' . random_int(10000, 99999);
+        $setup = $this->fetch('/api/v1/setup/owner', 'POST', $origin, json_encode([
+            'setup_token' => $token, 'name' => 'HTTP Test Owner', 'phone' => $phone, 'password' => 'lotus-4821',
+        ]));
+        if ($setup['status'] === 410) {
+            $this->markTestSkipped('owner already exists in this site database');
+        }
+        $this->assertSame(201, $setup['status'], $setup['body']);
+
+        $login = $this->fetch('/api/v1/auth/login', 'POST', $origin, json_encode(['phone' => $phone, 'password' => 'lotus-4821']));
+        $this->assertSame(200, $login['status'], $login['body']);
+        $cookie = $login['headers']['set-cookie'] ?? '';
+        foreach (['__Host-am_session=', 'Max-Age=7776000', 'Path=/', 'Secure', 'HttpOnly', 'SameSite=Lax'] as $part) {
+            $this->assertStringContainsString($part, $cookie, 'cookie survives the web server');
+        }
+        preg_match('/__Host-am_session=([^;]+)/', $cookie, $m);
+        $session = $this->fetch('/api/v1/session', 'GET', ['Cookie' => '__Host-am_session=' . $m[1]]);
+        $this->assertSame(200, $session['status'], $session['body']);
+        $this->assertSame('owner', json_decode($session['body'], true)['data']['user']['role']);
+
+        $evil = $this->fetch('/api/v1/auth/login', 'POST', ['Origin' => 'https://evil.example', 'Content-Type' => 'application/json'],
+            json_encode(['phone' => $phone, 'password' => 'lotus-4821']));
+        $this->assertSame(403, $evil['status'], 'Origin check through the web server');
+        $this->assertSame(401, $this->fetch('/api/v1/session')['status']);
+    }
+
     public function test_other_hostnames_get_404(): void
     {
         foreach (['evil.example', 'lumorrahouse.com', 'wedding.lumorrahouse.com.evil.example'] as $host) {

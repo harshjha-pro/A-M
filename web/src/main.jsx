@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
 import ErrorBoundary from './components/ErrorBoundary.jsx';
+import LoginSheet from './components/LoginSheet.jsx';
 import { routes } from './routes.jsx';
 import { makeQueryClient } from './queryClient.js';
 import { reportProblem } from './api/client.js';
@@ -14,12 +15,15 @@ window.addEventListener('unhandledrejection', (e) => reportProblem({ code: 'unha
 
 const router = createBrowserRouter(routes);
 const queryClient = makeQueryClient();
+// After the login sheet: load again whatever failed while logged out.
+window.addEventListener('am:relogin', () => queryClient.invalidateQueries());
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <RouterProvider router={router} />
+        <LoginSheet />
       </QueryClientProvider>
     </ErrorBoundary>
   </StrictMode>,

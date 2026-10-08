@@ -52,6 +52,26 @@ final class Strings
         'field_too_long'           => 'Too long. Use at most {max} characters.',
         'field_bad_text'           => 'Please type plain text here.',
         'field_bad_datetime'       => 'Use a date and time like 2026-10-08T09:12:31Z.',
+        'field_not_allowed'        => "This can't be changed here.",
+        'field_bad_bool'           => 'Choose yes or no.',
+        'field_bad_choice'         => 'Choose one of the options.',
+        'field_bad_date'           => 'Pick a date.',
+        'field_bad_amount'         => 'Enter an amount, like 50000 or 1.25 lakh.',
+        'field_bad_phone'          => 'Enter a 10-digit mobile number.',
+        'field_bad_email'          => 'Enter an email address, like name@gmail.com.',
+        'field_date_past'          => 'Pick today or a later date.',
+        'field_end_before_start'   => 'End date must be on or after the start date.',
+        'field_money_admin'        => 'Ayush, Mahi and partners always see money.',
+        'password_rules'           => 'Choose at least 6 letters or numbers. Not your phone number.',
+        'password_too_common'      => 'This password is too easy to guess. Choose another.',
+        'password_current_wrong'   => "That isn't your current password.",
+        // auth
+        'setup_done'               => 'The app is already set up. Please log in.',
+        'member_duplicate'         => 'Already a member: {name}.',
+        'owner_locked'             => "The Owner's role and access can't be changed.",
+        'last_admin'               => 'There must always be at least one active admin.',
+        'not_self'                 => "You can't do this to your own account. Use My account.",
+        'self_name_only'           => 'You can only change your own name here.',
     ];
 
     /** @param array<string,string|int> $vars */

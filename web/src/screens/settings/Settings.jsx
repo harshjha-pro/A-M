@@ -1,13 +1,38 @@
-// Settings — empty Release 1 page (Session 1). Filled in by its own build session.
-import { Settings as SettingsIcon } from 'lucide-react';
+// Settings (FEATURES B10): wedding details, members, my account, install guide, about.
+import { Link } from 'react-router-dom';
+import { CalendarHeart, Users, UserRound, Smartphone, ChevronRight } from 'lucide-react';
 import Screen from '../../components/Screen.jsx';
-import EmptyState from '../../components/EmptyState.jsx';
+import { useSession } from '../../api/session.js';
 import { t } from '../../i18n/strings.en.js';
 
+const VERSION = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0.0.0';
+
 export default function Settings() {
+  const { user } = useSession();
+  const rows = [
+    { to: '/settings/wedding', label: 'settings.wedding', Icon: CalendarHeart },
+    { to: '/settings/members', label: 'settings.members', Icon: Users },
+    { to: '/settings/account', label: 'settings.account', Icon: UserRound },
+    { to: '/install', label: 'settings.install', Icon: Smartphone },
+  ];
   return (
     <Screen title={t('settings.title')} back="/more">
-      <EmptyState Icon={SettingsIcon} text={t('settings.empty')} />
+      <ul className="overflow-hidden rounded-md bg-surface shadow-card">
+        {rows.map(({ to, label, Icon }) => (
+          <li key={to} className="border-b border-border last:border-b-0">
+            <Link to={to} className="flex min-h-16 items-center gap-4 px-4 text-lg">
+              <Icon aria-hidden="true" size={24} className="text-primary" />
+              <span className="flex-1">{t(label)}</span>
+              <ChevronRight aria-hidden="true" size={24} className="text-text-muted" />
+            </Link>
+          </li>
+        ))}
+      </ul>
+      <section className="flex flex-col gap-1 text-text-muted">
+        <h2 className="font-bold text-text">{t('settings.about')}</h2>
+        {user && <p>{t('settings.signedInAs', { name: user.name })}</p>}
+        <p>{t('settings.version', { version: VERSION })}</p>
+      </section>
     </Screen>
   );
 }

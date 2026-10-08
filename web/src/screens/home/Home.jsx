@@ -5,10 +5,12 @@ import { CircleCheck, TriangleAlert } from 'lucide-react';
 import Screen from '../../components/Screen.jsx';
 import { api } from '../../api/client.js';
 import { t } from '../../i18n/strings.en.js';
+import { useSession } from '../../api/session.js';
 
 const VERSION = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0.0.0';
 
 export default function Home() {
+  const { user } = useSession();
   const health = useQuery({
     queryKey: ['health'],
     queryFn: () => api('GET', '/health').then((r) => r.data),
@@ -36,6 +38,7 @@ export default function Home() {
   return (
     <Screen title={t('home.title')}>
       <section className="flex flex-col gap-2 rounded-md bg-surface p-4 shadow-card">
+        {user && <p className="text-lg">{t('home.hello', { name: user.name })}</p>}
         <p className="text-2xl font-bold">{t('home.welcome', { version: VERSION })}</p>
         <p className="text-text-muted">{t('home.subtitle')}</p>
       </section>

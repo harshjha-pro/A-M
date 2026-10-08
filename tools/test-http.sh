@@ -30,6 +30,7 @@ LOG_DIR=$SITE/private/logs
 STORAGE_ROOT=$SITE/private/storage
 MIN_CLIENT_VERSION=1.0.0
 BACKUP_EXPECTED=false
+SETUP_TOKEN=http-test-setup-token-0123456789
 ENV
 # A decoy secret inside public_html too: it must never be served.
 printf 'DB_PASS=decoy-should-never-be-served\n' > "$SITE/public_html/.env"
@@ -37,8 +38,9 @@ chmod 700 "$SITE/private"; chmod 600 "$SITE/private/.env"
 chown -R www-data:www-data "$SITE"
 
 run_suite() { # name base
+  mysql -uroot $DB -e "SET FOREIGN_KEY_CHECKS=0; DELETE FROM audit_log; DELETE FROM sessions; DELETE FROM login_attempts; DELETE FROM rate_limits; DELETE FROM users; SET FOREIGN_KEY_CHECKS=1;"
   echo "== HTTP tests via $1 ($2)"
-  if AM_HTTP_BASE="$2" AM_HTTP_SITE="$SITE" api/vendor/bin/phpunit -c api/phpunit.xml --group http --testsuite http --testdox; then
+  if AM_HTTP_BASE="$2" AM_HTTP_SITE="$SITE" AM_HTTP_SETUP_TOKEN=http-test-setup-token-0123456789 api/vendor/bin/phpunit -c api/phpunit.xml --group http --testsuite http --testdox; then
     echo "== $1: PASS"
   else
     echo "== $1: FAIL"; RESULT=1

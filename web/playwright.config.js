@@ -1,14 +1,16 @@
-// Playwright (TESTING §1.8). Session 1: smoke journeys on phone-sized Chromium.
+// Playwright (TESTING §1.8): journeys on phone-sized Chromium, against staging demo data (seed_demo.sql).
 // These are NOT Safari: iPhone behaviour is checked on a real iPhone (§1.8.3).
 // The server (php -S + tools/router.php on a staging site folder) is started by tools/test-e2e.sh.
 import { defineConfig, devices } from '@playwright/test';
 
-const BASE = process.env.AM_E2E_BASE || 'http://127.0.0.1:8083';
+// localhost (not 127.0.0.1): browsers accept the Secure __Host- login cookie on http://localhost.
+const BASE = process.env.AM_E2E_BASE || 'http://localhost:8083';
 
 export default defineConfig({
   testDir: './e2e',
   timeout: 30_000,
   retries: 0,
+  workers: 1, // one shared demo database: journeys run one after another
   reporter: [['list']],
   use: {
     baseURL: BASE,

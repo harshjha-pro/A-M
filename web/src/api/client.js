@@ -14,7 +14,7 @@
 // - 15 s timeout → TimeoutError. Never retries a write by itself.
 // - Never reports success for anything but a 2xx.
 import { toCamel, toSnake, toSnakeKey, camelPath } from './case.js';
-import { getCsrfToken } from './session.js';
+import { getCsrfToken, getState, askToLogin, clearSession } from './session.js';
 import { deviceLabel } from '../pwa/platform.js';
 import {
   ApiError, OfflineError, TimeoutError, AuthError, ForbiddenError, NotFoundError,
@@ -115,7 +115,14 @@ export async function api(method, path, opts = {}) {
       idemKey,
     };
   }
-  throw toError(res, json, idemKey);
+  const err = toError(res, json, idemKey);
+  if (err instanceof AuthError && !isWrite && path !== '/session' && getState().status === 'in') {
+    // A screen was loading when the login ended (password reset, logged out elsewhere).
+    // Open the login sheet over it — never clear the screen, it may hold typing.
+    // Cancel → the Log in page, with the reason.
+    askToLogin(err.details?.reason ?? err.code).catch(() => clearSession(err.details?.reason ?? null));
+  }
+  throw err;
 }
 
 function toError(res, json, idemKey) {

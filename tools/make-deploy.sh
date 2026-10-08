@@ -6,7 +6,8 @@
 #     staging/ live/            each: 1-server.zip, 2-assets.zip, 3-shell.zip, version.json
 # Every inner ZIP holds paths starting at the site folder (private/…, public_html/…),
 # so you always extract it in the site folder.
-# Usage: tools/make-deploy.sh 01 <out-dir>
+# Usage: tools/make-deploy.sh 02 <out-dir> [migration files to ship, e.g. db/migrations/004_x.sql]
+# (Session 01 shipped 001–003 + the staging seed; later sessions ship only new files.)
 set -euo pipefail
 cd "$(dirname "$0")/.."
 ROOT="$(pwd)"
@@ -36,9 +37,17 @@ for FLAVOUR in staging live; do
   )
 done
 
-# SQL for this session (first deploy: the three migrations + staging-only demo data)
-cp db/migrations/001_init.sql db/migrations/002_open_answers.sql db/migrations/003_api_support.sql "$STAGE/migrations/"
-cp db/dev/seed_demo.sql "$STAGE/migrations/STAGING-ONLY_seed_demo.sql"
+# SQL for this session: only the files named on the command line.
+shift 2
+if [ "$#" -eq 0 ]; then
+  printf 'No database changes in this session. Nothing to run in phpMyAdmin.\n' > "$STAGE/migrations/NONE.txt"
+fi
+for f in "$@"; do
+  case "$f" in
+    db/dev/*) cp "$f" "$STAGE/migrations/STAGING-ONLY_$(basename "$f")" ;;
+    *) cp "$f" "$STAGE/migrations/" ;;
+  esac
+done
 
 cp RELEASE-NOTES.md "$STAGE/RELEASE-NOTES.md"
 [ -f TEST-REPORT.md ] && cp TEST-REPORT.md "$STAGE/TEST-REPORT.md"

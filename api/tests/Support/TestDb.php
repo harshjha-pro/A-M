@@ -105,12 +105,48 @@ final class TestDb
         return ['ran' => count($statements), 'failed_at' => null, 'error' => null, 'statement' => null];
     }
 
-    /** Clears the ephemeral tables between tests (rate limits etc.). */
-    public static function resetEphemeral(): void
+    /** @var array<string, array{cols: list<string>, rows: list<array>}>|null rows right after the build */
+    private static ?array $snapshot = null;
+
+    /** Remembers every row after migrations + fixtures, so each test can start from exactly that. */
+    public static function snapshot(): void
     {
         $pdo = self::connect();
-        foreach (['rate_limits', 'login_attempts', 'idempotency_keys'] as $t) {
-            $pdo->exec("DELETE FROM `$t`");
+        $db = self::name();
+        self::$snapshot = [];
+        foreach ($pdo->query("SELECT table_name FROM information_schema.tables WHERE table_schema = '$db' AND table_type = 'BASE TABLE'")->fetchAll(PDO::FETCH_COLUMN) as $t) {
+            $cols = $pdo->query("SELECT column_name FROM information_schema.columns WHERE table_schema = '$db' AND table_name = '$t'
+                                 AND extra NOT LIKE '%GENERATED%' ORDER BY ordinal_position")->fetchAll(PDO::FETCH_COLUMN);
+            $list = implode(', ', array_map(static fn ($c) => "`$c`", $cols));
+            self::$snapshot[$t] = ['cols' => $cols, 'rows' => $pdo->query("SELECT $list FROM `$t`")->fetchAll(PDO::FETCH_NUM)];
         }
+    }
+
+    /** Puts every table back to the snapshot (TESTING §1.2 "Isolation"). */
+    public static function restore(): void
+    {
+        if (self::$snapshot === null) {
+            self::snapshot();
+            return;
+        }
+        $pdo = self::connect();
+        $pdo->exec('SET FOREIGN_KEY_CHECKS = 0');
+        foreach (self::$snapshot as $t => $data) {
+            $pdo->exec("DELETE FROM `$t`");
+            if ($data['rows'] === []) {
+                continue;
+            }
+            $cols = implode(', ', array_map(static fn ($c) => "`$c`", $data['cols']));
+            $one = '(' . implode(', ', array_fill(0, count($data['cols']), '?')) . ')';
+            $stmt = $pdo->prepare("INSERT INTO `$t` ($cols) VALUES " . implode(', ', array_fill(0, count($data['rows']), $one)));
+            $stmt->execute(array_merge(...$data['rows']));
+        }
+        $pdo->exec('SET FOREIGN_KEY_CHECKS = 1');
+    }
+
+    /** Kept for older tests. */
+    public static function resetEphemeral(): void
+    {
+        self::restore();
     }
 }
