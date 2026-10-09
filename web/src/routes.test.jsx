@@ -16,6 +16,7 @@ const papa = { id: PEOPLE.papa.id, name: 'Papa', phone: '+919829000103', role: '
 function api(extra = {}) {
   return fakeApi({
     'GET /health': () => new Response('{"status":"ok"}', { status: 200 }),
+    'GET /dashboard': () => ok({ countdown: { days_to_wedding: 129, wedding_day: null, wedding_days: 3, next_event: null }, my_tasks: { items: [], total: 0, upcoming: false }, overdue: { total: 0 }, headcount: [] }),
     'GET /session': () => ok({ user: papa, permissions: { ...permissionsFor(PEOPLE.papa), events_write: false }, csrf_token: 'csrf-x', settings_brief: null }),
     'GET /settings': () => ok(settings),
     'GET /members': () => ok([{ id: PEOPLE.papa.id, name: 'Papa', phone: '+919829000103', role: 'family', left: false }]),
@@ -88,11 +89,12 @@ test('Home greets the person and shows the server check', async () => {
   api();
   renderAt('/');
   expect(await screen.findByText('Namaste, Papa')).toBeInTheDocument();
-  expect(await screen.findByText('Connected')).toBeInTheDocument();
+  expect(await screen.findByText(/^Connected · Updated/)).toBeInTheDocument();
+  expect(screen.getByText('129 days to the wedding')).toBeInTheDocument();
 });
 
 test('Home says so when the server is down', async () => {
-  api({ 'GET /health': () => new Response('{"status":"fail"}', { status: 503 }) });
+  api({ 'GET /dashboard': () => new Response('{"status":"fail"}', { status: 503 }) });
   renderAt('/');
   expect(await screen.findByText('Not reachable. Check your internet.', {}, { timeout: 4000 })).toBeInTheDocument();
 });

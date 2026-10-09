@@ -192,6 +192,22 @@ final class HttpRulesTest extends TestCase
         $this->assertStringStartsWith('image/png', $icon['headers']['content-type'] ?? '');
     }
 
+    /** .htaccess rule 6 (Session 7 Lighthouse finding): app text files are gzipped; API replies are not (BREACH). */
+    public function test_app_files_are_compressed_api_replies_are_not(): void
+    {
+        $index = $this->fetch('/')['body'];
+        preg_match('#/assets/index-[\w-]+\.js#', $index, $m);
+        $js = $this->fetch($m[0], 'GET', ['Accept-Encoding' => 'gzip']);
+        $this->assertSame('gzip', $js['headers']['content-encoding'] ?? null);
+        $this->assertStringContainsString('Accept-Encoding', $js['headers']['vary'] ?? '');
+        $plain = $this->fetch($m[0]);
+        $this->assertLessThan(strlen($plain['body']) / 2, strlen($js['body']), 'at least halves the main script');
+        $this->assertSame((string) gzdecode($js['body']), $plain['body']);
+        $this->assertSame('gzip', $this->fetch('/', 'GET', ['Accept-Encoding' => 'gzip'])['headers']['content-encoding'] ?? null);
+        $api = $this->fetch('/api/v1/health', 'GET', ['Accept-Encoding' => 'gzip']);
+        $this->assertArrayNotHasKey('content-encoding', $api['headers']);
+    }
+
     public function test_http_redirects_to_https(): void
     {
         $r = $this->fetch('/tasks?view=mine', https: false);

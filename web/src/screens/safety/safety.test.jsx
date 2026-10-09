@@ -217,10 +217,10 @@ describe('Log out with drafts', () => {
 });
 
 describe('Home server line (bug found in Session 3)', () => {
-  test('an admin gets the full check list from /health and Home still says Connected', async () => {
+  test('an admin whose checks are amber still sees Connected (Home now reads /dashboard)', async () => {
     signInAs('ayush');
-    fakeApi({ 'GET /health': () => ok(health) }); // status "amber", not "ok"
+    fakeApi({ 'GET /dashboard': () => ok({ countdown: { days_to_wedding: 129, next_event: null }, headcount: [], safety: { status: 'amber', checks: health.checks, trash_batches: 0 } }) });
     renderAt('/');
-    expect(await screen.findByText('Connected')).toBeInTheDocument();
+    expect(await screen.findByText(/^Connected · Updated/)).toBeInTheDocument();
   });
 });

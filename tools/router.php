@@ -101,5 +101,12 @@ if (preg_match('/^(index\.html|sw\.js|manifest\.webmanifest|version\.json|reset\
 } elseif (str_starts_with($path, '/assets/')) {
     header('Cache-Control: public, max-age=31536000, immutable');
 }
+// Same as .htaccess rule 6: gzip the app's text files (not the API) when the browser accepts it.
+if (in_array($ext, ['html', 'js', 'css', 'webmanifest', 'svg'], true) && str_contains($_SERVER['HTTP_ACCEPT_ENCODING'] ?? '', 'gzip')) {
+    header('Vary: Accept-Encoding');
+    header('Content-Encoding: gzip');
+    echo gzencode((string) file_get_contents($file), 6);
+    return true;
+}
 readfile($file);
 return true;
