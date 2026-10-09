@@ -2,6 +2,7 @@
 // the nav (and later the + button) never covers the last row.
 import { Outlet } from 'react-router-dom';
 import BottomNav from './BottomNav.jsx';
+import UndoSnackbar from './UndoSnackbar.jsx';
 
 export default function AppShell() {
   return (
@@ -9,6 +10,7 @@ export default function AppShell() {
       <div className="pb-[calc(6rem+env(safe-area-inset-bottom))]">
         <Outlet />
       </div>
+      <UndoSnackbar />
       <BottomNav />
     </div>
   );

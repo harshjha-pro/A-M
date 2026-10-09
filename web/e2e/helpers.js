@@ -1,6 +1,7 @@
 // Demo people from db/dev/seed_demo.sql (password demo-1234).
 export const DEMO = {
   ayush: { phone: '9829000001', name: 'Ayush Porwal' },
+  mahi: { phone: '9829000002', name: 'Mahi Jagetiya' },
   papa: { phone: '9829000004', name: 'Rajendra Porwal (Papa)' },
   dadi: { phone: '9829000006', name: 'कमला देवी पोरवाल (Dadi)' },
 };

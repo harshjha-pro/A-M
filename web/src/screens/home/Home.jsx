@@ -21,7 +21,7 @@ export default function Home() {
   let status;
   if (health.isPending) {
     status = <span className="text-text-muted">{t('home.serverChecking')}</span>;
-  } else if (health.data?.status === 'ok') {
+  } else if (health.isSuccess) { // 200: {status: ok} for most people, the full check list for admins (API.md §11)
     status = (
       <span className="inline-flex items-center gap-2 font-bold text-success">
         <CircleCheck aria-hidden="true" size={24} /> {t('home.serverOk')}

@@ -124,22 +124,106 @@ describe('Wedding details', () => {
     expect(init.headers['If-Match']).toBe('"3"');
   });
 
-  test('a clash names who changed it and keeps my typing', async () => {
+  test('AC-CON-01: they changed another field → merged and saved again by itself', async () => {
     signInAs('ayush');
     const user = userEvent.setup();
-    fakeApi({
+    let n = 0;
+    const calls = fakeApi({
       'GET /settings': () => ok(settings),
-      'PATCH /settings': () => fail(409, { code: 'version_conflict', message: 'Mahi changed this at 10:42 AM while you were editing.',
-        current_version: 4, your_version: 3, changed_by: { id: PEOPLE.mahi.id, name: 'Mahi' }, changed_fields: ['city'], current: { ...settings, version: 4, city: 'Jaipur' } }),
+      'PATCH /settings': (body) => (++n === 1
+        ? fail(409, { code: 'version_conflict', message: 'Mahi changed this at 10:42 AM while you were editing.', current_version: 4, your_version: 3,
+          changed_by: { id: PEOPLE.mahi.id, name: 'Mahi' }, changed_at: '2026-10-08T05:12:00Z', changed_fields: ['groom_name'], current: { ...settings, version: 4, groom_name: 'Ayush P.' } })
+        : ok({ ...settings, groom_name: 'Ayush P.', ...body, version: 5 })),
     });
     renderAt('/settings/wedding');
     await user.click(await screen.findByRole('button', { name: 'Edit' }));
     await user.clear(screen.getByLabelText('City'));
     await user.type(screen.getByLabelText('City'), 'Udaipur');
     await user.click(screen.getByRole('button', { name: 'Save details' }));
-    expect(await screen.findByText(/Mahi changed these details while you were editing/)).toBeInTheDocument();
-    expect(screen.getByLabelText('City')).toHaveValue('Udaipur');
+    expect(await screen.findByText('Udaipur')).toBeInTheDocument();
+    expect(screen.getByText('Ayush P.')).toBeInTheDocument();
+    const patches = calls.mock.calls.filter(([, i]) => i.method === 'PATCH');
+    expect(patches).toHaveLength(2);
+    expect(JSON.parse(patches[1][1].body)).toEqual({ city: 'Udaipur' });
+    expect(patches[1][1].headers['If-Match']).toBe('"4"');
+    expect(patches[1][1].headers['Idempotency-Key']).not.toBe(patches[0][1].headers['Idempotency-Key']);
+  });
+
+  test('AC-CON-02: same field → conflict screen; nothing saved until I choose', async () => {
+    signInAs('ayush');
+    const user = userEvent.setup();
+    let n = 0;
+    const calls = fakeApi({
+      'GET /settings': () => ok(settings),
+      'PATCH /settings': (body) => (++n === 1
+        ? fail(409, { code: 'version_conflict', message: 'Mahi changed this at 10:42 AM while you were editing.', current_version: 4, your_version: 3,
+          changed_by: { id: PEOPLE.mahi.id, name: 'Mahi' }, changed_at: '2026-10-08T05:12:00Z', changed_fields: ['city', 'total_budget_paise'],
+          current: { ...settings, version: 4, city: 'Jaipur', total_budget_paise: 500000000 } })
+        : ok({ ...settings, city: 'Jaipur', total_budget_paise: 500000000, ...body, version: 5 })),
+    });
+    const { container } = renderAt('/settings/wedding');
+    await user.click(await screen.findByRole('button', { name: 'Edit' }));
+    await user.clear(screen.getByLabelText('City'));
+    await user.type(screen.getByLabelText('City'), 'Udaipur');
+    await user.click(screen.getByRole('button', { name: 'Save details' }));
+
+    expect(await screen.findByRole('heading', { name: 'Mahi changed this at 10:42 AM while you were editing.' })).toBeInTheDocument();
+    const city = screen.getByRole('group', { name: 'City' });
+    expect(within(city).getByText('Udaipur')).toBeInTheDocument();
+    expect(within(city).getByText('Jaipur')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Merged automatically (1)' })).toBeInTheDocument(); // the budget: theirs
+    const saveBtn = screen.getByRole('button', { name: 'Save my choices' });
+    expect(saveBtn).toBeDisabled();
+    expect(calls.mock.calls.filter(([, i]) => i.method === 'PATCH')).toHaveLength(1);
+    expect(await axe(container)).toHaveNoViolations();
+
+    await user.click(within(city).getByRole('radio', { name: /Your version/ }));
+    await user.click(saveBtn);
+    expect(await screen.findByText('Udaipur')).toBeInTheDocument();
+    expect(screen.getByText('₹50,00,000')).toBeInTheDocument();
+    const last = calls.mock.calls.filter(([, i]) => i.method === 'PATCH').at(-1);
+    expect(JSON.parse(last[1].body)).toEqual({ city: 'Udaipur' });
+    expect(last[1].headers['If-Match']).toBe('"4"');
+  });
+
+  test('Keep theirs drops my clashing edit and sends nothing more', async () => {
+    signInAs('ayush');
+    const user = userEvent.setup();
+    const calls = fakeApi({
+      'GET /settings': () => ok(settings),
+      'PATCH /settings': () => fail(409, { code: 'version_conflict', message: 'x', current_version: 4, your_version: 3,
+        changed_by: { id: PEOPLE.mahi.id, name: 'Mahi' }, changed_fields: ['city'], current: { ...settings, version: 4, city: 'Jaipur' } }),
+    });
+    renderAt('/settings/wedding');
+    await user.click(await screen.findByRole('button', { name: 'Edit' }));
+    await user.clear(screen.getByLabelText('City'));
+    await user.type(screen.getByLabelText('City'), 'Udaipur');
+    await user.click(screen.getByRole('button', { name: 'Save details' }));
+    await user.click(await screen.findByRole('button', { name: "Keep Mahi's, discard mine" }));
+    expect(await screen.findByText('Jaipur')).toBeInTheDocument();
+    expect(calls.mock.calls.filter(([, i]) => i.method === 'PATCH')).toHaveLength(1);
     expect(screen.queryByText(/Saved ✓/)).toBeNull();
+  });
+
+  test('AC-SAV-01: typing is kept as a draft and offered back', async () => {
+    localStorage.clear();
+    signInAs('ayush');
+    const user = userEvent.setup();
+    fakeApi({ 'GET /settings': () => ok(settings) });
+    const first = renderAt('/settings/wedding');
+    await user.click(await screen.findByRole('button', { name: 'Edit' }));
+    await user.clear(screen.getByLabelText('City'));
+    await user.type(screen.getByLabelText('City'), 'Udaipur');
+    await new Promise((r) => setTimeout(r, 1100));
+    first.unmount();
+    expect(JSON.parse(localStorage.getItem(`draft:${PEOPLE.ayush.id}:settings:new`)).values.city).toBe('Udaipur');
+
+    renderAt('/settings/wedding');
+    expect(await screen.findByText(/You have unsaved changes from \d{1,2}:\d{2}/)).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Use them' }));
+    expect(screen.getByLabelText('City')).toHaveValue('Udaipur');
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(localStorage.getItem(`draft:${PEOPLE.ayush.id}:settings:new`)).toBeNull();
   });
 
   test('family and viewers only read, and never see the budget without money access', async () => {

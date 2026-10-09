@@ -23,5 +23,11 @@ export function useSave() {
     }
   }
 
-  return { ...state, run, reset: () => setState({ status: 'idle', savedAt: null, error: null }) };
+  return {
+    ...state,
+    run,
+    reset: () => setState({ status: 'idle', savedAt: null, error: null }),
+    /** A different body (after a merge) needs a new key, or the server says "doesn't match the first try". */
+    renew: () => { key.current = newIdemKey(); },
+  };
 }

@@ -1,6 +1,7 @@
 // Settings (FEATURES B10): wedding details, members, my account, install guide, about.
+// Admins also get Safety, Activity and Deleted items (FEATURES A5, B9, B10).
 import { Link } from 'react-router-dom';
-import { CalendarHeart, Users, UserRound, Smartphone, ChevronRight } from 'lucide-react';
+import { CalendarHeart, Users, UserRound, Smartphone, ChevronRight, ShieldCheck, Activity, Trash2 } from 'lucide-react';
 import Screen from '../../components/Screen.jsx';
 import { useSession } from '../../api/session.js';
 import { t } from '../../i18n/strings.en.js';
@@ -8,11 +9,16 @@ import { t } from '../../i18n/strings.en.js';
 const VERSION = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0.0.0';
 
 export default function Settings() {
-  const { user } = useSession();
+  const { user, permissions } = useSession();
   const rows = [
     { to: '/settings/wedding', label: 'settings.wedding', Icon: CalendarHeart },
     { to: '/settings/members', label: 'settings.members', Icon: Users },
     { to: '/settings/account', label: 'settings.account', Icon: UserRound },
+    ...(permissions?.admin ? [
+      { to: '/settings/safety', label: 'settings.safety', Icon: ShieldCheck },
+      { to: '/settings/activity', label: 'settings.activity', Icon: Activity },
+      { to: '/settings/deleted', label: 'settings.trash', Icon: Trash2 },
+    ] : []),
     { to: '/install', label: 'settings.install', Icon: Smartphone },
   ];
   return (

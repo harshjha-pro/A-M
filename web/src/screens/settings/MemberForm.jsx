@@ -1,5 +1,5 @@
 // Add or edit a member (FEATURES B1, API.md §6.2). Admins only (the server checks).
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Screen from '../../components/Screen.jsx';
@@ -9,9 +9,12 @@ import SavedIndicator from '../../components/SavedIndicator.jsx';
 import SecretCard from '../../components/SecretCard.jsx';
 import ConfirmDialog from '../../components/ConfirmDialog.jsx';
 import { api } from '../../api/client.js';
-import { ValidationError, DuplicateError, ConflictError, ForbiddenError } from '../../api/errors.js';
+import { ValidationError, DuplicateError, ForbiddenError } from '../../api/errors.js';
 import { useSession } from '../../api/session.js';
 import { useSave } from '../../forms/useSave.js';
+import { useEntityForm } from '../../forms/useEntityForm.js';
+import DraftBanner from '../../components/DraftBanner.jsx';
+import ConflictScreen from '../../components/ConflictScreen.jsx';
 import { t } from '../../i18n/strings.en.js';
 
 const ROLES = ['partner', 'family', 'viewer'];
@@ -83,60 +86,75 @@ function AddMember() {
   );
 }
 
+const MEMBER_FIELDS = ['name', 'phone', 'role', 'canSeeMoney', 'accessEndsOn', 'isActive'];
+const memberForm = (m) => ({ name: m.name, phone: m.phone, role: m.role, canSeeMoney: m.canSeeMoney, accessEndsOn: m.accessEndsOn ?? '', isActive: m.isActive });
+
+function memberShow(field, v) {
+  if (field === 'role') return t(`members.roles.${v}`);
+  if (field === 'canSeeMoney' || field === 'isActive') return v ? t('yes') : t('no');
+  return v;
+}
+
 function EditMember({ id }) {
   const qc = useQueryClient();
   const { user, permissions } = useSession();
   const q = useQuery({ queryKey: ['member', id], queryFn: () => api('GET', `/members/${id}`).then((r) => r.data) });
-  const [f, setF] = useState(null);
-  const [fields, setFields] = useState({});
   const [notice, setNotice] = useState(null);
   const [resetMode, setResetMode] = useState('link');
   const [resetPassword, setResetPassword] = useState('');
+  const [resetErrors, setResetErrors] = useState({});
   const [confirmReset, setConfirmReset] = useState(false);
   const [secret, setSecret] = useState(null);
-  const save = useSave();
   const reset = useSave();
-  const loaded = useRef(false);
-
-  useEffect(() => {
-    if (q.data && !loaded.current) {
-      loaded.current = true;
-      setF({ name: q.data.name, phone: q.data.phone, role: q.data.role, canSeeMoney: q.data.canSeeMoney, accessEndsOn: q.data.accessEndsOn ?? '', isActive: q.data.isActive });
-    }
-  }, [q.data]);
-
-  if (q.isPending || !f) return <Screen title={t('members.title')} back="/settings/members"><p aria-busy="true">…</p></Screen>;
-  if (q.isError) return <Screen title={t('members.title')} back="/settings/members"><Notice kind="danger">{t('errors.loadFailed')}</Notice></Screen>;
-
   const m = q.data;
+
+  const form = useEntityForm({
+    form: 'member',
+    recordId: id,
+    record: m,
+    fields: MEMBER_FIELDS,
+    neverAuto: ['role', 'canSeeMoney', 'isActive'],
+    fromServer: memberForm,
+    toBody: (keys, v) => Object.fromEntries(keys.map((k) => [k, k === 'accessEndsOn' ? v[k] || null : v[k]])),
+    send: (body, version, idemKey) => api('PATCH', `/members/${id}`, { body, ifMatch: version, idemKey }).then((r) => r.data),
+    mapError: (err) => (err instanceof DuplicateError ? { phone: err.message } : null),
+    onSaved(saved) {
+      if (saved) {
+        if (m?.isActive && saved.isActive === false) setNotice(t('members.deactivated'));
+        qc.setQueryData(['member', id], saved);
+      } else {
+        qc.invalidateQueries({ queryKey: ['member', id] });
+      }
+      qc.invalidateQueries({ queryKey: ['members'] });
+    },
+  });
+
+  // This form is always open: start (again) whenever it isn't editing.
+  useEffect(() => {
+    if (m && !form.editing && !form.conflict) form.start();
+  });
+
+  if (q.isError) return <Screen title={t('members.title')} back="/settings/members"><Notice kind="danger">{t('errors.loadFailed')}</Notice></Screen>;
+  if (q.isPending || !form.editing) return <Screen title={t('members.title')} back="/settings/members"><p aria-busy="true">…</p></Screen>;
+
+  if (form.conflict) {
+    const labels = { name: t('members.name'), phone: t('members.phone'), role: t('members.role'), canSeeMoney: t('members.money'), accessEndsOn: t('members.endsOn'), isActive: t('members.active') };
+    return <ConflictScreen conflict={form.conflict} labels={labels} format={memberShow} saving={form.save.status === 'saving'} onSave={form.resolve} onKeepTheirs={form.keepTheirs} />;
+  }
+
+  const f = form.values;
+  const fields = { ...resetErrors, ...form.fieldErrors };
   const self = m.id === user?.id;
   const owner = m.role === 'owner';
   const lockedAccess = owner || self;
   const canReset = permissions?.admin && !self && !(owner && !permissions.owner);
-  const set = (k) => (v) => setF({ ...f, [k]: v });
+  const set = form.set;
+  const save = form.save;
+  const forbidden = save.error instanceof ForbiddenError ? save.error.message : null;
 
   async function submit(e) {
-    e.preventDefault();
-    setFields({});
     setNotice(null);
-    const body = {};
-    for (const k of ['name', 'phone', 'role', 'canSeeMoney', 'isActive']) if (f[k] !== m[k]) body[k] = f[k];
-    if ((f.accessEndsOn || null) !== (m.accessEndsOn ?? null)) body.accessEndsOn = f.accessEndsOn || null;
-    if (Object.keys(body).length === 0) return;
-    try {
-      const res = await save.run((idemKey) => api('PATCH', `/members/${id}`, { body, ifMatch: m.version, idemKey }));
-      qc.setQueryData(['member', id], res.data);
-      qc.invalidateQueries({ queryKey: ['members'] });
-      loaded.current = false;
-      if (body.isActive === false) setNotice(t('members.deactivated'));
-    } catch (err) {
-      if (err instanceof ConflictError) {
-        setNotice(err.message);
-        qc.setQueryData(['member', id], { ...m, ...err.current });
-        loaded.current = false;
-      } else if (err instanceof ForbiddenError) setNotice(err.message);
-      else setFields(errorsFrom(err));
-    }
+    await form.submit(e);
   }
 
   async function doReset() {
@@ -147,13 +165,14 @@ function EditMember({ id }) {
       setSecret({ password: res.data.passwordOnce, link: res.data.setupLink });
       setResetPassword('');
     } catch (err) {
-      setFields(errorsFrom(err));
+      setResetErrors(errorsFrom(err));
     }
   }
 
   return (
     <Screen title={m.name} back="/settings/members">
-      {notice && <Notice kind="warning">{notice}</Notice>}
+      {form.draft && <DraftBanner time={form.draftTime} onUse={form.useDraft} onDiscard={form.discardDraft} />}
+      {(notice || forbidden) && <Notice kind="warning">{notice || forbidden}</Notice>}
       {owner && <p className="text-text-muted">{t('members.ownerNote')}</p>}
       {self && <p className="text-text-muted">{t('members.selfNote')}</p>}
       <form onSubmit={submit} className="flex flex-col gap-5" noValidate>

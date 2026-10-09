@@ -148,6 +148,10 @@ final class HistoryActivityTest extends ApiTestCase
         $this->assertSame('2026-10-08T09:12:31Z', $d['server_time']);
         $this->assertMatchesRegularExpression('/^8\.\d+$/', $d['php_version']);
 
+        // The monitor's 30-per-minute limit is for anonymous calls only.
+        for ($i = 0; $i < 31; $i++) {
+            $ayush->get('/health')->assertStatus(200);
+        }
         // Family and anonymous still get only ok/fail.
         $this->assertSame('{"status":"ok"}', $this->loginAs('papa')->get('/health')->body());
         $this->assertSame('{"status":"ok"}', (new ApiClient($this->app))->get('/health')->body());

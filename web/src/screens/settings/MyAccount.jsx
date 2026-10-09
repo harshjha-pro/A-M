@@ -7,6 +7,7 @@ import { TextField, PasswordField, ChoiceChips, FixSummary, Notice } from '../..
 import Button from '../../components/Button.jsx';
 import SavedIndicator from '../../components/SavedIndicator.jsx';
 import ConfirmDialog from '../../components/ConfirmDialog.jsx';
+import { countDrafts } from '../../forms/drafts.js';
 import { api } from '../../api/client.js';
 import { ValidationError, ConflictError } from '../../api/errors.js';
 import { useSession } from '../../api/session.js';
@@ -31,6 +32,8 @@ export default function MyAccount() {
   const [pwDone, setPwDone] = useState(false);
   const [theme, setThemeState] = useState(getTheme);
   const [confirm, setConfirm] = useState(null);
+  const drafts = confirm ? countDrafts(user?.id) : 0;
+  const draftWarning = drafts === 0 ? null : drafts === 1 ? t('draft.logoutOne') : t('draft.logout', { n: drafts }); // FEATURES A3
   const saveName = useSave();
   const savePw = useSave();
 
@@ -108,7 +111,7 @@ export default function MyAccount() {
       {confirm && (
         <ConfirmDialog
           title={t(confirm === 'all' ? 'account.confirmLogoutAll' : 'account.confirmLogout')}
-          body={t(confirm === 'all' ? 'account.confirmLogoutAllBody' : 'account.confirmLogoutBody')}
+          body={[t(confirm === 'all' ? 'account.confirmLogoutAllBody' : 'account.confirmLogoutBody'), draftWarning].filter(Boolean).join(' ')}
           confirmLabel={t(confirm === 'all' ? 'account.logoutAll' : 'account.logout')}
           danger
           onConfirm={() => doLogout(confirm === 'all')}

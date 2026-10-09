@@ -19,7 +19,10 @@ final class HealthController
 {
     public static function show(Request $request, App $app, array $params): Response
     {
-        (new RateLimiter($app))->hit('health:ip:' . RateLimiter::clientIp($request, $app), 30, 60);
+        if ($request->attr('user') === null) {
+            // The uptime monitor's limit. Logged-in people use the normal read limit (Home and Safety call this).
+            (new RateLimiter($app))->hit('health:ip:' . RateLimiter::clientIp($request, $app), 30, 60);
+        }
         $result = (new HealthService($app))->run();
         if ($result['public'] === 'fail') {
             $app->logger->error((string) $request->attr('request_id'), 'Health check failed', [
