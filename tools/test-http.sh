@@ -68,6 +68,8 @@ LoadModule dir_module $M/mod_dir.so
 LoadModule mime_module $M/mod_mime.so
 LoadModule rewrite_module $M/mod_rewrite.so
 LoadModule headers_module $M/mod_headers.so
+LoadModule filter_module $M/mod_filter.so
+LoadModule deflate_module $M/mod_deflate.so
 LoadModule php_module $M/libphp8.3.so
 TypesConfig /etc/mime.types
 ErrorLog $CONF/logs/error.log

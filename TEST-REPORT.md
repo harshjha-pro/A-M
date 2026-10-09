@@ -1,17 +1,18 @@
-# Test report — Session 06 — Events and calendar
+# Test report — Session 07 — Home
 
-Date: 2026-10-09T05:59Z · App version: 1.0.6 · DB: **MySQL 8.0.46-0ubuntu0.24.04.4** (sandbox, same major as Hostinger) · PHP 8.3.6 · Node v22.22.0 · Web server for .htaccess tests: Apache/2.4.58 (Ubuntu)
+Date: 2026-10-09T08:51Z · App version: 1.0.7 · DB: **MySQL 8.0.46-0ubuntu0.24.04.4** (sandbox, same major as Hostinger) · PHP 8.3.6 · Node v22.22.0 · Web server for .htaccess tests: Apache/2.4.58 (Ubuntu)
 
 Overall: **GREEN — all suites passed**
 
 | Suite | Result |
 |---|---|
-| PHPUnit (unit, db, endpoints, security, static, coverage) | OK (434 tests, 4386 assertions) |
-| Endpoint coverage | 57/104 operations built and tested (the rest arrive session by session) |
-| Vitest (formats, API client, shell, routes, axe) | Tests 127 passed (127) |
-| Build (staging + live) | JS 100.32 kB gz · CSS 5.49 kB gz |
-| HTTP rules (real requests) | Apache 2.4.58 + real .htaccess: PASS · php -S + tools/router.php: PASS — OK (11 tests, 223 assertions) OK (11 tests, 220 assertions)  |
-| Playwright smoke (android, small-iphone, small-android; Chromium, not Safari) | 51 passed (59.2s) |
+| PHPUnit (unit, db, endpoints, security, static, coverage) | OK (446 tests, 4557 assertions) |
+| Endpoint coverage | 58/104 operations built and tested (the rest arrive session by session) |
+| Vitest (formats, API client, shell, routes, axe) | Tests 131 passed (131) |
+| Build (staging + live) | JS 100.79 kB gz · CSS 5.58 kB gz |
+| HTTP rules (real requests) | Apache 2.4.58 + real .htaccess: PASS · php -S + tools/router.php: PASS — OK (12 tests, 230 assertions) OK (12 tests, 226 assertions)  |
+| Playwright smoke (android, small-iphone, small-android; Chromium, not Safari) | 63 passed (1.3m) |
+| Lighthouse mobile, simulated slow 4G (budget: Perf ≥ 90, A11y ≥ 95, BP ≥ 95) | login: Performance 98 · Accessibility 100 · Best Practices 96 · LCP 2.00 s · TBT 0 ms · CLS 0.000 home: Performance 97 · Accessibility 100 · Best Practices 96 · LCP 2.36 s · TBT 2 ms · CLS 0.004  |
 
 Database checks: 001 → 002 → 003 apply with finished_at set; second run of each stops at its guard with data unchanged (DS-28); seed_demo.sql loads (61 families, Devanagari intact) and its second run stops at user id 1.
 
@@ -75,6 +76,15 @@ Daily Job (Tests\Db\DailyJob)
  ✔ Logs rotate weekly and keep 8 weeks
  ✔ Error digest only when there were errors
  ✔ Run does every step and daily php runs from the command line
+Dashboard (Tests\Endpoints\Dashboard)
+ ✔ Cards per role
+ ✔ Ac dash 01 countdown in ist late at night
+ ✔ Next event is the next dated one
+ ✔ Ac dash 02 my overdue first then today and sec07
+ ✔ Ac dash 04 headcount per guest event
+ ✔ Ac dash 05 safety backup 27 hours old is red
+ ✔ Start here and recent activity for admins
+ ✔ Documented demo results
 Endpoint Coverage (Tests\Coverage\EndpointCoverage)
  ✔ Openapi file is readable
  ✔ Every built route is documented and tested
@@ -160,13 +170,4 @@ Methods And Routing (Tests\Security\MethodsAndRouting)
  ✔ Options trace connect are 405
  ✔ Unknown paths are 404 with envelope
  ✔ Routes need a session unless anonymous
- ✔ Writes get 503 while the schema is behind
- ✔ Write with database down is 503 not 500
- ✔ Old app version cannot write
- ✔ Body over 1 mb is 413
- ✔ Invalid json body is 400
-Migrations (Tests\Db\Migrations)
- ✔ All migrations applied and finished
- ✔ Reference data after 002
- ✔ Second run of every migration stops at its guard
 ```
