@@ -13,10 +13,13 @@ final class StaticRulesTest extends TestCase
     {
         $root = dirname(__DIR__, 2);
         $out = [];
-        $it = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($root . '/src'));
-        foreach ($it as $f) {
-            if ($f->isFile() && $f->getExtension() === 'php') {
-                $out[substr($f->getPathname(), strlen($root) + 1)] = (string) file_get_contents($f->getPathname());
+        // The API code plus the cron and backup scripts (Session 4).
+        foreach ([$root . '/src', dirname($root) . '/scripts'] as $dir) {
+            $it = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($dir));
+            foreach ($it as $f) {
+                if ($f->isFile() && $f->getExtension() === 'php') {
+                    $out[substr($f->getPathname(), strlen(dirname($root)) + 1)] = (string) file_get_contents($f->getPathname());
+                }
             }
         }
         $this->assertNotEmpty($out);
@@ -39,7 +42,7 @@ final class StaticRulesTest extends TestCase
         foreach ($this->sources() as $path => $code) {
             $this->assertDoesNotMatchRegularExpression('/UPDATE\s+`?audit_log/i', $code, "UPDATE audit_log in $path");
             $this->assertDoesNotMatchRegularExpression('/DELETE\s+FROM\s+`?audit_log/i', $code, "DELETE audit_log in $path");
-            $this->assertDoesNotMatchRegularExpression('/TRUNCATE/i', $code, "TRUNCATE in $path");
+            $this->assertDoesNotMatchRegularExpression('/\bTRUNCATE\b/i', $code, "TRUNCATE in $path");
         }
     }
 

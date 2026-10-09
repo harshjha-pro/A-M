@@ -31,10 +31,7 @@ abstract class ApiTestCase extends TestCase
 
     protected function tearDown(): void
     {
-        foreach (glob($this->logDir . '/*') ?: [] as $f) {
-            unlink($f);
-        }
-        @rmdir($this->logDir);
+        exec('rm -rf ' . escapeshellarg($this->logDir)); // logs, plus any storage/ a test made
         parent::tearDown();
     }
 

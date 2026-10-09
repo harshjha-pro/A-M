@@ -1,17 +1,17 @@
-# Test report — Session 03 — Data safety
+# Test report — Session 04 — Live site + backup
 
-Date: 2026-10-09T04:31Z · App version: 1.0.3 · DB: **MySQL 8.0.46-0ubuntu0.24.04.4** (sandbox, same major as Hostinger) · PHP 8.3.6 · Node v22.22.0 · Web server for .htaccess tests: Apache/2.4.58 (Ubuntu)
+Date: 2026-10-09T04:58Z · App version: 1.0.4 · DB: **MySQL 8.0.46-0ubuntu0.24.04.4** (sandbox, same major as Hostinger) · PHP 8.3.6 · Node v22.22.0 · Web server for .htaccess tests: Apache/2.4.58 (Ubuntu)
 
 Overall: **GREEN — all suites passed**
 
 | Suite | Result |
 |---|---|
-| PHPUnit (unit, db, endpoints, security, static, coverage) | OK (276 tests, 2951 assertions) |
+| PHPUnit (unit, db, endpoints, security, static, coverage) | OK (299 tests, 3161 assertions) |
 | Endpoint coverage | 33/101 operations built and tested (the rest arrive session by session) |
 | Vitest (formats, API client, shell, routes, axe) | Tests 110 passed (110) |
-| Build (staging + live) | JS 98.63 kB gz · CSS 5.06 kB gz |
+| Build (staging + live) | JS 98.62 kB gz · CSS 5.06 kB gz |
 | HTTP rules (real requests) | Apache 2.4.58 + real .htaccess: PASS · php -S + tools/router.php: PASS — OK (11 tests, 223 assertions) OK (11 tests, 220 assertions)  |
-| Playwright smoke (android, small-iphone, small-android; Chromium, not Safari) | 30 passed (40.6s) |
+| Playwright smoke (android, small-iphone, small-android; Chromium, not Safari) | 30 passed (44.9s) |
 
 Database checks: 001 → 002 → 003 apply with finished_at set; second run of each stops at its guard with data unchanged (DS-28); seed_demo.sql loads (61 families, Devanagari intact) and its second run stops at user id 1.
 
@@ -36,6 +36,18 @@ Auth (Tests\Endpoints\Auth)
  ✔ Change password rules
  ✔ Ac set 05 change password logs out other phones and keeps this one
  ✔ Reset request always 202 and sends nothing
+Backup Script (Tests\Backup\BackupScript)
+ ✔ Nightly backup end to end then restore with hindi intact
+ ✔ Retention hides old dailies but keeps the first of each month
+ ✔ Watchdog emails at 37 hours once per 12 hours
+ ✔ Watchdog with no backup at all
+ ✔ Failure wrong b2 key writes failed and emails
+ ✔ Failure missing key file
+ ✔ Failure dump error leaves no half file
+ ✔ Missing upload file is a warning not a failure
+ ✔ Test email over smtp and a wrong password
+ ✔ Make key once and never again
+ ✔ Only runs from the command line
 Client Log (Tests\Endpoints\ClientLog)
  ✔ Works without a session and writes one log line
  ✔ Never writes to the database or audit log
@@ -57,6 +69,12 @@ Csrf And Idempotency (Tests\Security\CsrfAndIdempotency)
  ✔ Keys belong to one person
  ✔ Ds24 a failure after the change saves nothing and frees the key
  ✔ Sec20 write flood is limited
+Daily Job (Tests\Db\DailyJob)
+ ✔ Deletes only expired ephemeral rows
+ ✔ Export files older than 24 hours go and rows stay
+ ✔ Logs rotate weekly and keep 8 weeks
+ ✔ Error digest only when there were errors
+ ✔ Run does every step and daily php runs from the command line
 Endpoint Coverage (Tests\Coverage\EndpointCoverage)
  ✔ Openapi file is readable
  ✔ Every built route is documented and tested
@@ -82,6 +100,7 @@ History Activity (Tests\Endpoints\HistoryActivity)
  ✔ Member history hides admin fields from family
  ✔ Activity feed for admins with filters
  ✔ Activity hides money from admins without money
+ ✔ Backup runs show as plain sentences
  ✔ Backups list for the safety card
  ✔ Logged in admin sees every check
 Kernel (Tests\Unit\Kernel)
@@ -93,6 +112,13 @@ Kernel (Tests\Unit\Kernel)
  ✔ Router matches params and methods
  ✔ Every error code has a plain message
  ✔ Versions match everywhere
+Mailer (Tests\Backup\Mailer)
+ ✔ Sends plain text utf8 over smtp
+ ✔ Never sends when alerts are off
+ ✔ Refuses after the daily cap
+ ✔ Falls back to mail when smtp fails
+ ✔ From env reads the env names
+ ✔ Rejects header injection in addresses
 Members (Tests\Endpoints\Members)
  ✔ Admins see everything family and viewers see names and phones
  ✔ Inactive members only with include inactive
@@ -143,30 +169,4 @@ Password Link (Tests\Endpoints\PasswordLink)
 Restore Drills (Tests\Endpoints\RestoreDrills)
  ✔ Admin logs a drill with one audit row
  ✔ Validation and permissions
- ✔ Ds04 same key twice makes one drill
- ✔ List is admin only and hides deleted
- ✔ Update bumps version and ds01 stale version changes nothing
- ✔ Ds18 delete is soft and offers undo for 10 minutes
- ✔ Sec06 deleted record by id
- ✔ Ds05 a retried delete is a replay
- ✔ Restore one record admin only twice is fine
-Settings (Tests\Endpoints\Settings)
- ✔ Everyone reads facts only money users see the budget
- ✔ Ac set 01 admin sets the budget and facts
- ✔ Ac set 02 family and viewers cannot edit
- ✔ Ac set 07 and other rules
- ✔ No change is not a new version
- ✔ Ds02 two admins edit different fields
- ✔ History in plain sentences with cursor paging
-Setup (Tests\Endpoints\Setup)
- ✔ Creates the owner once and logs them in
- ✔ Wrong missing or placeholder token is refused
- ✔ Validation and limits
- ✔ Needs our origin
-Standard Set (Tests\Security\StandardSet)
- ✔ S1 no session is 401 with data set "GET /health"
- ✔ S1 no session is 401 with data set "POST /client-log"
- ✔ S1 no session is 401 with data set "POST /auth/login"
- ✔ S1 no session is 401 with data set "POST /auth/logout"
- ✔ S1 no session is 401 with data set "POST /auth/logout-all"
 ```

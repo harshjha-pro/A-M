@@ -103,6 +103,10 @@ final class History
                     return "$who changed their password.";
                 }
                 return "$who reset the password of $thing" . ($note !== '' ? " ($note)" : '') . '.';
+            case 'backup':
+                // note: "Backup wedding_20261009_0217.sql.gz.enc (nightly_db)" from backup.php
+                $kind = str_contains($note, '(manual_db)') ? 'Manual backup' : (str_contains($note, '(pre_migration)') ? 'Backup before an update' : 'Nightly backup');
+                return "$kind saved off-site.";
             default:
                 return "$who: $action $thing.";
         }

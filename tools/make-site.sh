@@ -24,5 +24,15 @@ cp public_html/api/index.php "$OUT/public_html/api/index.php"
 cp api/bootstrap.php api/autoload.php "$OUT/private/app/"
 cp -R api/src "$OUT/private/app/src"
 cp VERSION "$OUT/private/app/VERSION"
-# Composer packages: none needed at runtime in Session 1 (our own autoloader is used).
+# Composer packages: none needed at runtime (our own autoloader; our own SMTP client).
+
+# Cron scripts (both sites) and the backup script (live only: staging holds demo data).
+mkdir -p "$OUT/private/cron"
+cp scripts/cron/daily.php "$OUT/private/cron/daily.php"
+if [ "$FLAVOUR" = live ]; then
+  mkdir -p "$OUT/private/backup"
+  cp scripts/backup/backup.php scripts/backup/config.example.php "$OUT/private/backup/"
+  chmod 700 "$OUT/private/backup"
+  chmod 600 "$OUT/private/backup/"*.php
+fi
 echo "Site folder ready: $OUT ($FLAVOUR, version $(cat VERSION))"

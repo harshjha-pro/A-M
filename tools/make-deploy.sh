@@ -29,7 +29,7 @@ for FLAVOUR in staging live; do
     cd "$SITE"
     # Never ship a .env, keys or test files, whatever happens upstream.
     find . \( -name '.env' -o -name '*.key' -o -name 'config.php' \) -delete
-    zip -qrX "$DEST/1-server.zip" private/app private/logs private/storage public_html/api/index.php
+    zip -qrX "$DEST/1-server.zip" private/app private/logs private/storage private/cron $( [ -d private/backup ] && echo private/backup ) public_html/api/index.php
     zip -qrX "$DEST/2-assets.zip" public_html/assets -x 'public_html/assets/.htaccess'
     # Shell = every file and folder at the top of public_html except assets/ (2-assets),
     # api/ (1-server) and version.json (uploaded last, on its own) — so nothing new is ever forgotten.

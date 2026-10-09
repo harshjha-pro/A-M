@@ -106,6 +106,16 @@ final class HistoryActivityTest extends ApiTestCase
         $this->assertSame(['city'], array_column($line['changes'], 'field'));
     }
 
+    #[Endpoint('GET /activity')]
+    public function test_backup_runs_show_as_plain_sentences(): void
+    {
+        $this->db()->run("INSERT INTO audit_log (user_id, action, entity_type, entity_id, note) VALUES
+            (NULL, 'backup', 'backup_run', 7, 'Backup wedding_20261009_0217.sql.gz.enc (nightly_db)'),
+            (NULL, 'backup', 'backup_run', 8, 'Backup wedding_20261009_1105_manual.sql.gz.enc (manual_db)')");
+        $lines = array_column($this->loginAs('ayush')->get('/activity', ['action' => 'backup'])->assertStatus(200)->json('data'), 'sentence');
+        $this->assertSame(['Manual backup saved off-site.', 'Nightly backup saved off-site.'], $lines);
+    }
+
     #[Endpoint('GET /backups')]
     public function test_backups_list_for_the_safety_card(): void
     {
