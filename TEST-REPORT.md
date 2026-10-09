@@ -1,18 +1,18 @@
-# Test report — Session 10 — Documents and uploads
+# Test report — Session 11 — Export
 
-Date: 2026-10-09T19:53Z · App version: 1.0.11 · DB: **MySQL 8.0.46-0ubuntu0.24.04.4** (sandbox, same major as Hostinger) · PHP 8.3.6 · Node v22.22.0 · Web server for .htaccess tests: Apache/2.4.58 (Ubuntu)
+Date: 2026-10-09T20:33Z · App version: 1.0.12 · DB: **MySQL 8.0.46-0ubuntu0.24.04.4** (sandbox, same major as Hostinger) · PHP 8.3.6 · Node v22.22.0 · Web server for .htaccess tests: Apache/2.4.58 (Ubuntu)
 
 Overall: **GREEN — all suites passed**
 
 | Suite | Result |
 |---|---|
-| PHPUnit (unit, db, endpoints, security, static, coverage) | OK (694 tests, 6786 assertions) |
-| Endpoint coverage | 104/109 operations built and tested (the rest arrive session by session) |
-| Vitest (formats, API client, shell, routes, axe) | Tests 179 passed (179) |
-| Build (staging + live) | JS 106.62 kB gz · CSS 5.93 kB gz |
-| HTTP rules (real requests) | Apache 2.4.58 + real .htaccess: PASS · php -S + tools/router.php: PASS — OK (13 tests, 241 assertions) OK (13 tests, 237 assertions)  |
-| Playwright smoke (android, small-iphone, small-android; Chromium, not Safari) | 96 passed (3.3m) |
-| Lighthouse mobile, simulated slow 4G (budget: Perf ≥ 90, A11y ≥ 95, BP ≥ 95) | login: Performance 98 · Accessibility 100 · Best Practices 96 · LCP 1.95 s · TBT 3 ms · CLS 0.000 home: Performance 93 · Accessibility 100 · Best Practices 100 · LCP 2.95 s · TBT 46 ms · CLS 0.057 guests: Performance 96 · Accessibility 100 · Best Practices 100 · LCP 2.66 s · TBT 47 ms · CLS 0.018  |
+| PHPUnit (unit, db, endpoints, security, static, coverage) | OK (726 tests, 7602 assertions) |
+| Endpoint coverage | 109/110 operations built and tested (the rest arrive session by session) |
+| Vitest (formats, API client, shell, routes, axe) | Tests 185 passed (185) |
+| Build (staging + live) | JS 107.08 kB gz · CSS 5.94 kB gz |
+| HTTP rules (real requests) | Apache 2.4.58 + real .htaccess: PASS · php -S + tools/router.php: PASS — OK (13 tests, 250 assertions) OK (13 tests, 246 assertions)  |
+| Playwright smoke (android, small-iphone, small-android; Chromium, not Safari) | 99 passed (3.4m) |
+| Lighthouse mobile, simulated slow 4G (budget: Perf ≥ 90, A11y ≥ 95, BP ≥ 95) | login: Performance 97 · Accessibility 100 · Best Practices 96 · LCP 2.32 s · TBT 9 ms · CLS 0.000 home: Performance 90 · Accessibility 100 · Best Practices 100 · LCP 3.08 s · TBT 166 ms · CLS 0.057 guests: Performance 95 · Accessibility 100 · Best Practices 100 · LCP 2.71 s · TBT 108 ms · CLS 0.018  |
 
 Database checks: 001 → 002 → 003 apply with finished_at set; second run of each stops at its guard with data unchanged (DS-28); seed_demo.sql loads (61 families, Devanagari intact) and its second run stops at user id 1.
 
@@ -72,7 +72,7 @@ Csrf And Idempotency (Tests\Security\CsrfAndIdempotency)
  ✔ Sec20 write flood is limited
 Daily Job (Tests\Db\DailyJob)
  ✔ Deletes only expired ephemeral rows
- ✔ Export files older than 24 hours go and rows stay
+ ✔ Export folders past 24 hours go and rows stay
  ✔ Logs rotate weekly and keep 8 weeks
  ✔ Error digest only when there were errors
  ✔ Run does every step and daily php runs from the command line
@@ -116,10 +116,23 @@ Events Calendar (Tests\Endpoints\EventsCalendar)
  ✔ Ac evt 03 agenda items by ist day money only for money users
  ✔ Range rules
  ✔ A task can link to an event and not to a deleted one
+Exports (Tests\Endpoints\Exports)
+ ✔ Ds21 every row every file hindi bom ist rupees formula safe
+ ✔ Ds22 export restores into an empty database
+ ✔ Ds23 snapshot is consistent while someone writes
+ ✔ Ac exp 04 only owner and partner and three an hour
+ ✔ Retry with the same key gives the same export and a new token
+ ✔ Sec33 token only for its export and 24 hours
+ ✔ Print summary opens with inline styles only
+ ✔ Files over the part size split into parts
+ ✔ Recent exports and last success without tokens
+ ✔ A failed export says try again and leaves nothing half made
+ ✔ Limits 2000 families and 500 files fast and flat memory
 Guests (Tests\Endpoints\Guests)
  ✔ Add family with invitations defaults and rules
  ✔ Duplicate phone 409 with matches and allow duplicate
  ✔ Duplicate check hints phone and name city
+ ✔ Hindi names keep their vowel signs in the duplicate check
  ✔ Suggestions most used first
  ✔ List filters totals and paging
  ✔ Family page and numeric id 404
@@ -157,17 +170,4 @@ Headers (Tests\Security\Headers)
  ✔ Cross origin preflight gets no cors
 Health (Tests\Endpoints\Health)
  ✔ Anonymous gets only status ok
- ✔ Database down gives 503 fail and nothing else
- ✔ Unfinished migration gives fail
- ✔ Backup not checked until backups are expected
- ✔ Backup age rule when expected
- ✔ Audit count drop gives fail
- ✔ Head request works for uptime monitors
- ✔ Unknown query parameter is 400
- ✔ Anonymous limit 30 per minute
-History Activity (Tests\Endpoints\HistoryActivity)
- ✔ Record history in plain sentences
- ✔ Member history hides admin fields from family
- ✔ Activity feed for admins with filters
- ✔ Activity hides money from admins without money
 ```
