@@ -1,18 +1,18 @@
-# Test report — Session 08 — Guests and RSVP
+# Test report — Session 08b — Guests: bulk, import, CSV
 
-Date: 2026-10-09T09:43Z · App version: 1.0.8 · DB: **MySQL 8.0.46-0ubuntu0.24.04.4** (sandbox, same major as Hostinger) · PHP 8.3.6 · Node v22.22.0 · Web server for .htaccess tests: Apache/2.4.58 (Ubuntu)
+Date: 2026-10-09T10:43Z · App version: 1.0.9 · DB: **MySQL 8.0.46-0ubuntu0.24.04.4** (sandbox, same major as Hostinger) · PHP 8.3.6 · Node v22.22.0 · Web server for .htaccess tests: Apache/2.4.58 (Ubuntu)
 
 Overall: **GREEN — all suites passed**
 
 | Suite | Result |
 |---|---|
-| PHPUnit (unit, db, endpoints, security, static, coverage) | OK (510 tests, 5182 assertions) |
-| Endpoint coverage | 70/105 operations built and tested (the rest arrive session by session) |
-| Vitest (formats, API client, shell, routes, axe) | Tests 142 passed (142) |
-| Build (staging + live) | JS 102.26 kB gz · CSS 5.83 kB gz |
-| HTTP rules (real requests) | Apache 2.4.58 + real .htaccess: PASS · php -S + tools/router.php: PASS — OK (12 tests, 230 assertions) OK (12 tests, 226 assertions)  |
-| Playwright smoke (android, small-iphone, small-android; Chromium, not Safari) | 72 passed (1.8m) |
-| Lighthouse mobile, simulated slow 4G (budget: Perf ≥ 90, A11y ≥ 95, BP ≥ 95) | login: Performance 98 · Accessibility 100 · Best Practices 96 · LCP 1.99 s · TBT 1 ms · CLS 0.000 home: Performance 97 · Accessibility 100 · Best Practices 96 · LCP 2.49 s · TBT 37 ms · CLS 0.003 guests: Performance 97 · Accessibility 100 · Best Practices 100 · LCP 2.48 s · TBT 22 ms · CLS 0.018  |
+| PHPUnit (unit, db, endpoints, security, static, coverage) | OK (553 tests, 5586 assertions) |
+| Endpoint coverage | 77/105 operations built and tested (the rest arrive session by session) |
+| Vitest (formats, API client, shell, routes, axe) | Tests 154 passed (154) |
+| Build (staging + live) | JS 103.54 kB gz · CSS 5.87 kB gz |
+| HTTP rules (real requests) | Apache 2.4.58 + real .htaccess: PASS · php -S + tools/router.php: PASS — OK (13 tests, 233 assertions) OK (13 tests, 229 assertions)  |
+| Playwright smoke (android, small-iphone, small-android; Chromium, not Safari) | 78 passed (2.1m) |
+| Lighthouse mobile, simulated slow 4G (budget: Perf ≥ 90, A11y ≥ 95, BP ≥ 95) | login: Performance 99 · Accessibility 100 · Best Practices 96 · LCP 1.85 s · TBT 0 ms · CLS 0.000 home: Performance 97 · Accessibility 100 · Best Practices 96 · LCP 2.49 s · TBT 35 ms · CLS 0.003 guests: Performance 96 · Accessibility 100 · Best Practices 100 · LCP 2.61 s · TBT 0 ms · CLS 0.018  |
 
 Database checks: 001 → 002 → 003 apply with finished_at set; second run of each stops at its guard with data unchanged (DS-28); seed_demo.sql loads (61 families, Devanagari intact) and its second run stops at user id 1.
 
@@ -120,6 +120,24 @@ Guests (Tests\Endpoints\Guests)
  ✔ Remove from event with undo
  ✔ Whatsapp tap is bookkeeping no version bump
  ✔ Sec10 powers
+Guests Bulk (Tests\Endpoints\GuestsBulk)
+ ✔ Ac gst 05 invite all filtered skips invited and undo removes exactly the new
+ ✔ Ds12 bulk answer 30 one edited since undo skips and names it
+ ✔ Ds25 as of skips rows changed after loading set side
+ ✔ Change in the same second as loading is not skipped
+ ✔ Uninvite and delete with undo and trash
+ ✔ Limits and validation
+ ✔ Sec21 bulk rate limit
+Guests Export (Tests\Endpoints\GuestsExport)
+ ✔ Csv bom ist formula safe filtered audited
+Guests Import (Tests\Endpoints\GuestsImport)
+ ✔ Preview counts statuses and writes nothing
+ ✔ Ac imp 01 04 08 run with decisions one batch and activity line
+ ✔ Ac imp 01 duplicates default to skip and ds04 same key one import
+ ✔ List imports admin only
+ ✔ Get one import
+ ✔ Ac imp 05 undo this import keeps edited families and reverts updates
+ ✔ Three thousand rows
 Guests Scale (Tests\Endpoints\GuestsScale)
  ✔ Headcount matches database 7 4 on demo data
  ✔ List of 50 with 2000 families under 300ms
@@ -152,22 +170,4 @@ Kernel (Tests\Unit\Kernel)
  ✔ Logger masks phones only
  ✔ Router matches params and methods
  ✔ Every error code has a plain message
- ✔ Versions match everywhere
-Mailer (Tests\Backup\Mailer)
- ✔ Sends plain text utf8 over smtp
- ✔ Never sends when alerts are off
- ✔ Refuses after the daily cap
- ✔ Falls back to mail when smtp fails
- ✔ From env reads the env names
- ✔ Rejects header injection in addresses
-Members (Tests\Endpoints\Members)
- ✔ Admins see everything family and viewers see names and phones
- ✔ Inactive members only with include inactive
- ✔ Add with a made up password shown once
- ✔ Add with a typed password and partner always sees money
- ✔ Add rules
- ✔ A deactivated members phone can be reused
- ✔ Ds04 retry with the same key never makes two and gives a fresh link
- ✔ Ds08 after 48 hours the client uuid still prevents a duplicate
- ✔ Ds09 a refused request frees its key
 ```
