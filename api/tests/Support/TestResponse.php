@@ -23,7 +23,7 @@ final class TestResponse
 
     public function body(): string
     {
-        return $this->raw->body;
+        return $this->raw->contents();
     }
 
     /** json('error.code') → value at that dotted path */

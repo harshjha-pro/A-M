@@ -28,6 +28,9 @@ final class SecurityHeaders implements Middleware
     {
         $response = $next($request);
         foreach (self::HEADERS as $name => $value) {
+            if ($name === 'Cache-Control' && isset($response->headers[$name]) && str_contains($response->headers[$name], 'no-store')) {
+                continue; // a reply may say more ("private, no-store" on files) but never allow caching
+            }
             $response->headers[$name] = $value;
         }
         // Every reply says the oldest app version still allowed (API.md §1.3).

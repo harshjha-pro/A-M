@@ -33,6 +33,9 @@ final class JsonBody implements Middleware
                 throw HttpError::make(400, 'bad_request');
             }
         }
+        if ($request->contentType() === 'multipart/form-data') {
+            $request->parseMultipart(); // in tests; on the server PHP already filled form/files
+        }
         return $next($request);
     }
 }

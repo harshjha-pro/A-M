@@ -119,6 +119,14 @@ final class Strings
         'already_paid'             => 'This payment is already paid.',
         'part_too_big'             => 'Part payment must be less than {amount}.',
         'vendor_or_new'            => 'Choose a vendor or type a new one, not both.',
+        'file_too_big'             => 'This file is too big ({size}). Max 10 MB.',
+        'unsupported_type'         => 'Only photos (JPEG, PNG, WebP) and PDFs can be saved.',
+        'heic_not_supported'       => 'Please share it as a JPEG photo.',
+        'checksum_mismatch'        => "The file didn't arrive whole. Please try again.",
+        'file_required'            => 'Choose a file.',
+        'document_duplicate'       => "This file is already saved as '{title}'.",
+        'not_your_upload'          => 'Only the person who uploaded it, or Ayush and Mahi, can change it.',
+        'storage_unavailable'      => "Files can't be saved right now. Please try again later.",
         'tag_name_taken'           => 'A tag called {name} already exists. Rename that one first.',
     ];
 

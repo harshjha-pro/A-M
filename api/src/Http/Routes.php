@@ -10,6 +10,8 @@ use AM\Kernel\Router;
 use AM\Modules\Auth\AuthController;
 use AM\Modules\ClientLog\ClientLogController;
 use AM\Modules\Dashboard\DashboardController;
+use AM\Modules\Documents\DocumentDef;
+use AM\Modules\Documents\DocumentsController;
 use AM\Modules\Events\CalendarController;
 use AM\Modules\Events\EventDef;
 use AM\Modules\Events\EventsController;
@@ -177,6 +179,15 @@ final class Routes
         $r->add('POST', '/payments/{id}/restore', static fn (Request $q, App $a, array $p) => BaseController::restore($q, $a, $p, PaymentDef::class));
         $r->add('POST', '/payments/{id}/mark-paid', PaymentsController::markPaid(...));
         $r->add('POST', '/payments/{id}/pay-part', PaymentsController::payPart(...));
+
+        // Documents and uploads (Session 10). Multipart, one file per request (API.md §8).
+        $r->add('GET', '/documents', DocumentsController::list(...), ['query' => DocumentsController::QUERY]);
+        $r->add('POST', '/documents', DocumentsController::upload(...), ['max_body' => 16 * 1024 * 1024]);
+        $r->add('GET', '/documents/{id}', DocumentsController::get(...));
+        $r->add('PATCH', '/documents/{id}', DocumentsController::update(...));
+        $r->add('GET', '/documents/{id}/file', DocumentsController::file(...), ['query' => ['download']]);
+        $r->add('DELETE', '/documents/{id}', static fn (Request $q, App $a, array $p) => BaseController::delete($q, $a, $p, DocumentDef::class, DocumentsController::canWrite()));
+        $r->add('POST', '/documents/{id}/restore', static fn (Request $q, App $a, array $p) => BaseController::restore($q, $a, $p, DocumentDef::class));
 
         // Home (Session 7)
         $r->add('GET', '/dashboard', DashboardController::show(...), ['query' => ['payments_window_days']]);

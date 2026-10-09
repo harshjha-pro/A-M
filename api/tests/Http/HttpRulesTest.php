@@ -250,6 +250,31 @@ final class HttpRulesTest extends TestCase
         $this->assertSame(200, $session['status'], $session['body']);
         $this->assertSame('owner', json_decode($session['body'], true)['data']['user']['role']);
 
+        // A real multipart upload through the web server: PHP's own $_FILES path (move_uploaded_file), then the download.
+        $csrf = (string) json_decode($login['body'], true)['data']['csrf_token'];
+        $im = imagecreatetruecolor(32, 24);
+        imagefill($im, 0, 0, imagecolorallocate($im, random_int(0, 255), random_int(0, 255), random_int(0, 255))); // unique bytes per run
+        imagesetpixel($im, random_int(0, 31), random_int(0, 23), imagecolorallocate($im, random_int(0, 255), 7, 9));
+        ob_start();
+        imagejpeg($im, null, 80);
+        $jpeg = (string) ob_get_clean();
+        $b = '----amhttp' . bin2hex(random_bytes(6));
+        $body = "--$b\r\nContent-Disposition: form-data; name=\"type\"\r\n\r\nreceipt\r\n"
+            . "--$b\r\nContent-Disposition: form-data; name=\"sha256\"\r\n\r\n" . hash('sha256', $jpeg) . "\r\n"
+            . "--$b\r\nContent-Disposition: form-data; name=\"file\"; filename=\"IMG_1.jpg\"\r\nContent-Type: image/jpeg\r\n\r\n$jpeg\r\n--$b--\r\n";
+        $auth = ['Cookie' => '__Host-am_session=' . $m[1], 'Origin' => 'https://' . self::HOST, 'X-CSRF-Token' => $csrf];
+        $up = $this->fetch('/api/v1/documents', 'POST', $auth + ['Content-Type' => "multipart/form-data; boundary=$b", 'Idempotency-Key' => '5b1f0b52-3a2d-4c1e-9f00-' . sprintf('%012d', random_int(1, 999999999))], $body);
+        $this->assertSame(201, $up['status'], $up['body']);
+        $doc = json_decode($up['body'], true)['data'];
+        $file = $this->fetch($doc['file_url'], 'GET', ['Cookie' => $auth['Cookie']]);
+        $this->assertSame(200, $file['status']);
+        $this->assertSame($jpeg, $file['body'], 'the same bytes come back');
+        $this->assertSame('private, no-store', $file['headers']['cache-control'] ?? null);
+        $this->assertSame(401, $this->fetch($doc['file_url'])['status'], 'no session → 401');
+        foreach (['/uploads/2026/10/' . $doc['file']['id'] . '.jpg', '/private/storage/uploads/', '/storage/uploads/'] as $guess) { // SEC-05
+            $this->assertContains($this->fetch($guess)['status'], [403, 404], $guess);
+        }
+
         $evil = $this->fetch('/api/v1/auth/login', 'POST', ['Origin' => 'https://evil.example', 'Content-Type' => 'application/json'],
             json_encode(['phone' => $phone, 'password' => 'lotus-4821']));
         $this->assertSame(403, $evil['status'], 'Origin check through the web server');

@@ -54,6 +54,7 @@ final class Entities
         'budget-categories' => BudgetCategoryDef::class,
         'vendors' => VendorDef::class,
         'payments' => PaymentDef::class,
+        'documents' => DocumentDef::class,
     ];
 
     /** The value that names a row (public id or checklist key); null for link rows. */

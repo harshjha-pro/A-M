@@ -74,6 +74,22 @@ final class ApiClient
         return $this->request('PATCH', $path, json_encode($data, JSON_UNESCAPED_UNICODE), [], [], $opts + ['ifMatch' => $ifMatch]);
     }
 
+    /**
+     * multipart/form-data upload, built the way a browser sends it (API.md §8.2).
+     * @param array<string,string> $fields text fields; sha256 is added from the bytes unless given
+     */
+    public function upload(string $path, string $bytes, string $filename, array $fields = [], array $opts = []): TestResponse
+    {
+        $fields += ['sha256' => hash('sha256', $bytes)];
+        $b = '----amtest' . bin2hex(random_bytes(6));
+        $body = '';
+        foreach ($fields as $k => $v) {
+            $body .= "--$b\r\nContent-Disposition: form-data; name=\"$k\"\r\n\r\n$v\r\n";
+        }
+        $body .= "--$b\r\nContent-Disposition: form-data; name=\"file\"; filename=\"$filename\"\r\nContent-Type: application/octet-stream\r\n\r\n$bytes\r\n--$b--\r\n";
+        return $this->request('POST', $path, $body, ['content-type' => "multipart/form-data; boundary=$b"], [], $opts);
+    }
+
     /** Log in; keeps the cookie and CSRF token like the app does. */
     public function login(string $phone, string $password = 'test-1234'): TestResponse
     {

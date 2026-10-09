@@ -38,7 +38,7 @@ abstract class ApiTestCase extends TestCase
     /** @param array<string,string> $env overrides */
     protected function makeApp(array $env = [], ?Closure $dbFactory = null): App
     {
-        $e = TestDb::env($env + ['LOG_DIR' => $this->logDir]);
+        $e = TestDb::env($env + ['LOG_DIR' => $this->logDir, 'STORAGE_ROOT' => $this->logDir . '/storage']);
         return new App($e, $this->clock, new Logger($this->logDir, $this->clock), $dbFactory);
     }
 

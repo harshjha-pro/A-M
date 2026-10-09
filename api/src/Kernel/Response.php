@@ -20,6 +20,9 @@ final class Response
     /** Raw body (a bare JSON object like anonymous /health, a file, a CSV). */
     public string $body = '';
 
+    /** A file sent in 1 MB chunks instead of a body (document downloads): [path, offset, length]. */
+    public ?array $stream = null;
+
     public function __construct(public int $status = 200) {}
 
     /** {ok:true, data, meta} */
@@ -83,6 +86,24 @@ final class Response
         }
     }
 
+    /** A file part as the reply (API.md §8.3): streamed by send(), never read whole. */
+    public static function file(string $path, int $offset, int $length, int $status = 200): self
+    {
+        $r = new self($status);
+        $r->stream = [$path, $offset, $length];
+        return $r;
+    }
+
+    /** Body or streamed bytes (tests). */
+    public function contents(): string
+    {
+        if ($this->stream === null) {
+            return $this->body;
+        }
+        [$path, $offset, $length] = $this->stream;
+        return $length > 0 ? (string) file_get_contents($path, false, null, $offset, $length) : '';
+    }
+
     /** The decoded body, for tests. */
     public function json(): mixed
     {
@@ -103,6 +124,22 @@ final class Response
                 header($k . ': ' . $v);
             }
         }
-        echo $this->body;
+        if ($this->stream === null) {
+            echo $this->body;
+            return;
+        }
+        [$path, $offset, $length] = $this->stream;
+        $fh = fopen($path, 'rb');
+        if ($fh === false) {
+            return;
+        }
+        fseek($fh, $offset);
+        while ($length > 0 && !feof($fh)) {
+            $chunk = (string) fread($fh, min(1048576, $length));
+            $length -= strlen($chunk);
+            echo $chunk;
+            flush();
+        }
+        fclose($fh);
     }
 }

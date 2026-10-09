@@ -130,6 +130,11 @@ final class Idempotency
     {
         $json = $request->attr('json');
         $canonical = $json === null ? $request->body : Response::encode(self::sortKeys($json));
+        if ($request->contentType() === 'multipart/form-data') {
+            // Uploads: each try gets a new random boundary, so compare the fields and the file, not the raw body.
+            $files = array_map(static fn ($f) => ['name' => $f['name'], 'size' => $f['size']], $request->files);
+            $canonical = Response::encode(self::sortKeys(['form' => $request->form, 'files' => $files]));
+        }
         return hash('sha256', $request->method . ' ' . $request->path . "\n" . $canonical);
     }
 
