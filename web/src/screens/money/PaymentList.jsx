@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useInfiniteQuery } from '@tanstack/react-query';
-import { Receipt, TriangleAlert, CalendarX } from 'lucide-react';
+import { Receipt, TriangleAlert, CalendarX, Paperclip } from 'lucide-react';
 import Screen from '../../components/Screen.jsx';
 import ChipFilter from '../../components/ChipFilter.jsx';
 import AddButton from '../../components/AddButton.jsx';
@@ -27,6 +27,7 @@ export function PaymentRow({ p }) {
             {p.noDate && <span className="inline-flex items-center gap-1 font-bold text-warning"><CalendarX aria-hidden="true" size={14} />{t('money.noDate')}</span>}
             {!p.noDate && <span>{paymentWhen(p)}</span>}
             <span>· {payee(p)}</span>
+            {p.receiptCount > 0 && <span className="inline-flex items-center gap-0.5"><Paperclip aria-label={p.receiptCount === 1 ? t('money.receiptOne') : t('money.receipts', { n: p.receiptCount })} size={14} />{p.receiptCount > 1 ? p.receiptCount : ''}</span>}
           </span>
         </span>
         <span className={`shrink-0 text-lg font-bold ${p.status === 'paid' ? 'text-success' : ''}`}>{formatInr(p.amountPaise)}</span>

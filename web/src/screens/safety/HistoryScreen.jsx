@@ -7,10 +7,9 @@ import { t } from '../../i18n/strings.en.js';
 export default function HistoryScreen() {
   const { resource, id } = useParams();
   const path = resource ? `/${resource}/${id}/history` : '/settings/history';
-  const back = !resource ? '/settings/wedding'
-    : resource === 'members' ? `/settings/members/${id}`
-      : resource === 'tasks' ? `/tasks/${id}`
-        : resource === 'events' ? `/calendar/events/${id}` : '/settings/safety';
+  const pages = { members: '/settings/members/', tasks: '/tasks/', events: '/calendar/events/', households: '/guests/',
+    payments: '/money/payments/', vendors: '/vendors/', documents: '/documents/' };
+  const back = !resource ? '/settings/wedding' : pages[resource] ? `${pages[resource]}${id}` : '/settings/safety';
   return (
     <Screen title={t('history.title')} back={back}>
       <HistoryList path={path} />

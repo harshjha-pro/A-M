@@ -14,6 +14,7 @@ import { showUndo, showToast } from '../../undo/undoStore.js';
 import { formatPhone } from '../../format/phone.js';
 import { formatInr } from '../../format/inr.js';
 import { PaymentRow } from './PaymentList.jsx';
+import DocumentsSection from '../documents/DocumentsSection.jsx';
 import { t } from '../../i18n/strings.en.js';
 
 export default function VendorDetail() {
@@ -64,6 +65,7 @@ export default function VendorDetail() {
           <ul className="overflow-hidden rounded-md bg-surface shadow-card">{pays.data.map((p) => <PaymentRow key={p.id} p={p} />)}</ul>
         </section>
       )}
+      <DocumentsSection link={{ vendor: id }} linkLabel={v.name} defaultType="contract" />
       <div className="flex flex-col gap-3">
         <Link to={`/history/vendors/${id}`} className="tap inline-flex items-center justify-center gap-2 font-bold text-primary"><History aria-hidden="true" size={20} />{t('money.history')}</Link>
         {permissions?.edit && <Button variant="secondary" onClick={() => navigate(`/vendors/${id}/edit`)}><Pencil aria-hidden="true" size={20} />{t('money.edit')}</Button>}

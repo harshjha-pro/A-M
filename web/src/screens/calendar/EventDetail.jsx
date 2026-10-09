@@ -14,6 +14,7 @@ import { withRelogin } from '../../api/auth.js';
 import { useSession } from '../../api/session.js';
 import { showUndo, showToast } from '../../undo/undoStore.js';
 import { TaskRow, markDone } from '../tasks/TaskList.jsx';
+import DocumentsSection from '../documents/DocumentsSection.jsx';
 import { formatDate, formatTime, formatHhmm, istParts, timeLabel } from '../../format/ist.js';
 import { t } from '../../i18n/strings.en.js';
 
@@ -111,6 +112,8 @@ export default function EventDetail() {
           <Button variant="secondary" onClick={() => navigate(`/tasks/new?event=${id}`)}><Plus aria-hidden="true" size={20} />{t('events.addTask')}</Button>
         )}
       </section>
+
+      <DocumentsSection link={{ event: id }} linkLabel={e.name} defaultType="booking" />
 
       <div className="flex flex-col gap-3">
         <Link to={`/history/events/${id}`} className="tap inline-flex items-center justify-center gap-2 font-bold text-primary"><History aria-hidden="true" size={20} />{t('events.history')}</Link>

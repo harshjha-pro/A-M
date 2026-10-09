@@ -125,6 +125,67 @@ export async function api(method, path, opts = {}) {
   throw err;
 }
 
+/** A stored file's bytes (documents' file_url), for the share sheet. null when not 2xx. */
+export async function fetchFile(url) {
+  const res = await fetch(url, { credentials: 'same-origin', cache: 'no-store' });
+  return res.ok ? res.blob() : null;
+}
+
+/**
+ * Multipart upload with progress (POST /documents, API.md §8.2). XMLHttpRequest, not
+ * fetch: only XHR reports upload progress on iPhone Safari and Android Chrome.
+ * Same headers and error classes as api(); no timeout while bytes are moving
+ * (a 10 MB photo on 3G takes a while), 60 s once the upload has finished.
+ * @param {string} path
+ * @param {Record<string, string|Blob|[Blob, string]>} fields  a file is [blob, filename]
+ * @param {{ idemKey?: string, onProgress?: (fraction: number) => void, signal?: AbortSignal }} [opts]
+ */
+export function upload(path, fields, opts = {}) {
+  const idemKey = opts.idemKey || newIdemKey();
+  const form = new FormData();
+  for (const [k, v] of Object.entries(fields)) {
+    if (v === undefined || v === null || v === '') continue;
+    if (Array.isArray(v)) form.append(toSnakeKey(k), v[0], v[1]);
+    else form.append(toSnakeKey(k), typeof v === 'boolean' ? String(v) : v);
+  }
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', buildUrl(path));
+    xhr.withCredentials = true;
+    xhr.setRequestHeader('Accept', 'application/json');
+    xhr.setRequestHeader('X-Client-Version', APP_VERSION);
+    xhr.setRequestHeader('X-Device', deviceLabel().slice(0, 60));
+    xhr.setRequestHeader('Idempotency-Key', idemKey);
+    const csrf = getCsrfToken();
+    if (csrf) xhr.setRequestHeader('X-CSRF-Token', csrf);
+    let timer = null;
+    const done = () => { clearTimeout(timer); opts.signal?.removeEventListener('abort', onAbort); };
+    const onAbort = () => xhr.abort();
+    opts.signal?.addEventListener('abort', onAbort);
+    xhr.upload.onprogress = (e) => { if (e.lengthComputable) opts.onProgress?.(e.loaded / e.total); };
+    xhr.upload.onload = () => {
+      opts.onProgress?.(1);
+      timer = setTimeout(() => { xhr.abort(); done(); reject(new TimeoutError('No reply from the server in time.', { code: 'timeout', idemKey })); }, 60000);
+    };
+    xhr.onerror = () => { done(); reject(new OfflineError('No internet connection.', { code: 'offline', idemKey })); };
+    xhr.onabort = () => { done(); if (opts.signal?.aborted) reject(new DOMException('Aborted', 'AbortError')); };
+    xhr.onload = () => {
+      done();
+      let json = null;
+      try { json = xhr.responseText ? JSON.parse(xhr.responseText) : null; } catch { json = null; }
+      if (xhr.status >= 200 && xhr.status < 300 && json?.ok === true) {
+        resolve({ data: toCamel(json.data), meta: toCamel(json.meta ?? {}), status: xhr.status, replayed: xhr.getResponseHeader('Idempotent-Replayed') === 'true', idemKey });
+        return;
+      }
+      const res = { status: xhr.status, headers: { get: (h) => xhr.getResponseHeader(h) } };
+      reject(xhr.status >= 200 && xhr.status < 300
+        ? new ServerError('Unexpected reply from the server.', { status: xhr.status, code: 'bad_reply', idemKey })
+        : toError(res, json, idemKey));
+    };
+    xhr.send(form);
+  });
+}
+
 function toError(res, json, idemKey) {
   const status = res.status;
   const err = json && json.error && typeof json.error === 'object' ? json.error : null;

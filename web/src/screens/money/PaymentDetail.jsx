@@ -1,9 +1,12 @@
 // One payment (FEATURES B6): amount, status (red Overdue / amber No date), paid to,
-// category, event; Mark as paid, Pay part, Edit, Delete (Undo), History.
+// category, event; Mark as paid, Pay part, Edit, Delete (Undo), History; receipts
+// (FEATURES B7 US-DOC-01). A receipt picked in Mark as paid uploads after the payment
+// is saved; if it fails the payment stays Paid with "Receipt not uploaded — try again"
+// and the photo stays in memory for the retry (AC-MON-09).
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { CircleCheck, History, Pencil, SplitSquareHorizontal, Trash2 } from 'lucide-react';
+import { CircleCheck, History, Pencil, RotateCw, SplitSquareHorizontal, Trash2 } from 'lucide-react';
 import Screen from '../../components/Screen.jsx';
 import Button from '../../components/Button.jsx';
 import { Notice } from '../../components/Field.jsx';
@@ -12,7 +15,10 @@ import { withRelogin } from '../../api/auth.js';
 import { showUndo, showToast } from '../../undo/undoStore.js';
 import { formatInr } from '../../format/inr.js';
 import { paymentWhen, payee, useMoneyGuard } from '../../data/money.js';
+import { prepareFile, uploadDocument } from '../../data/documents.js';
 import MarkPaidSheet from './MarkPaidSheet.jsx';
+import DocumentsSection from '../documents/DocumentsSection.jsx';
+import { failText } from '../documents/UploadSheet.jsx';
 import { t } from '../../i18n/strings.en.js';
 
 export default function PaymentDetail() {
@@ -21,13 +27,30 @@ export default function PaymentDetail() {
   const qc = useQueryClient();
   const q = useQuery({ queryKey: ['payment', id], queryFn: () => api('GET', `/payments/${id}`).then((r) => r.data) });
   const [sheet, setSheet] = useState(null); // 'paid' | 'part'
+  const [receipt, setReceipt] = useState(null); // { file, prepared, state: 'uploading'|'failed', progress, error }
   const lost = useMoneyGuard(q.error);
   const p = q.data;
-  const refresh = () => {
+  const refresh = (_saved, receiptFile) => {
     setSheet(null);
     ['payments', 'money-summary', 'dashboard', 'calendar'].forEach((k) => qc.invalidateQueries({ queryKey: [k] }));
     qc.invalidateQueries({ queryKey: ['payment', id] });
+    if (receiptFile) sendReceipt({ file: receiptFile, prepared: null });
   };
+
+  async function sendReceipt(r) {
+    let prepared = r.prepared;
+    setReceipt({ ...r, state: 'uploading', progress: 0, error: null });
+    try {
+      if (!prepared) prepared = await prepareFile(r.file);
+      await uploadDocument(prepared, { type: 'receipt', paymentId: id }, (f) => setReceipt((cur) => cur && { ...cur, progress: f }));
+      setReceipt(null);
+      qc.invalidateQueries({ queryKey: ['documents'] });
+      qc.invalidateQueries({ queryKey: ['payments'] });
+      showToast(t('money.receiptSaved'));
+    } catch (e) {
+      setReceipt({ file: r.file, prepared, state: 'failed', progress: 0, error: failText(e) });
+    }
+  }
 
   if (lost) return <Screen title={t('money.payments')} back="/money/payments"><Notice kind="danger">{t('money.noAccess')}</Notice></Screen>;
   if (q.isPending) return <Screen title={t('money.payments')} back="/money/payments"><p aria-busy="true">…</p></Screen>;
@@ -64,12 +87,27 @@ export default function PaymentDetail() {
           {p.splitFrom && row(t('money.partOf', { title: p.splitFrom.name }), <Link to={`/money/payments/${p.splitFrom.id}`} className="text-primary">{p.splitFrom.name}</Link>)}
         </dl>
       </section>
+      {receipt?.state === 'uploading' && (
+        <div className="flex flex-col gap-1">
+          <span>{t('money.receiptUploading')}</span>
+          <progress className="h-2 w-full accent-[var(--c-primary)]" max={1} value={receipt.progress} aria-label={t('money.receiptUploading')} />
+        </div>
+      )}
+      {receipt?.state === 'failed' && (
+        <p role="alert" className="flex flex-wrap items-center gap-2">
+          <button type="button" onClick={() => sendReceipt(receipt)} className="tap inline-flex items-center gap-2 rounded-full bg-danger-soft px-4 font-bold text-danger">
+            <RotateCw aria-hidden="true" size={18} />{t('money.receiptFailed')}
+          </button>
+          {receipt.error && <span className="text-sm text-text-muted">{receipt.error}</span>}
+        </p>
+      )}
       {p.status === 'due' && (
         <div className="grid grid-cols-1 gap-3 min-[400px]:grid-cols-2">
           <Button onClick={() => setSheet('paid')}><CircleCheck aria-hidden="true" size={20} />{t('money.markPaid')}</Button>
           <Button variant="secondary" onClick={() => setSheet('part')}><SplitSquareHorizontal aria-hidden="true" size={20} />{t('money.payPart')}</Button>
         </div>
       )}
+      <DocumentsSection link={{ payment: id }} linkLabel={p.title} defaultType="receipt" title={t('money.receiptsTitle')} addLabel={t('money.addReceipt')} />
       <div className="flex flex-col gap-3">
         <Link to={`/history/payments/${id}`} className="tap inline-flex items-center justify-center gap-2 font-bold text-primary"><History aria-hidden="true" size={20} />{t('money.history')}</Link>
         <Button variant="secondary" onClick={() => navigate(`/money/payments/${id}/edit`)}><Pencil aria-hidden="true" size={20} />{t('money.edit')}</Button>

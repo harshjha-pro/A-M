@@ -18,13 +18,15 @@ DB_NAME=$DB
 DB_USER=am_test
 DB_PASS=am_test
 LOG_DIR=$SITE/private/logs
+STORAGE_ROOT=$SITE/private/storage
 MIN_CLIENT_VERSION=1.0.0
 BACKUP_EXPECTED=false
 # Each Playwright phone sends its own X-Forwarded-For, so the three phone sizes
 # don't share one 60-per-minute anonymous limit on 127.0.0.1 (test setup only).
 TRUSTED_PROXY=X-Forwarded-For
 ENV
-SITE_ROOT="$SITE" ROUTER_EXTRA_HOSTS="localhost:8083" php -S 127.0.0.1:8083 "$ROOT/tools/router.php" >/tmp/am-e2e-router.log 2>&1 &
+mkdir -p "$SITE/private/storage"
+SITE_ROOT="$SITE" ROUTER_EXTRA_HOSTS="localhost:8083" php -d upload_max_filesize=12M -d post_max_size=16M -S 127.0.0.1:8083 "$ROOT/tools/router.php" >/tmp/am-e2e-router.log 2>&1 &
 PID=$!
 trap 'kill $PID 2>/dev/null || true' EXIT
 sleep 1

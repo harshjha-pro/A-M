@@ -20,6 +20,13 @@ mkdir -p "$OUT/public_html/assets" "$OUT/public_html/api"
 cp public_html/assets/.htaccess "$OUT/public_html/assets/.htaccess"
 cp public_html/api/index.php "$OUT/public_html/api/index.php"
 
+# private/storage: never reachable from the web (outside public_html); deny-all as well.
+printf 'Require all denied\n' > "$OUT/private/storage/uploads/.htaccess"
+if [ "$FLAVOUR" = staging ]; then
+  # Demo files for the demo seed's documents (tools/make-demo-files.py). Never on live.
+  cp -R db/dev/demo-files/uploads/. "$OUT/private/storage/uploads/"
+fi
+
 # private/app: only what runs on the server
 cp api/bootstrap.php api/autoload.php "$OUT/private/app/"
 cp -R api/src "$OUT/private/app/src"

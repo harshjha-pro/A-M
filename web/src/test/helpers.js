@@ -40,8 +40,43 @@ export function fakeApi(handlers) {
     const key = `${init.method || 'GET'} ${path}`;
     const h = handlers[key] ?? Object.entries(handlers).find(([k]) => new RegExp(`^${k.replace(/\{[^}]+\}/g, '[^/]+')}$`).test(key))?.[1];
     if (!h) return fail(404, { code: 'not_found', message: "This item doesn't exist or was removed." });
-    return h(init.body ? JSON.parse(init.body) : undefined, init);
+    return h(typeof init.body === 'string' ? JSON.parse(init.body) : init.body, init);
   });
   vi.stubGlobal('fetch', fn);
+  vi.stubGlobal('XMLHttpRequest', fakeXhr(fn));
   return fn;
+}
+
+/**
+ * XMLHttpRequest for uploads, answered by the same handlers (body = the FormData).
+ * Reports upload progress at 50% and 100% before the reply.
+ */
+function fakeXhr(fetchFn) {
+  return class FakeXhr {
+    constructor() { this.upload = {}; this.headers = {}; this.status = 0; this.responseText = ''; this.replyHeaders = new Headers(); }
+    open(method, url) { this.method = method; this.url = url; }
+    setRequestHeader(k, v) { this.headers[k] = v; }
+    getResponseHeader(k) { return this.replyHeaders.get(k); }
+    abort() { this.aborted = true; this.onabort?.(); }
+    async send(body) {
+      const total = 1000;
+      this.upload.onprogress?.({ lengthComputable: true, loaded: total / 2, total });
+      await Promise.resolve();
+      this.upload.onprogress?.({ lengthComputable: true, loaded: total, total });
+      this.upload.onload?.();
+      let res;
+      try {
+        res = await fetchFn(this.url, { method: this.method, headers: this.headers, body });
+      } catch {
+        this.onerror?.();
+        return;
+      }
+      if (this.aborted) return;
+      if (res === 'network-error') { this.onerror?.(); return; }
+      this.status = res.status;
+      this.replyHeaders = res.headers;
+      this.responseText = await res.text();
+      this.onload?.();
+    }
+  };
 }
