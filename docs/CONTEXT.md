@@ -74,6 +74,7 @@ Design for the 3/5 user: one main action per screen, words beside icons.
 | 37 | Each member sets reminders on/off per phone and email fallback. **No quiet hours**; reminders are scheduled for daytime (9 AM IST, to confirm). Test button sends at once. | Owner's answer; failures are visible. |
 | 38 | All phone testing on an HTTPS staging subdomain with its own database and demo data. | Install, offline and push need HTTPS; real guest data stays out of tests. |
 | 39 | Supported phones: made 2020 or later. iPhone SE (2nd gen) / iPhone 12 and newer on iOS 17+ (all can run iOS 26); Android 10+ with current Chrome. Older phones: not supported. | Owner's answer. Every supported iPhone can get reminders once updated. |
+| 40 | Screens say "Coming?" and "Remind on WhatsApp", never "RSVP" (plain words, DESIGN §8). WhatsApp Hinglish texts are Hindi in Roman letters until Open Question 7 is answered. | Session 8. Elders read Roman Hinglish on WhatsApp more often than English. |
 
 ## 5. Out of scope for v1
 
@@ -153,6 +154,6 @@ Design for the 3/5 user: one main action per screen, words beside icons.
 10. **PWA.md Open Questions 1–3:** icon draft OK? minimum iOS 17 or latest only? reminders at 9 AM IST?
 5. **Events:** date, time and venue of each. (Roka and Mayra answered: decisions 23–24.)
 6. **Login:** password or 4–6 digit PIN for elders?
-7. **Language:** "Hinglish" = Hindi in Roman letters, or Devanagari?
+7. **Language:** "Hinglish" = Hindi in Roman letters, or Devanagari? (Until answered: Roman letters, decision 40.)
 8. **Total budget:** a figure now, or blank?
 9. **Rooms:** hotel list. (`planner@lumorrahouse.com` approved 8 Oct; member emails added by admins later.)
