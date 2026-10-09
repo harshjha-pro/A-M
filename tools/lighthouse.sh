@@ -37,7 +37,7 @@ for page in login home guests; do
   headers=$([ $page = login ] && echo '{}' || echo "{\"Cookie\":\"$COOKIE\"}")
   npx --yes lighthouse@12.8.2 "$url" --quiet --form-factor=mobile --throttling-method=simulate \
     --only-categories=performance,accessibility,best-practices --extra-headers="$headers" \
-    --chrome-flags="--headless=new --no-sandbox" --output=json --output-path="$OUT/$page.json" >/dev/null 2>&1 || { echo "$page: lighthouse failed"; STATUS=1; continue; }
+    --chrome-flags="--headless=new --no-sandbox" --output=json --output-path="$OUT/$page.json" >"$OUT/$page.log" 2>&1 || { echo "$page: lighthouse failed"; tail -5 "$OUT/$page.log"; STATUS=1; continue; }
   node -e '
     const r = require(process.argv[1]); const c = r.categories, a = r.audits;
     const s = (k) => Math.round(c[k].score * 100);
