@@ -193,6 +193,7 @@ final class Routes
         $r->add('GET', '/exports', ExportsController::list(...));
         $r->add('GET', '/exports/{id}', ExportsController::get(...));
         $r->add('GET', '/exports/{id}/download', ExportsController::download(...), ['anon' => true, 'query' => ['part', 't']]);
+        $r->add('GET', '/exports/{id}/summary', ExportsController::summary(...), ['anon' => true, 'query' => ['t']]);
         $r->add('POST', '/documents/{id}/restore', static fn (Request $q, App $a, array $p) => BaseController::restore($q, $a, $p, DocumentDef::class));
 
         // Home (Session 7)

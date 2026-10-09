@@ -61,6 +61,7 @@ export const routes = [
           { path: '/settings/safety', element: page(() => import('./screens/safety/Safety.jsx')) },
           { path: '/settings/activity', element: page(() => import('./screens/safety/Activity.jsx')) },
           { path: '/settings/deleted', element: page(() => import('./screens/safety/DeletedItems.jsx')) },
+          { path: '/settings/export', element: page(() => import('./screens/settings/Export.jsx')) },
           { path: '/settings/imports', element: page(() => import('./screens/settings/Imports.jsx')) },
           { path: '/history/:resource/:id', element: page(() => import('./screens/safety/HistoryScreen.jsx')) },
           { path: '/settings/account', element: page(() => import('./screens/settings/MyAccount.jsx')) },

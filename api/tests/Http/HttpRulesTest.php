@@ -275,6 +275,29 @@ final class HttpRulesTest extends TestCase
             $this->assertContains($this->fetch($guess)['status'], [403, 404], $guess);
         }
 
+        // A full export streamed through the web server (no compression or buffering may break the ZIP), token only.
+        $ex = $this->fetch('/api/v1/exports', 'POST', $auth + ['Content-Type' => 'application/json', 'Idempotency-Key' => '5b1f0b52-3a2d-4c1e-9f00-' . sprintf('%012d', random_int(1, 999999999))], '{"kind":"full"}');
+        $this->assertSame(201, $ex['status'], $ex['body']);
+        $zipRes = $this->fetch(json_decode($ex['body'], true)['data']['download_urls'][0]);
+        $this->assertSame(200, $zipRes['status']);
+        $this->assertSame('application/zip', $zipRes['headers']['content-type'] ?? null);
+        $this->assertArrayNotHasKey('content-encoding', $zipRes['headers'], 'the ZIP is not gzipped again');
+        $zipFile = tempnam(sys_get_temp_dir(), 'amzip');
+        file_put_contents($zipFile, $zipRes['body']);
+        $z = new \ZipArchive();
+        $this->assertTrue($z->open($zipFile, \ZipArchive::CHECKCONS) === true, 'the streamed ZIP is whole');
+        $this->assertNotFalse($z->locateName('summary.html'));
+        $found = false;
+        for ($i = 0; $i < $z->numFiles; $i++) {
+            $found = $found || $z->getFromIndex($i) === $jpeg;
+        }
+        $this->assertTrue($found, 'the uploaded photo is in the export, byte for byte');
+        $z->close();
+        unlink($zipFile);
+        foreach (['/private/storage/exports/', '/storage/exports/'] as $guess) { // SEC-05
+            $this->assertContains($this->fetch($guess)['status'], [403, 404], $guess);
+        }
+
         $evil = $this->fetch('/api/v1/auth/login', 'POST', ['Origin' => 'https://evil.example', 'Content-Type' => 'application/json'],
             json_encode(['phone' => $phone, 'password' => 'lotus-4821']));
         $this->assertSame(403, $evil['status'], 'Origin check through the web server');

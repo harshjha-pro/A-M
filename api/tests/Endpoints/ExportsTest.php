@@ -304,6 +304,24 @@ final class ExportsTest extends ApiTestCase
         $this->assertSame('expired', $ayush->get("/exports/{$a['id']}")->assertStatus(200)->json('data.status'));
     }
 
+    #[Endpoint('GET /exports/{id}/summary')]
+    public function test_print_summary_opens_with_inline_styles_only(): void
+    {
+        $ayush = $this->loginAs('ayush');
+        $e = $this->export($ayush)->assertStatus(201)->json('data');
+        parse_str((string) parse_url($e['download_urls'][0], PHP_URL_QUERY), $q);
+        $r = $ayush->get("/exports/{$e['id']}/summary")->assertStatus(200);
+        $this->assertSame('text/html; charset=utf-8', $r->header('Content-Type'));
+        $this->assertSame("default-src 'none'; style-src 'unsafe-inline'; frame-ancestors 'none'", $r->header('Content-Security-Policy'));
+        $this->assertStringContainsString('<h2>Budget</h2>', $r->body());
+        $this->assertStringNotContainsString('<script', $r->body());
+        (new ApiClient($this->app))->get("/exports/{$e['id']}/summary", ['t' => $q['t']])->assertStatus(200);
+        (new ApiClient($this->app))->get("/exports/{$e['id']}/summary")->assertStatus(401);
+        $this->loginAs('mummy')->get("/exports/{$e['id']}/summary")->assertStatus(403);
+        $this->clock->advance('+25 hours');
+        $ayush->get("/exports/{$e['id']}/summary")->assertStatus(410);
+    }
+
     #[Endpoint('GET /exports/{id}/download')]
     public function test_files_over_the_part_size_split_into_parts(): void
     {

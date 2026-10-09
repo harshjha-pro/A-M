@@ -31,6 +31,10 @@ final class SecurityHeaders implements Middleware
             if ($name === 'Cache-Control' && isset($response->headers[$name]) && str_contains($response->headers[$name], 'no-store')) {
                 continue; // a reply may say more ("private, no-store" on files) but never allow caching
             }
+            if ($name === 'Content-Security-Policy' && isset($response->headers[$name]) && str_starts_with($response->headers[$name], "default-src 'none';")
+                && !preg_match('/script-src|unsafe-eval|\*/', $response->headers[$name])) {
+                continue; // a page with only its own inline styles (the export summary); still no scripts, nothing from outside
+            }
             $response->headers[$name] = $value;
         }
         // Every reply says the oldest app version still allowed (API.md §1.3).

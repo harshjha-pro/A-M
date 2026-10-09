@@ -9,7 +9,7 @@ test.afterEach(() => { expect(problems, 'no console errors or CSP violations').t
 
 test('Home shows the person, the version and a live server connection', async ({ page }, info) => {
   await expect(page.getByText('Namaste, Ayush Porwal')).toBeVisible();
-  await expect(page.getByText('A&M Wedding — version 1.0.11')).toBeVisible();
+  await expect(page.getByText('A&M Wedding — version 1.0.12')).toBeVisible();
   await expect(page.getByText(/^Connected · Updated/)).toBeVisible();
   await expect(page).toHaveTitle('A&M Staging');
   await page.screenshot({ path: `test-results/home-${info.project.name}.png`, fullPage: true });

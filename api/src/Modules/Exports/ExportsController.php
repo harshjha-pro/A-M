@@ -130,8 +130,11 @@ final class ExportsController
         return Response::ok(self::view($app, $db, $row, null));
     }
 
-    /** GET /exports/{id}/download?part=N&t=… — anonymous route: the session or the token decides. */
-    public static function download(Request $request, App $app, array $params): Response
+    /**
+     * Who may open an export's files: an admin's session, or this export's own token
+     * (SEC-33). @return array{0: array, 1: string, 2: FileStore} the row, its folder, the store
+     */
+    private static function openable(Request $request, App $app, array $params): array
     {
         $viewer = $request->attr('user');
         $token = (string) ($request->query['t'] ?? '');
@@ -142,8 +145,7 @@ final class ExportsController
             }
             throw HttpError::make(403, 'forbidden'); // Family / Viewer
         }
-        $db = $app->db();
-        $row = $db->one('SELECT * FROM exports WHERE public_id = ?', [$params['id']]);
+        $row = $app->db()->one('SELECT * FROM exports WHERE public_id = ?', [$params['id']]);
         $tokenOk = $token !== '' && $row !== null && $row['download_token_hash'] !== null && hash_equals($row['download_token_hash'], hash('sha256', $token));
         if (!$isAdmin && !$tokenOk) {
             // A token from another export, a made-up one, or one for an export that doesn't exist (SEC-33).
@@ -157,6 +159,27 @@ final class ExportsController
         if (self::status($app, $row) === 'expired' || !is_file("$dir/manifest.json")) {
             throw HttpError::make(410, 'export_expired'); // AC-EXP-08
         }
+        return [$row, $dir, $store];
+    }
+
+    /** GET /exports/{id}/summary — summary.html on its own, for Print → Save as PDF (FEATURES B8 "Print summary"). */
+    public static function summary(Request $request, App $app, array $params): Response
+    {
+        [, $dir] = self::openable($request, $app, $params);
+        $r = new Response(200);
+        $r->body = (string) file_get_contents("$dir/summary.html");
+        $r->headers['Content-Type'] = 'text/html; charset=utf-8';
+        $r->headers['Cache-Control'] = 'private, no-store';
+        // The page has only its own inline styles: no scripts, nothing loaded from anywhere.
+        $r->headers['Content-Security-Policy'] = "default-src 'none'; style-src 'unsafe-inline'; frame-ancestors 'none'";
+        return $r;
+    }
+
+    /** GET /exports/{id}/download?part=N&t=… — anonymous route: the session or the token decides. */
+    public static function download(Request $request, App $app, array $params): Response
+    {
+        $viewer = $request->attr('user');
+        [$row, $dir, $store] = self::openable($request, $app, $params);
         $part = (string) ($request->query['part'] ?? '1');
         if (!ctype_digit($part) || (int) $part < 1 || (int) $part > (int) $row['parts']) {
             throw HttpError::make(404, 'not_found');

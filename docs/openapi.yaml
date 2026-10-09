@@ -2090,6 +2090,27 @@ paths:
         '410': { $ref: '#/components/responses/Gone' }
         default: { $ref: '#/components/responses/Error' }
 
+  /exports/{id}/summary:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    get:
+      tags: [Export]
+      operationId: exportSummary
+      summary: The export's summary.html on its own, for Print → Save as PDF (FEATURES B8). Same access as the download.
+      x-permission: Adm, or holder of the export token
+      security:
+        - sessionCookie: []
+        - exportToken: []
+      responses:
+        '200':
+          description: Print-ready page (inline styles only; CSP allows no scripts)
+          content:
+            text/html: { schema: { type: string } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '410': { $ref: '#/components/responses/Gone' }
+        default: { $ref: '#/components/responses/Error' }
+
   # ---------------------------------------------------------------- Sync & health
   /sync:
     get:
