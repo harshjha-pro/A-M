@@ -1430,7 +1430,25 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '422': { $ref: '#/components/responses/Unprocessable' }
         default: { $ref: '#/components/responses/Error' }
-  /budget-categories/{id}/restore: { $ref: '#/components/pathItems/Restore' }
+  /budget-categories/{id}/restore:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    post:
+      tags: [Trash]
+      operationId: restoreBudgetCategory
+      summary: Restore a deleted category (blocked if its name is now used)
+      x-permission: Adm
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IfMatch' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      responses:
+        '200':
+          description: Restored (warnings in meta.warnings)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Ok' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+        default: { $ref: '#/components/responses/Error' }
   /vendors:
     get:
       tags: [Money]
@@ -1512,7 +1530,25 @@ paths:
         '200': { $ref: '#/components/responses/Deleted' }
         '403': { $ref: '#/components/responses/Forbidden' }
         default: { $ref: '#/components/responses/Error' }
-  /vendors/{id}/restore: { $ref: '#/components/pathItems/Restore' }
+  /vendors/{id}/restore:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    post:
+      tags: [Trash]
+      operationId: restoreVendor
+      summary: Restore a deleted vendor
+      x-permission: Adm
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IfMatch' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      responses:
+        '200':
+          description: Restored (warnings in meta.warnings)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Ok' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+        default: { $ref: '#/components/responses/Error' }
   /payments:
     get:
       tags: [Money]
@@ -1655,7 +1691,25 @@ paths:
         '409': { $ref: '#/components/responses/Conflict' }
         '422': { $ref: '#/components/responses/Unprocessable' }
         default: { $ref: '#/components/responses/Error' }
-  /payments/{id}/restore: { $ref: '#/components/pathItems/Restore' }
+  /payments/{id}/restore:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    post:
+      tags: [Trash]
+      operationId: restorePayment
+      summary: Restore a deleted payment with its same-batch receipts
+      x-permission: Adm
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IfMatch' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      responses:
+        '200':
+          description: Restored (warnings in meta.warnings)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Ok' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+        default: { $ref: '#/components/responses/Error' }
 
   # ---------------------------------------------------------------- Documents
   /documents:

@@ -5,9 +5,13 @@ namespace AM\Repo;
 
 use AM\Modules\Events\EventDef;
 use AM\Modules\Events\InvitationDef;
+use AM\Modules\Documents\DocumentDef;
 use AM\Modules\Guests\HouseholdDef;
 use AM\Modules\Guests\ImportDef;
 use AM\Modules\Members\UserDef;
+use AM\Modules\Money\BudgetCategoryDef;
+use AM\Modules\Money\PaymentDef;
+use AM\Modules\Money\VendorDef;
 use AM\Modules\Safety\RestoreDrillDef;
 use AM\Modules\Settings\SettingsDef;
 use AM\Modules\Tasks\TagDef;
@@ -33,6 +37,10 @@ final class Entities
         'household' => HouseholdDef::class,
         'invitation' => InvitationDef::class,
         'import' => ImportDef::class,
+        'budget_category' => BudgetCategoryDef::class,
+        'vendor' => VendorDef::class,
+        'payment' => PaymentDef::class,
+        'document' => DocumentDef::class,
     ];
 
     /** URL segment for /{resource}/{id}/history => definition */
@@ -43,6 +51,9 @@ final class Entities
         'tags' => TagDef::class,
         'events' => EventDef::class,
         'households' => HouseholdDef::class,
+        'budget-categories' => BudgetCategoryDef::class,
+        'vendors' => VendorDef::class,
+        'payments' => PaymentDef::class,
     ];
 
     /** The value that names a row (public id or checklist key); null for link rows. */

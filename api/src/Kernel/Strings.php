@@ -107,6 +107,18 @@ final class Strings
         'import_bad_target'        => 'Choose which family to update.',
         'import_bad_event'         => 'One of the events is not a guest event.',
         'import_bad_number'        => 'Use a number from 0 to 50.',
+        'category_name_taken'      => 'A category called {name} already exists.',
+        'category_has_payments'    => 'Move {n} payments to another category first.',
+        'fallback_category'        => "Miscellaneous can't be deleted: payments without a category go there.",
+        'category_deleted_pick'    => 'This category was deleted. Pick another.',
+        'move_target_bad'          => 'Pick another category to move the payments to.',
+        'payment_duplicate'        => "Looks like a duplicate of '{title}' {amount} on {date}.",
+        'vendor_duplicate'         => 'Already in vendors: {name} ({phone})',
+        'paid_needs_details'       => 'Paid payments need the date paid and how.',
+        'paid_in_future'           => "The paid date can't be in the future.",
+        'already_paid'             => 'This payment is already paid.',
+        'part_too_big'             => 'Part payment must be less than {amount}.',
+        'vendor_or_new'            => 'Choose a vendor or type a new one, not both.',
         'tag_name_taken'           => 'A tag called {name} already exists. Rename that one first.',
     ];
 

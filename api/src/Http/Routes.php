@@ -21,6 +21,12 @@ use AM\Modules\Guests\ImportsController;
 use AM\Modules\Guests\InvitationsController;
 use AM\Modules\Health\HealthController;
 use AM\Modules\Members\MembersController;
+use AM\Modules\Money\BudgetCategoryDef;
+use AM\Modules\Money\MoneyController;
+use AM\Modules\Money\PaymentDef;
+use AM\Modules\Money\PaymentsController;
+use AM\Modules\Money\VendorDef;
+use AM\Modules\Money\VendorsController;
 use AM\Modules\Settings\SettingsController;
 use AM\Modules\History\HistoryController;
 use AM\Modules\Safety\RestoreDrillDef;
@@ -148,6 +154,29 @@ final class Routes
         $r->add('GET', '/imports', ImportsController::list(...), ['query' => ['cursor', 'limit']]);
         $r->add('GET', '/imports/{id}', ImportsController::get(...));
         $r->add('POST', '/imports/{id}/undo', ImportsController::undo(...));
+
+        // Money (Session 9). Money users only, except vendor contacts (API.md §6.8).
+        $money = static fn (?array $v, string $action, ?array $row) => \AM\Auth\Permissions::requireMoney($v);
+        $r->add('GET', '/money/summary', MoneyController::summary(...));
+        $r->add('GET', '/budget-categories', MoneyController::categories(...));
+        $r->add('POST', '/budget-categories', static fn (Request $q, App $a, array $p) => BaseController::create($q, $a, BudgetCategoryDef::class, $money));
+        $r->add('PATCH', '/budget-categories/{id}', static fn (Request $q, App $a, array $p) => BaseController::update($q, $a, $p, BudgetCategoryDef::class, $money));
+        $r->add('DELETE', '/budget-categories/{id}', MoneyController::deleteCategory(...));
+        $r->add('POST', '/budget-categories/{id}/restore', static fn (Request $q, App $a, array $p) => BaseController::restore($q, $a, $p, BudgetCategoryDef::class));
+        $r->add('GET', '/vendors', VendorsController::list(...), ['query' => VendorsController::QUERY]);
+        $r->add('POST', '/vendors', VendorsController::create(...));
+        $r->add('GET', '/vendors/{id}', VendorsController::get(...));
+        $r->add('PATCH', '/vendors/{id}', VendorsController::update(...));
+        $r->add('DELETE', '/vendors/{id}', static fn (Request $q, App $a, array $p) => BaseController::delete($q, $a, $p, VendorDef::class, VendorsController::canWrite()));
+        $r->add('POST', '/vendors/{id}/restore', static fn (Request $q, App $a, array $p) => BaseController::restore($q, $a, $p, VendorDef::class));
+        $r->add('GET', '/payments', PaymentsController::list(...), ['query' => PaymentsController::QUERY]);
+        $r->add('POST', '/payments', PaymentsController::create(...));
+        $r->add('GET', '/payments/{id}', PaymentsController::get(...));
+        $r->add('PATCH', '/payments/{id}', static fn (Request $q, App $a, array $p) => BaseController::update($q, $a, $p, PaymentDef::class, PaymentsController::canWrite()));
+        $r->add('DELETE', '/payments/{id}', static fn (Request $q, App $a, array $p) => BaseController::delete($q, $a, $p, PaymentDef::class, PaymentsController::canWrite()));
+        $r->add('POST', '/payments/{id}/restore', static fn (Request $q, App $a, array $p) => BaseController::restore($q, $a, $p, PaymentDef::class));
+        $r->add('POST', '/payments/{id}/mark-paid', PaymentsController::markPaid(...));
+        $r->add('POST', '/payments/{id}/pay-part', PaymentsController::payPart(...));
 
         // Home (Session 7)
         $r->add('GET', '/dashboard', DashboardController::show(...), ['query' => ['payments_window_days']]);

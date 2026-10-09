@@ -50,6 +50,14 @@ final class Permissions
         }
     }
 
+    /** The money module (FEATURES B6): 403 no_money_access, read fresh on every request (SEC-13). */
+    public static function requireMoney(?array $user): void
+    {
+        if (!self::canSeeMoney($user)) {
+            throw HttpError::make(403, 'no_money_access');
+        }
+    }
+
     public static function canSeeMoney(?array $user): bool
     {
         return $user !== null && (bool) $user['can_see_money'];
