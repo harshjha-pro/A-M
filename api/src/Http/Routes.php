@@ -3,11 +3,15 @@ declare(strict_types=1);
 
 namespace AM\Http;
 
+use AM\Auth\Permissions;
 use AM\Kernel\App;
 use AM\Kernel\Request;
 use AM\Kernel\Router;
 use AM\Modules\Auth\AuthController;
 use AM\Modules\ClientLog\ClientLogController;
+use AM\Modules\Events\CalendarController;
+use AM\Modules\Events\EventDef;
+use AM\Modules\Events\EventsController;
 use AM\Modules\Health\HealthController;
 use AM\Modules\Members\MembersController;
 use AM\Modules\Settings\SettingsController;
@@ -100,6 +104,18 @@ final class Routes
             static fn (?array $v) => null,                               // everyone reads tags
             static fn (?array $v, string $action, ?array $row) => TagDef::canWrite($v, $action),
         );
+
+        // Events and calendar (Session 6). Reads for everyone; writes for admins, through the shared base code.
+        $evAdmin = static fn (?array $v, string $action, ?array $row) => Permissions::requireAdmin($v);
+        $r->add('GET', '/calendar', CalendarController::show(...), ['query' => CalendarController::QUERY]);
+        $r->add('GET', '/events', EventsController::list(...), ['query' => ['guests_invited']]);
+        $r->add('POST', '/events', static fn (Request $q, App $a, array $p) => BaseController::create($q, $a, EventDef::class, $evAdmin));
+        $r->add('GET', '/events/{id}', EventsController::get(...));
+        $r->add('PATCH', '/events/{id}', static fn (Request $q, App $a, array $p) => BaseController::update($q, $a, $p, EventDef::class, $evAdmin));
+        $r->add('DELETE', '/events/{id}', static fn (Request $q, App $a, array $p) => BaseController::delete($q, $a, $p, EventDef::class, $evAdmin));
+        $r->add('POST', '/events/{id}/restore', static fn (Request $q, App $a, array $p) => BaseController::restore($q, $a, $p, EventDef::class));
+        $r->add('GET', '/events/{id}/headcount', EventsController::headcount(...));
+        $r->add('GET', '/events/{id}/delete-preview', EventsController::deletePreview(...));
 
         return $r;
     }

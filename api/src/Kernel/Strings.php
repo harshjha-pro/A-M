@@ -86,6 +86,10 @@ final class Strings
         'field_too_many'           => 'Choose at most {max}.',
         'field_bad_member'         => 'Choose people who are active members.',
         'field_bad_link'           => "This item doesn't exist or was removed.",
+        'event_duplicate'          => '{name} is already on {date}. Add anyway?',
+        'field_end_before_start_time' => 'End time must be after the start time.',
+        'field_https_only'         => 'Paste a link that starts with https://',
+        'calendar_range_too_long'  => 'Pick at most 93 days at a time.',
         'tag_name_taken'           => 'A tag called {name} already exists. Rename that one first.',
     ];
 

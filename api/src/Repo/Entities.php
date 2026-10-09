@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace AM\Repo;
 
+use AM\Modules\Events\EventDef;
+use AM\Modules\Events\InvitationDef;
 use AM\Modules\Members\UserDef;
 use AM\Modules\Safety\RestoreDrillDef;
 use AM\Modules\Settings\SettingsDef;
@@ -25,6 +27,8 @@ final class Entities
         'task_assignee' => TaskAssigneeDef::class,
         'task_tag' => TaskTagDef::class,
         'tag' => TagDef::class,
+        'event' => EventDef::class,
+        'invitation' => InvitationDef::class,
     ];
 
     /** URL segment for /{resource}/{id}/history => definition */
@@ -33,6 +37,7 @@ final class Entities
         'restore-drills' => RestoreDrillDef::class,
         'tasks' => TaskDef::class,
         'tags' => TagDef::class,
+        'events' => EventDef::class,
     ];
 
     /** The value that names a row (public id or checklist key); null for link rows. */

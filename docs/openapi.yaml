@@ -690,7 +690,24 @@ paths:
                           payments: { type: integer }
                           documents: { type: integer }
         default: { $ref: '#/components/responses/Error' }
-  /events/{id}/restore: { $ref: '#/components/pathItems/Restore' }
+  /events/{id}/restore:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    post:
+      tags: [Trash]
+      operationId: restoreEvent
+      summary: Restore a deleted event with its same-batch invitations (same as the shared Restore path item)
+      x-permission: Adm
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IfMatch' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      responses:
+        '200':
+          description: Restored event
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Ok' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        default: { $ref: '#/components/responses/Error' }
 
   # ---------------------------------------------------------------- Tasks
   /tasks:
