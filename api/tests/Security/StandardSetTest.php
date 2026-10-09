@@ -29,7 +29,7 @@ final class StandardSetTest extends ApiTestCase
 
     private function path(string $pattern): string
     {
-        return str_replace('{id}', $this->pid('papa'), $pattern);
+        return strtr($pattern, ['{id}' => $this->pid('papa'), '{batch_id}' => '01JA6ZZZZZZZZZZZZZZZZZZZZZ', '{resource}' => 'members']);
     }
 
     #[DataProvider('routes')]

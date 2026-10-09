@@ -60,6 +60,7 @@ final class Strings
         'field_bad_phone'          => 'Enter a 10-digit mobile number.',
         'field_bad_email'          => 'Enter an email address, like name@gmail.com.',
         'field_date_past'          => 'Pick today or a later date.',
+        'field_date_future'        => 'Pick today or an earlier date.',
         'field_end_before_start'   => 'End date must be on or after the start date.',
         'field_money_admin'        => 'Ayush, Mahi and partners always see money.',
         'password_rules'           => 'Choose at least 6 letters or numbers. Not your phone number.',
@@ -72,6 +73,10 @@ final class Strings
         'last_admin'               => 'There must always be at least one active admin.',
         'not_self'                 => "You can't do this to your own account. Use My account.",
         'self_name_only'           => 'You can only change your own name here.',
+        'undo_not_yours'           => 'Only the person who did this can undo it. Ask Ayush or Mahi to restore it from Deleted items.',
+        'undo_done'                => 'Undone.',
+        'already_undone'           => 'This was already undone.',
+        'already_restored'         => 'Already restored.',
     ];
 
     /** @param array<string,string|int> $vars */

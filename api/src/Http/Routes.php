@@ -9,7 +9,12 @@ use AM\Modules\ClientLog\ClientLogController;
 use AM\Modules\Health\HealthController;
 use AM\Modules\Members\MembersController;
 use AM\Modules\Settings\SettingsController;
+use AM\Modules\History\HistoryController;
+use AM\Modules\Safety\RestoreDrillDef;
+use AM\Modules\Safety\SafetyController;
 use AM\Modules\Setup\SetupController;
+use AM\Modules\Trash\TrashController;
+use AM\Modules\Undo\UndoController;
 
 /**
  * Every API operation. Each one must also be in docs/openapi.yaml and have at
@@ -59,6 +64,18 @@ final class Routes
         $r->add('GET', '/settings', SettingsController::get(...));
         $r->add('PATCH', '/settings', SettingsController::update(...));
         $r->add('GET', '/settings/history', SettingsController::history(...), ['query' => ['cursor', 'limit']]);
+
+        // Data safety (Session 3): restore drills, undo, Deleted items, history, activity, backups
+        BaseController::register($r, RestoreDrillDef::class, ...BaseController::adminOnly());
+        $r->add('GET', '/backups', SafetyController::backups(...), ['query' => ['limit']]);
+        $r->add('POST', '/undo/{batch_id}', UndoController::undo(...));
+        $page = ['cursor', 'limit'];
+        $r->add('GET', '/trash', TrashController::list(...), ['query' => ['type', 'user', 'from', 'to', ...$page]]);
+        $r->add('GET', '/trash/{batch_id}', TrashController::get(...));
+        $r->add('DELETE', '/trash/{batch_id}', TrashController::purge(...));
+        $r->add('POST', '/trash/{batch_id}/restore', TrashController::restore(...));
+        $r->add('GET', '/{resource}/{id}/history', HistoryController::record(...), ['query' => $page]);
+        $r->add('GET', '/activity', HistoryController::activity(...), ['query' => ['user', 'type', 'action', 'from', 'to', ...$page]]);
 
         return $r;
     }

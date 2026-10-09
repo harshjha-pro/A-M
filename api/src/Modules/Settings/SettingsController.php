@@ -12,9 +12,11 @@ use AM\Kernel\Request;
 use AM\Kernel\Response;
 use AM\Kernel\Strings;
 use AM\Kernel\Time;
+use AM\Repo\Cursor;
 use AM\Repo\Refs;
 use AM\Repo\Versioned;
 use AM\Safety\AuditLog;
+use AM\Safety\History;
 use AM\Validation\Fields;
 
 /** Wedding facts — one row, never deleted (FEATURES B10, API.md §6.3). */
@@ -124,80 +126,21 @@ final class SettingsController
     {
         $user = $request->attr('user');
         Permissions::requireAdmin($user);
-        $limit = self::limit($request);
-        $before = self::cursor($request, 'settings');
+        $cursor = new Cursor('settings');
+        $limit = Cursor::limit($request);
         $db = $app->db();
         $refs = new Refs($db, $app->clock->todayIst());
         $rows = $db->all(
-            "SELECT * FROM audit_log WHERE entity_type = 'settings' AND id < ? ORDER BY id DESC LIMIT " . ($limit + 1),
-            [$before],
+            "SELECT a.*, cb.public_id AS batch_public_id FROM audit_log a LEFT JOIN change_batches cb ON cb.id = a.batch_id
+             WHERE a.entity_type = 'settings' AND a.id < ? ORDER BY a.id DESC LIMIT " . ($limit + 1),
+            [$cursor->before($request)],
         );
-        $more = count($rows) > $limit;
-        $rows = array_slice($rows, 0, $limit);
-        $money = Permissions::canSeeMoney($user);
-        $lines = array_map(static function (array $a) use ($refs, $money): array {
-            $by = $refs->user($a['user_id'] !== null ? (int) $a['user_id'] : null);
-            $before = json_decode((string) $a['before_json'], true) ?: [];
-            $after = json_decode((string) $a['after_json'], true) ?: [];
-            $changes = [];
-            foreach (self::LABELS as $field => $label) {
-                if (!array_key_exists($field, $after) || Versioned::same($before[$field] ?? null, $after[$field])) {
-                    continue;
-                }
-                if (!$money && in_array($field, self::MONEY, true)) {
-                    continue;
-                }
-                $changes[] = ['field' => $field, 'label' => $label, 'from' => $before[$field] ?? null, 'to' => $after[$field]];
-            }
-            $who = $by['name'] ?? 'The system';
-            $labels = array_column($changes, 'label');
-            $what = match (count($labels)) {
-                0 => 'the wedding details',
-                1 => $labels[0],
-                default => implode(', ', array_slice($labels, 0, -1)) . ' and ' . end($labels),
-            };
-            return [
-                'at' => Time::iso($a['created_at']),
-                'action' => $a['action'],
-                'user' => $by,
-                'device' => $a['device'],
-                'entity' => ['type' => 'settings', 'id' => null, 'name' => 'Wedding details'],
-                'sentence' => "$who changed $what.",
-                'changes' => $changes,
-            ];
+        [$rows, $meta] = $cursor->page($rows, $limit);
+        $lines = array_map(static function (array $a) use ($refs, $user): array {
+            $line = History::line($refs, $a, SettingsDef::class, $user);
+            $line['entity'] = ['type' => 'settings', 'id' => null, 'name' => 'Wedding details'];
+            return $line;
         }, $rows);
-        $meta = ['has_more' => $more];
-        if ($more && $rows !== []) {
-            $meta['next_cursor'] = self::makeCursor((int) end($rows)['id'], 'settings');
-        }
         return Response::ok($lines, 200, $meta);
-    }
-
-    private static function limit(Request $request): int
-    {
-        $l = $request->query['limit'] ?? '50';
-        if (!ctype_digit($l) || (int) $l < 1 || (int) $l > 200) {
-            throw HttpError::make(400, 'bad_request');
-        }
-        return (int) $l;
-    }
-
-    /** Opaque cursor = last id + which list it belongs to. A cursor from another list → 400 bad_cursor. */
-    public static function makeCursor(int $id, string $list): string
-    {
-        return rtrim(strtr(base64_encode((string) json_encode(['i' => $id, 'l' => $list])), '+/', '-_'), '=');
-    }
-
-    private static function cursor(Request $request, string $list): int
-    {
-        $c = $request->query['cursor'] ?? '';
-        if ($c === '') {
-            return PHP_INT_MAX;
-        }
-        $data = json_decode((string) base64_decode(strtr($c, '-_', '+/'), true), true);
-        if (!is_array($data) || ($data['l'] ?? null) !== $list || !is_int($data['i'] ?? null)) {
-            throw HttpError::make(400, 'bad_cursor');
-        }
-        return $data['i'];
     }
 }

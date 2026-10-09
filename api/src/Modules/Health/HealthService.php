@@ -6,6 +6,8 @@ namespace AM\Modules\Health;
 use AM\Db\SchemaInfo;
 use AM\Kernel\App;
 use AM\Kernel\AppInfo;
+use AM\Repo\BaseRepository;
+use AM\Repo\Entities;
 use Throwable;
 
 /**
@@ -13,8 +15,10 @@ use Throwable;
  * status is the worst one. The anonymous reply only says ok/fail: fail when
  * the database or the backup check is red.
  *
- * Session 1 builds database, backup, audit_log, restore_drill, reminders.
- * Storage and the admin detail view arrive with sessions (Session 3).
+ * Session 1 built database, backup, audit_log, restore_drill, reminders.
+ * Session 3 adds storage, last_export and trash_batches for the admin view.
+ * Storage never makes the anonymous reply fail (only database, backup and
+ * the audit tamper check do).
  *
  * Backup and audit checks: "not_in_use" until .env says BACKUP_EXPECTED=true
  * (live, from Session 4, when the nightly backup job exists). Staging has no
@@ -36,6 +40,7 @@ final class HealthService
             $checks['backup'] = $expected ? $this->backup() : ['status' => 'not_in_use', 'last_ok_at' => null];
             $checks['audit_log'] = $expected ? $this->auditLog() : ['status' => 'not_in_use'];
             $checks['restore_drill'] = $this->restoreDrill();
+            $checks['storage'] = $this->storage();
         } else {
             $checks['backup'] = ['status' => 'not_in_use', 'note' => 'database down'];
         }
@@ -53,6 +58,50 @@ final class HealthService
             || ($checks['audit_log']['status'] ?? '') === 'red';
 
         return ['status' => $worst, 'public' => $fail ? 'fail' : 'ok', 'checks' => $checks];
+    }
+
+    /** Extra lines for the admin view: last export (info) and how many delete batches are in Deleted items. */
+    public function extras(): array
+    {
+        try {
+            $db = $this->app->db();
+            $exp = $db->one("SELECT e.finished_at, u.name FROM exports e JOIN users u ON u.id = e.requested_by WHERE e.status IN ('ready','expired') ORDER BY e.id DESC LIMIT 1");
+            $exists = array_map(static fn ($d) => 'EXISTS (SELECT 1 FROM `' . BaseRepository::table($d) . '` x WHERE x.delete_batch_id = cb.id)', Entities::deletable());
+            $trash = (int) $db->value("SELECT COUNT(*) FROM change_batches cb WHERE cb.action = 'delete' AND (" . implode(' OR ', $exists) . ')');
+        } catch (Throwable $e) {
+            return ['last_export' => null, 'trash_batches' => null];
+        }
+        return [
+            'last_export' => $exp === null ? null : ['at' => gmdate('Y-m-d\TH:i:s\Z', (int) strtotime($exp['finished_at'] . ' UTC')), 'by' => $exp['name']],
+            'trash_batches' => $trash,
+        ];
+    }
+
+    /** files + exports + DB against the plan quota (API.md §11). */
+    private function storage(): array
+    {
+        $env = $this->app->env;
+        $quota = $env->int('STORAGE_QUOTA_BYTES', 53687091200);
+        $dbQuota = $env->int('DB_QUOTA_BYTES', 3221225472);
+        try {
+            $db = $this->app->db();
+            $dbBytes = (int) $db->value('SELECT COALESCE(SUM(data_length + index_length), 0) FROM information_schema.tables WHERE table_schema = DATABASE()');
+            $files = (int) $db->value('SELECT COALESCE(SUM(size_bytes), 0) FROM files');
+            $exports = (int) $db->value("SELECT COALESCE(SUM(size_bytes), 0) FROM exports WHERE status = 'ready'");
+        } catch (Throwable $e) {
+            $this->app->logger->exception('-', $e, ['check' => 'storage']);
+            return ['status' => 'amber', 'reason' => 'query_failed'];
+        }
+        $root = $env->get('STORAGE_ROOT');
+        $free = $root !== '' && is_dir($root) ? @disk_free_space($root) : false;
+        $used = $dbBytes + $files + $exports;
+        $pct = $quota > 0 ? round($used * 100 / $quota, 1) : 0.0;
+        $status = $pct > 85 || $dbBytes > $dbQuota * 0.8 || ($free !== false && $free < 1073741824) ? 'red' : ($pct >= 70 ? 'amber' : 'green');
+        return [
+            'status' => $status, 'used_bytes' => $used, 'quota_bytes' => $quota, 'used_pct' => $pct,
+            'db_bytes' => $dbBytes, 'db_quota_bytes' => $dbQuota, 'files_bytes' => $files, 'exports_bytes' => $exports,
+            'private_folder_free_bytes' => $free === false ? null : (int) $free,
+        ];
     }
 
     /** SELECT 1 under 500 ms and schema at the expected version, no half-run migration. */

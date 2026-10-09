@@ -93,11 +93,11 @@ final class SettingsTest extends ApiTestCase
         $ayush->patchJson('/settings', ['total_budget_paise' => 400000000], 3)->assertStatus(200);
 
         $page1 = $ayush->get('/settings/history', ['limit' => '2'])->assertStatus(200)->assertEnvelope();
-        $this->assertSame(['Ayush changed Total budget.', 'Ayush changed End date and City.'], array_column($page1->json('data'), 'sentence'));
+        $this->assertSame(['Ayush changed Total budget from (empty) to ₹40,00,000.', 'Ayush changed End date and City.'], array_column($page1->json('data'), 'sentence'));
         $this->assertTrue($page1->json('meta.has_more'));
         $this->assertSame(['field' => 'city', 'label' => 'City', 'from' => 'Udaipur', 'to' => 'Bhilwara'], $page1->json('data.1.changes.1'));
         $page2 = $ayush->get('/settings/history', ['limit' => '2', 'cursor' => (string) $page1->json('meta.next_cursor')])->assertStatus(200);
-        $this->assertSame(['Ayush changed City.'], array_column($page2->json('data'), 'sentence'));
+        $this->assertSame(['Ayush changed City from Bhilwara to Udaipur.'], array_column($page2->json('data'), 'sentence'));
         $this->assertFalse($page2->json('meta.has_more'));
 
         $ayush->get('/settings/history', ['cursor' => 'garbage'])->assertStatus(400)->assertErrorCode('bad_cursor');
