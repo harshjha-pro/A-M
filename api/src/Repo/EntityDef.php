@@ -25,9 +25,15 @@ abstract class EntityDef
     /** Plain words: 'restore drill' / 'restore drills'. */
     public const LABEL = '';
     public const LABEL_PLURAL = '';
-    /** Has public_id / client_uuid / deleted_* columns. */
+    /** Has a public_id column (made on create). */
     public const PUBLIC_ID = true;
     public const SOFT_DELETE = true;
+    /** Has version / updated_at / updated_by (link rows such as task_assignees don't). */
+    public const VERSIONED = true;
+    /** Column that names a row in Deleted items and restore requests: public_id, client_uuid (checklist items) or null (link rows). */
+    public const KEY = 'public_id';
+    /** Shown in the Activity feed and record History (link rows are not: their parent's lines say it). */
+    public const IN_ACTIVITY = true;
     /** Field labels for History sentences; only these fields are ever described. */
     public const FIELD_LABELS = [];
     /** Fields a non-money user never sees (API.md §1.5). */

@@ -77,6 +77,16 @@ final class Strings
         'undo_done'                => 'Undone.',
         'already_undone'           => 'This was already undone.',
         'already_restored'         => 'Already restored.',
+        // tasks (Session 5)
+        'task_duplicate'           => 'A similar task exists: {name}',
+        'task_delete_own'          => 'You can delete only tasks you added or that are yours.',
+        'already_done'             => 'Already done by {name}.',
+        'field_bad_time'           => 'Pick a time, like 18:00.',
+        'field_time_needs_date'    => 'Pick a date first.',
+        'field_too_many'           => 'Choose at most {max}.',
+        'field_bad_member'         => 'Choose people who are active members.',
+        'field_bad_link'           => "This item doesn't exist or was removed.",
+        'tag_name_taken'           => 'A tag called {name} already exists. Rename that one first.',
     ];
 
     /** @param array<string,string|int> $vars */

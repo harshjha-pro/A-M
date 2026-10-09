@@ -6,6 +6,11 @@ namespace AM\Repo;
 use AM\Modules\Members\UserDef;
 use AM\Modules\Safety\RestoreDrillDef;
 use AM\Modules\Settings\SettingsDef;
+use AM\Modules\Tasks\TagDef;
+use AM\Modules\Tasks\TaskAssigneeDef;
+use AM\Modules\Tasks\TaskDef;
+use AM\Modules\Tasks\TaskItemDef;
+use AM\Modules\Tasks\TaskTagDef;
 
 /** Every record type the shared base code knows. Later sessions add theirs here. */
 final class Entities
@@ -15,13 +20,32 @@ final class Entities
         'restore_drill' => RestoreDrillDef::class,
         'user' => UserDef::class,
         'settings' => SettingsDef::class,
+        'task' => TaskDef::class,
+        'task_item' => TaskItemDef::class,
+        'task_assignee' => TaskAssigneeDef::class,
+        'task_tag' => TaskTagDef::class,
+        'tag' => TagDef::class,
     ];
 
     /** URL segment for /{resource}/{id}/history => definition */
     public const RESOURCES = [
         'members' => UserDef::class,
         'restore-drills' => RestoreDrillDef::class,
+        'tasks' => TaskDef::class,
+        'tags' => TagDef::class,
     ];
+
+    /** The value that names a row (public id or checklist key); null for link rows. */
+    public static function key(string $def, array $row): ?string
+    {
+        return $def::KEY !== null ? ($row[$def::KEY] ?? null) : null;
+    }
+
+    /** audit_log.entity_type values hidden from Activity and History. @return list<string> */
+    public static function hiddenTypes(): array
+    {
+        return array_keys(array_filter(self::TYPES, static fn ($d) => !$d::IN_ACTIVITY));
+    }
 
     /** @return class-string<EntityDef>|null */
     public static function forType(string $type): ?string
@@ -32,7 +56,7 @@ final class Entities
     /** Types whose rows can sit in Deleted items (parents first). @return list<class-string<EntityDef>> */
     public static function deletable(): array
     {
-        $defs = array_values(array_filter(self::TYPES, static fn ($d) => $d::SOFT_DELETE && $d::PUBLIC_ID));
+        $defs = array_values(array_filter(self::TYPES, static fn ($d) => $d::SOFT_DELETE));
         usort($defs, static fn ($a, $b) => ($a::PARENT === null ? 0 : 1) <=> ($b::PARENT === null ? 0 : 1));
         return $defs;
     }

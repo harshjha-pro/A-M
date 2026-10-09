@@ -104,15 +104,20 @@ final class BaseRepository
         $table = self::table($def);
         $user = $request->attr('user');
         $now = $app->clock->dbNow();
-        $db->run(
-            "UPDATE `$table` SET deleted_at = ?, deleted_by = ?, delete_batch_id = ?, version = version + 1, updated_at = ?, updated_by = ?
-             WHERE id = ? AND deleted_at IS NULL",
-            [$now, $user['id'] ?? null, $batchId, $now, $user['id'] ?? null, $row['id']],
-        );
+        if ($def::VERSIONED) {
+            $db->run(
+                "UPDATE `$table` SET deleted_at = ?, deleted_by = ?, delete_batch_id = ?, version = version + 1, updated_at = ?, updated_by = ?
+                 WHERE id = ? AND deleted_at IS NULL",
+                [$now, $user['id'] ?? null, $batchId, $now, $user['id'] ?? null, $row['id']],
+            );
+        } else {
+            $db->run("UPDATE `$table` SET deleted_at = ?, deleted_by = ?, delete_batch_id = ? WHERE id = ? AND deleted_at IS NULL",
+                [$now, $user['id'] ?? null, $batchId, $row['id']]);
+        }
         $after = $db->one("SELECT * FROM `$table` WHERE id = ?", [$row['id']]);
         AuditLog::record($app, $db, $request, [
             'action' => 'delete', 'entity_type' => $def::TYPE, 'entity_id' => (int) $row['id'],
-            'entity_version' => (int) $after['version'], 'batch_id' => $batchId, 'before' => $row, 'after' => $after,
+            'entity_version' => $def::VERSIONED ? (int) $after['version'] : null, 'batch_id' => $batchId, 'before' => $row, 'after' => $after,
         ]);
         $n = 1;
         foreach ($def::CHILDREN as $child => $fk) {
@@ -162,7 +167,7 @@ final class BaseRepository
             }
             $check = $def::restoreCheck($db, $row);
             if (isset($check['blocked'])) {
-                $result['blocked'][] = ['type' => $def::TYPE, 'id' => $row['public_id'] ?? null, 'name' => $def::name($row), 'reason' => $check['blocked']];
+                $result['blocked'][] = ['type' => $def::TYPE, 'id' => Entities::key($def, $row), 'name' => $def::name($row), 'reason' => $check['blocked']];
                 $blockedIds[$def . ':' . $row['id']] = true;
                 continue;
             }
@@ -199,20 +204,25 @@ final class BaseRepository
         $table = self::table($def);
         $user = $request->attr('user');
         $now = $app->clock->dbNow();
-        $db->run(
-            "UPDATE `$table` SET deleted_at = NULL, deleted_by = NULL, delete_batch_id = NULL, version = version + 1, updated_at = ?, updated_by = ?
-             WHERE id = ? AND delete_batch_id = ?",
-            [$now, $user['id'] ?? null, $row['id'], $row['delete_batch_id']],
-        );
+        if ($def::VERSIONED) {
+            $db->run(
+                "UPDATE `$table` SET deleted_at = NULL, deleted_by = NULL, delete_batch_id = NULL, version = version + 1, updated_at = ?, updated_by = ?
+                 WHERE id = ? AND delete_batch_id = ?",
+                [$now, $user['id'] ?? null, $row['id'], $row['delete_batch_id']],
+            );
+        } else {
+            $db->run("UPDATE `$table` SET deleted_at = NULL, deleted_by = NULL, delete_batch_id = NULL WHERE id = ? AND delete_batch_id = ?",
+                [$row['id'], $row['delete_batch_id']]);
+        }
         $after = $db->one("SELECT * FROM `$table` WHERE id = ?", [$row['id']]);
         AuditLog::record($app, $db, $request, [
             'action' => 'restore', 'entity_type' => $def::TYPE, 'entity_id' => (int) $row['id'],
-            'entity_version' => (int) $after['version'], 'batch_id' => $restoreBatchId, 'before' => $row, 'after' => $after,
+            'entity_version' => $def::VERSIONED ? (int) $after['version'] : null, 'batch_id' => $restoreBatchId, 'before' => $row, 'after' => $after,
         ]);
         return $after;
     }
 
-    /** Chosen items plus their children in the same batch. */
+    /** Chosen items plus (recursively) their children in the same batch. */
     private static function selectItems(array $found, array $only): array
     {
         $want = [];
@@ -222,20 +232,28 @@ final class BaseRepository
             }
         }
         $picked = [];
-        $pickedIds = [];
-        foreach ($found as $f) {
-            if (isset($want[$f['def']::TYPE . ':' . ($f['row']['public_id'] ?? '')])) {
-                $picked[] = $f;
-                $pickedIds[$f['def'] . ':' . $f['row']['id']] = true;
+        foreach ($found as $i => $f) {
+            $key = Entities::key($f['def'], $f['row']);
+            if ($key !== null && isset($want[$f['def']::TYPE . ':' . $key])) {
+                $picked[$i] = true;
             }
         }
-        foreach ($found as $f) {
-            $p = $f['def']::PARENT;
-            if ($p !== null && isset($pickedIds[$p[0] . ':' . $f['row'][$p[1]]]) && !in_array($f, $picked, true)) {
-                $picked[] = $f;
+        do {
+            $added = false;
+            foreach ($found as $i => $f) {
+                if (isset($picked[$i])) {
+                    continue;
+                }
+                foreach ($found as $j => $p) {
+                    $fk = $p['def']::CHILDREN[$f['def']] ?? null;
+                    if (isset($picked[$j]) && $fk !== null && (int) $f['row'][$fk] === (int) $p['row']['id']) {
+                        $picked[$i] = $added = true;
+                        break;
+                    }
+                }
             }
-        }
-        return $picked;
+        } while ($added);
+        return array_values(array_intersect_key($found, $picked));
     }
 
     /**
@@ -271,15 +289,22 @@ final class BaseRepository
             if ($row === null) {
                 continue;
             }
-            if ((int) $row['version'] !== (int) $a['entity_version']) {
-                $out['skipped'][] = [
-                    'type' => $def::TYPE, 'id' => $row['public_id'] ?? null, 'name' => $def::name($row),
-                    'reason' => 'changed_since', 'changed_by' => $refs->user($row['updated_by'] !== null ? (int) $row['updated_by'] : null),
-                ];
+            $unchanged = $def::VERSIONED
+                ? (int) $row['version'] === (int) $a['entity_version']
+                : $a['action'] === 'delete' && (int) ($row['delete_batch_id'] ?? 0) === (int) $batch['id'];
+            if (!$unchanged) {
+                if ($def::IN_ACTIVITY) { // a link row changed since is covered by its parent's line
+                    $out['skipped'][] = [
+                        'type' => $def::TYPE, 'id' => Entities::key($def, $row), 'name' => $def::name($row),
+                        'reason' => 'changed_since', 'changed_by' => $refs->user(($row['updated_by'] ?? null) !== null ? (int) $row['updated_by'] : null),
+                    ];
+                }
                 continue;
             }
             $before = json_decode((string) $a['before_json'], true) ?: [];
-            if ($a['action'] === 'delete') {
+            if ($a['action'] === 'delete' && !$def::VERSIONED) {
+                $db->run("UPDATE `$table` SET deleted_at = NULL, deleted_by = NULL, delete_batch_id = NULL WHERE id = ?", [$row['id']]);
+            } elseif ($a['action'] === 'delete') {
                 $db->run(
                     "UPDATE `$table` SET deleted_at = NULL, deleted_by = NULL, delete_batch_id = NULL, version = version + 1, updated_at = ?, updated_by = ? WHERE id = ?",
                     [$now, $user['id'] ?? null, $row['id']],
@@ -305,9 +330,11 @@ final class BaseRepository
             $after = $db->one("SELECT * FROM `$table` WHERE id = ?", [$row['id']]);
             AuditLog::record($app, $db, $request, [
                 'action' => 'undo', 'entity_type' => $def::TYPE, 'entity_id' => (int) $row['id'],
-                'entity_version' => (int) $after['version'], 'batch_id' => $undoBatch['id'], 'before' => $row, 'after' => $after,
+                'entity_version' => $def::VERSIONED ? (int) $after['version'] : null, 'batch_id' => $undoBatch['id'], 'before' => $row, 'after' => $after,
             ]);
-            $out['undone']++;
+            if ($def::IN_ACTIVITY) {
+                $out['undone']++;
+            }
         }
         ChangeBatches::setCount($db, $undoBatch['id'], $out['undone']);
         return $out;

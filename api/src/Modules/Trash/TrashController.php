@@ -72,11 +72,36 @@ final class TrashController
         Permissions::requireAdmin($request->attr('user'));
         $db = $app->db();
         $batch = self::batch($db, $params['batch_id']);
-        $items = [];
+        $found = [];
         foreach (Entities::deletable() as $def) {
             foreach ($db->all('SELECT * FROM `' . BaseRepository::table($def) . '` WHERE delete_batch_id = ? ORDER BY id', [$batch['id']]) as $r) {
-                $items[] = ['type' => $def::TYPE, 'id' => $r['public_id'] ?? null, 'name' => $def::name($r), 'child_count' => 0];
+                $found[] = ['def' => $def, 'row' => $r];
             }
+        }
+        // Top-level rows only; their children in the same batch are counted (a task's checklist, links).
+        $isChildOf = static function (array $c, array $p): bool {
+            $fk = $p['def']::CHILDREN[$c['def']] ?? null;
+            return $fk !== null && (int) $c['row'][$fk] === (int) $p['row']['id'];
+        };
+        $items = [];
+        foreach ($found as $f) {
+            foreach ($found as $p) {
+                if ($isChildOf($f, $p)) {
+                    continue 2;
+                }
+            }
+            $children = 0;
+            $stack = [$f];
+            while ($stack) {
+                $cur = array_pop($stack);
+                foreach ($found as $c) {
+                    if ($isChildOf($c, $cur)) {
+                        $children++;
+                        $stack[] = $c;
+                    }
+                }
+            }
+            $items[] = ['type' => $f['def']::TYPE, 'id' => Entities::key($f['def'], $f['row']), 'name' => $f['def']::name($f['row']), 'child_count' => $children];
         }
         return Response::ok(['batch' => self::batchView(new Refs($db, $app->clock->todayIst()), $batch), 'items' => $items]);
     }

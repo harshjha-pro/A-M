@@ -37,7 +37,7 @@ final class Versioned
      * @param callable(array): array $present turns a row into what this user may see (for the 409 body)
      * @return array{before:array, after:array, changed:list<string>}
      */
-    public static function update(App $app, Db $db, Request $request, string $table, string $entityType, int $id, int $expected, array $changes, callable $present, bool $softDelete = true): array
+    public static function update(App $app, Db $db, Request $request, string $table, string $entityType, int $id, int $expected, array $changes, callable $present, bool $softDelete = true, bool $force = false): array
     {
         self::assertTable($table);
         $row = $db->one("SELECT * FROM `$table` WHERE id = ? FOR UPDATE", [$id]);
@@ -65,7 +65,7 @@ final class Versioned
             $params[] = is_bool($value) ? (int) $value : $value;
             $changed[] = $col;
         }
-        if ($changed === []) {
+        if ($changed === [] && !$force) { // $force: a child list changed (task assignees, tags) — the version still moves
             return ['before' => $row, 'after' => $row, 'changed' => []];
         }
         $user = $request->attr('user');
@@ -87,6 +87,9 @@ final class Versioned
 
     public static function same(mixed $a, mixed $b): bool
     {
+        if (is_array($a) || is_array($b)) { // lists in audit rows (task assignees, tags)
+            return json_encode($a) === json_encode($b);
+        }
         if ($a === null || $b === null) {
             return $a === $b;
         }

@@ -33,6 +33,12 @@ final class Fields
         return new self($json);
     }
 
+    /** The raw value as sent (lists, nested objects); null when missing. */
+    public function value(string $key): mixed
+    {
+        return $this->body[$key] ?? null;
+    }
+
     public function has(string $key): bool
     {
         return array_key_exists($key, $this->body);

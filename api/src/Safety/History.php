@@ -81,6 +81,17 @@ final class History
             case 'undo':
                 return $changes === [] ? "$who brought back $thing (Undo)." : "$who undid a change to $thing: " . self::changeWords($changes) . '.';
             case 'update':
+                $fields = array_column($changes, 'field');
+                if ($a['entity_type'] === 'task' && str_starts_with($note, 'Postponed from ') && $fields === ['due_date']) {
+                    return "$who postponed $thing " . substr($note, strlen('Postponed ')) . '.';
+                }
+                if ($a['entity_type'] === 'task' && $fields === ['status'] && ($changes[0]['to'] ?? null) === 'done') {
+                    return "$who marked $thing done.";
+                }
+                if ($a['entity_type'] === 'task_item' && $fields === ['is_done']) {
+                    return $who . ((int) $changes[0]['to'] ? ' ticked ' : ' unticked ') . "$thing.";
+                }
+                // fall through
             case 'role_change':
             case 'merge':
             case 'status_change':

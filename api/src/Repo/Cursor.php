@@ -63,6 +63,28 @@ final class Cursor
         return [$rows, $meta];
     }
 
+    /**
+     * Offset paging, for lists not sorted by id (tasks: overdue, due date, priority).
+     * The cursor still carries the list name and filter hash.
+     */
+    public function offset(Request $request): int
+    {
+        $before = $this->before($request);
+        return $before === PHP_INT_MAX ? 0 : $before;
+    }
+
+    /** @return array{0: list<array>, 1: array} */
+    public function pageOffset(array $rows, int $limit, int $offset): array
+    {
+        $more = count($rows) > $limit;
+        $rows = array_slice($rows, 0, $limit);
+        $meta = ['has_more' => $more];
+        if ($more) {
+            $meta['next_cursor'] = $this->encode($offset + $limit);
+        }
+        return [$rows, $meta];
+    }
+
     private function hash(): string
     {
         $f = $this->filters;

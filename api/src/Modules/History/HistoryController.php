@@ -35,15 +35,29 @@ final class HistoryController
         }
         $cursor = new Cursor('history:' . $def::TYPE . ':' . $params['id']);
         $limit = Cursor::limit($request);
+        // The record itself, plus its children that have their own lines (a task's checklist items).
+        $scope = ['(a.entity_type = ? AND a.entity_id = ?)'];
+        $args = [$def::TYPE, $row['id']];
+        foreach ($def::CHILDREN as $child => $fk) {
+            if (!$child::IN_ACTIVITY) {
+                continue;
+            }
+            $ids = array_map('intval', array_column($db->all('SELECT id FROM `' . BaseRepository::table($child) . "` WHERE `$fk` = ?", [$row['id']]), 'id'));
+            if ($ids !== []) {
+                $scope[] = '(a.entity_type = ? AND a.entity_id IN (' . implode(',', $ids) . '))';
+                $args[] = $child::TYPE;
+            }
+        }
+        $args[] = $cursor->before($request);
         $rows = $db->all(
-            "SELECT a.*, cb.public_id AS batch_public_id FROM audit_log a LEFT JOIN change_batches cb ON cb.id = a.batch_id
-             WHERE a.entity_type = ? AND a.entity_id = ? AND a.action IN ('create','update','delete','restore','undo','role_change','merge','status_change')
+            'SELECT a.*, cb.public_id AS batch_public_id FROM audit_log a LEFT JOIN change_batches cb ON cb.id = a.batch_id
+             WHERE (' . implode(' OR ', $scope) . ") AND a.action IN ('create','update','delete','restore','undo','role_change','merge','status_change')
                AND a.id < ? ORDER BY a.id DESC LIMIT " . ($limit + 1),
-            [$def::TYPE, $row['id'], $cursor->before($request)],
+            $args,
         );
         [$rows, $meta] = $cursor->page($rows, $limit);
         $refs = new Refs($db, $app->clock->todayIst());
-        return Response::ok(array_map(static fn ($a) => History::line($refs, $a, $def, $viewer), $rows), 200, $meta);
+        return Response::ok(array_map(static fn ($a) => History::line($refs, $a, Entities::forType((string) $a['entity_type']) ?? $def, $viewer), $rows), 200, $meta);
     }
 
     /** GET /activity — admins; filters user, type, action, from, to (IST dates). */
@@ -57,6 +71,11 @@ final class HistoryController
         $limit = Cursor::limit($request);
         $where = ['a.id < ?'];
         $args = [$cursor->before($request)];
+        $hidden = Entities::hiddenTypes(); // link rows: their parent's line says it
+        if ($hidden !== []) {
+            $where[] = 'a.entity_type NOT IN (' . implode(',', array_fill(0, count($hidden), '?')) . ')';
+            array_push($args, ...$hidden);
+        }
         if (isset($filters['user'])) {
             $where[] = 'a.user_id = ?';
             $args[] = Users::byPublicId($db, $filters['user'])['id'];

@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace AM\Http;
 
+use AM\Kernel\App;
+use AM\Kernel\Request;
 use AM\Kernel\Router;
 use AM\Modules\Auth\AuthController;
 use AM\Modules\ClientLog\ClientLogController;
@@ -15,6 +17,10 @@ use AM\Modules\Safety\SafetyController;
 use AM\Modules\Setup\SetupController;
 use AM\Modules\Trash\TrashController;
 use AM\Modules\Undo\UndoController;
+use AM\Modules\Tasks\TagDef;
+use AM\Modules\Tasks\TaskDef;
+use AM\Modules\Tasks\TaskItemsController;
+use AM\Modules\Tasks\TasksController;
 
 /**
  * Every API operation. Each one must also be in docs/openapi.yaml and have at
@@ -76,6 +82,24 @@ final class Routes
         $r->add('POST', '/trash/{batch_id}/restore', TrashController::restore(...));
         $r->add('GET', '/{resource}/{id}/history', HistoryController::record(...), ['query' => $page]);
         $r->add('GET', '/activity', HistoryController::activity(...), ['query' => ['user', 'type', 'action', 'from', 'to', ...$page]]);
+
+        // Tasks and tags (Session 5): the first module on the shared base code
+        $r->add('GET', '/tasks', TasksController::list(...), ['query' => TasksController::QUERY]);
+        $r->add('POST', '/tasks', TasksController::create(...));
+        $r->add('GET', '/tasks/{id}', TasksController::get(...));
+        $r->add('PATCH', '/tasks/{id}', TasksController::update(...));
+        $r->add('DELETE', '/tasks/{id}', static fn (Request $q, App $a, array $p) => BaseController::delete($q, $a, $p, TaskDef::class, TasksController::canWrite($a)));
+        $r->add('POST', '/tasks/{id}/restore', static fn (Request $q, App $a, array $p) => BaseController::restore($q, $a, $p, TaskDef::class));
+        $r->add('POST', '/tasks/{id}/done', TasksController::done(...));
+        $r->add('POST', '/tasks/{id}/items', TaskItemsController::add(...));
+        $r->add('PATCH', '/tasks/{id}/items/{key}', TaskItemsController::update(...));
+        $r->add('DELETE', '/tasks/{id}/items/{key}', TaskItemsController::delete(...));
+        BaseController::register(
+            $r,
+            TagDef::class,
+            static fn (?array $v) => null,                               // everyone reads tags
+            static fn (?array $v, string $action, ?array $row) => TagDef::canWrite($v, $action),
+        );
 
         return $r;
     }

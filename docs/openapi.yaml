@@ -793,7 +793,25 @@ paths:
         '200': { $ref: '#/components/responses/TaskOne' }
         '409': { $ref: '#/components/responses/Conflict' }
         default: { $ref: '#/components/responses/Error' }
-  /tasks/{id}/restore: { $ref: '#/components/pathItems/Restore' }
+  /tasks/{id}/restore:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    post:
+      tags: [Trash]
+      operationId: restoreTask
+      summary: Restore a deleted record and its same-batch children (same as the shared Restore path item)
+      x-permission: Adm
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IfMatch' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      responses:
+        '200':
+          description: Restored task with checklist, assignees and tags
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Ok' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+        default: { $ref: '#/components/responses/Error' }
   /tasks/{id}/items:
     parameters: [ { $ref: '#/components/parameters/Id' } ]
     post:
@@ -916,7 +934,25 @@ paths:
       responses:
         '200': { $ref: '#/components/responses/Deleted' }
         default: { $ref: '#/components/responses/Error' }
-  /tags/{id}/restore: { $ref: '#/components/pathItems/Restore' }
+  /tags/{id}/restore:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    post:
+      tags: [Trash]
+      operationId: restoreTag
+      summary: Restore a deleted record and its same-batch children (same as the shared Restore path item)
+      x-permission: Adm
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IfMatch' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      responses:
+        '200':
+          description: Restored tag (422 rule_blocked when a live tag has that name now)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Ok' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+        default: { $ref: '#/components/responses/Error' }
 
   # ---------------------------------------------------------------- Guests
   /households:
