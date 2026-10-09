@@ -17,7 +17,7 @@ final class ApiClient
     /** @var array<string,string> */
     public array $defaultHeaders = [
         'origin' => 'https://wedding.lumorrahouse.com',
-        'x-client-version' => '1.0.12',
+        'x-client-version' => '1.0.13',
         'x-device' => 'Android · browser',
     ];
 
