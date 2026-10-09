@@ -58,7 +58,7 @@ RewriteRule ^ index.html [L]
   </FilesMatch>
 
   # These decide which version runs: always ask the server
-  <FilesMatch "^(index\.html|sw\.js|manifest\.webmanifest|version\.json|reset\.html|reset\.js)$">
+  <FilesMatch "^(index\.html|sw\.js|manifest\.webmanifest|version\.json|reset\.html|reset\.js|reset\.css)$">
     Header set Cache-Control "no-cache"
   </FilesMatch>
 </IfModule>

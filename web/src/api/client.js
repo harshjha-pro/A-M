@@ -16,6 +16,7 @@
 import { toCamel, toSnake, toSnakeKey, camelPath } from './case.js';
 import { getCsrfToken, getState, askToLogin, clearSession } from './session.js';
 import { deviceLabel } from '../pwa/platform.js';
+import { setForcedUpdate, versionGreater } from '../pwa/updateState.js';
 import {
   ApiError, OfflineError, TimeoutError, AuthError, ForbiddenError, NotFoundError,
   ConflictError, DeletedError, DuplicateError, InProgressError, ValidationError,
@@ -96,6 +97,7 @@ export async function api(method, path, opts = {}) {
     opts.signal?.removeEventListener('abort', onAbort);
   }
 
+  noteMinVersion(res.headers.get('X-Min-Client-Version'));
   let json = null;
   const text = await res.text().catch(() => '');
   try { json = text ? JSON.parse(text) : null; } catch { json = null; }
@@ -123,6 +125,21 @@ export async function api(method, path, opts = {}) {
     askToLogin(err.details?.reason ?? err.code).catch(() => clearSession(err.details?.reason ?? null));
   }
   throw err;
+}
+
+/** Every reply says the oldest app still allowed (API.md §1.3). Older than us → the forced update prompt. */
+function noteMinVersion(min) {
+  if (min && versionGreater(min, APP_VERSION)) setForcedUpdate(true);
+}
+
+/** The newest build on the server (PWA.md §6.1). Never cached; null when offline. */
+export async function fetchVersion() {
+  try {
+    const res = await fetch('/version.json', { cache: 'no-store', credentials: 'same-origin' });
+    return res.ok ? (await res.json()).version ?? null : null;
+  } catch {
+    return null;
+  }
 }
 
 /** A stored file's bytes (documents' file_url), for the share sheet. null when not 2xx. */
@@ -171,6 +188,7 @@ export function upload(path, fields, opts = {}) {
     xhr.onabort = () => { done(); if (opts.signal?.aborted) reject(new DOMException('Aborted', 'AbortError')); };
     xhr.onload = () => {
       done();
+      noteMinVersion(xhr.getResponseHeader('X-Min-Client-Version'));
       let json = null;
       try { json = xhr.responseText ? JSON.parse(xhr.responseText) : null; } catch { json = null; }
       if (xhr.status >= 200 && xhr.status < 300 && json?.ok === true) {
@@ -216,7 +234,7 @@ function toError(res, json, idemKey) {
     case 422:
       if (code === 'validation_failed') return new ValidationError(message, opts);
       return new RuleError(message, opts);
-    case 426: return new UpdateRequiredError(message, opts);
+    case 426: setForcedUpdate(true); return new UpdateRequiredError(message, opts);
     case 428: return new PreconditionError(message, opts);
     case 429: return new RateLimitedError(message, opts);
     default:

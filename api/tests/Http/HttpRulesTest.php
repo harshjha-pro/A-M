@@ -190,6 +190,24 @@ final class HttpRulesTest extends TestCase
         $icon = $this->fetch('/icons/icon-192.png');
         $this->assertSame(200, $icon['status']);
         $this->assertStringStartsWith('image/png', $icon['headers']['content-type'] ?? '');
+
+        // The service worker and the Fix-the-app page: always fresh, served as themselves (PWA §2.5, §6.4).
+        $sw = $this->fetch('/sw.js');
+        $this->assertSame(200, $sw['status']);
+        $this->assertSame('no-cache', $sw['headers']['cache-control'] ?? null);
+        $this->assertStringContainsString('javascript', $sw['headers']['content-type'] ?? '');
+        $this->assertStringContainsString('SKIP_WAITING', $sw['body']);
+        foreach (['/reset.html' => 'text/html', '/reset.js' => 'javascript', '/reset.css' => 'text/css'] as $f => $type) {
+            $r = $this->fetch($f);
+            $this->assertSame(200, $r['status'], $f);
+            $this->assertSame('no-cache', $r['headers']['cache-control'] ?? null, $f);
+            $this->assertStringContainsString($type, $r['headers']['content-type'] ?? '', $f);
+        }
+        $this->assertStringContainsString('getRegistrations', $this->fetch('/reset.js')['body']);
+        $guide = $this->fetch('/install-guide/ios-1-share.svg');
+        $this->assertSame(200, $guide['status']);
+        $this->assertStringStartsWith('image/svg+xml', $guide['headers']['content-type'] ?? '');
+        $this->assertSame(3, count(json_decode($man['body'], true)['shortcuts'] ?? []), 'Android shortcuts');
     }
 
     /** .htaccess rule 6 (Session 7 Lighthouse finding): app text files are gzipped; API replies are not (BREACH). */

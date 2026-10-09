@@ -1,8 +1,9 @@
 // vite.config.js — builds dist/ for "live" (A&M Wedding) or "staging" (A&M Staging).
-// No service worker yet: that is Session 12 (PWA.md §4).
+// Service worker: src/sw.js via vite-plugin-pwa (injectManifest, PWA.md §4.2).
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
+import { VitePWA } from 'vite-plugin-pwa';
 import { readFileSync, writeFileSync, mkdirSync, rmSync, cpSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 
@@ -57,10 +58,15 @@ function amFlavour(mode) {
           { src: '/icons/icon-maskable-192.png', sizes: '192x192', type: 'image/png', purpose: 'maskable' },
           { src: '/icons/icon-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
-        // Android shortcuts arrive with the install work (Session 12).
+        // Android only (long-press the icon). A Viewer opening "Add" gets the normal no-access screen.
+        shortcuts: [
+          { name: 'Add a task', short_name: 'Add task', url: '/tasks/new', icons: [{ src: '/icons/shortcut-task-96.png', sizes: '96x96', type: 'image/png' }] },
+          { name: 'Add a family', short_name: 'Add family', url: '/guests/new', icons: [{ src: '/icons/shortcut-family-96.png', sizes: '96x96', type: 'image/png' }] },
+          { name: 'My tasks', short_name: 'My tasks', url: '/tasks?view=mine', icons: [{ src: '/icons/shortcut-mytasks-96.png', sizes: '96x96', type: 'image/png' }] },
+        ],
       };
       writeFileSync(resolve(dir, 'manifest.webmanifest'), JSON.stringify(manifest, null, 2) + '\n');
-      // The app polls this file to learn a new build exists (Session 12). Uploaded LAST.
+      // The app polls this file to learn a new build exists (UpdatePrompt). Uploaded LAST.
       writeFileSync(resolve(dir, 'version.json'), JSON.stringify({ version: APP_VERSION, built_at: BUILT_AT, flavour: mode }) + '\n');
     },
   };
@@ -72,7 +78,26 @@ export default defineConfig(({ mode }) => ({
     __BUILT_AT__: JSON.stringify(BUILT_AT),
     __APP_FLAVOUR__: JSON.stringify(FLAVOURS[mode] ? mode : 'live'),
   },
-  plugins: [react(), tailwindcss(), amFlavour(mode)],
+  plugins: [
+    react(),
+    tailwindcss(),
+    amFlavour(mode),
+    VitePWA({
+      strategies: 'injectManifest', // our own sw.js: push later + full control
+      srcDir: 'src',
+      filename: 'sw.js',
+      registerType: 'prompt',       // never auto-update; the user taps "Tap to refresh"
+      injectRegister: false,        // registered from our own module (CSP: no inline script)
+      manifest: false,              // written by amFlavour (per flavour)
+      injectManifest: {
+        globPatterns: ['**/*.{js,css,html,woff2}', 'icons/*.png'],
+        // Never precache: the escape hatch, guide pictures, templates, the version file, the SW itself
+        globIgnores: ['reset.html', 'reset.js', 'reset.css', 'install-guide/**', 'splash/**', 'templates/**', 'version.json', 'sw.js', 'icons-staging/**'],
+        maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
+      },
+      devOptions: { enabled: false },
+    }),
+  ],
   build: {
     sourcemap: false,          // no source maps on the server (nothing to read back)
     assetsInlineLimit: 0,      // CSP: no data: fonts or scripts; files only

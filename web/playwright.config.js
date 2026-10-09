@@ -5,6 +5,9 @@ import { defineConfig, devices } from '@playwright/test';
 
 // localhost (not 127.0.0.1): browsers accept the Secure __Host- login cookie on http://localhost.
 const BASE = process.env.AM_E2E_BASE || 'http://localhost:8083';
+// Let routing see requests a service worker makes (Chromium). Without it a blocked network
+// still reaches the server through the worker, and the offline checks would prove nothing.
+process.env.PW_EXPERIMENTAL_SERVICE_WORKER_NETWORK_EVENTS ??= '1';
 
 export default defineConfig({
   testDir: './e2e',

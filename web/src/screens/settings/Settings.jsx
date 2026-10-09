@@ -1,7 +1,7 @@
 // Settings (FEATURES B10): wedding details, members, my account, install guide, about.
 // Admins also get Safety, Activity, Deleted items and Imports (FEATURES A5, A8, B9, B10).
 import { Link } from 'react-router-dom';
-import { CalendarHeart, Users, UserRound, Smartphone, ChevronRight, ShieldCheck, Activity, Trash2, Upload, FileDown } from 'lucide-react';
+import { CalendarHeart, Users, UserRound, Smartphone, ChevronRight, ShieldCheck, Activity, Trash2, Upload, FileDown, TabletSmartphone } from 'lucide-react';
 import Screen from '../../components/Screen.jsx';
 import { useSession } from '../../api/session.js';
 import { t } from '../../i18n/strings.en.js';
@@ -21,6 +21,7 @@ export default function Settings() {
       { to: '/settings/imports', label: 'settings.imports', Icon: Upload },
       { to: '/settings/export', label: 'settings.export', Icon: FileDown },
     ] : []),
+    { to: '/settings/phone', label: 'settings.phone', Icon: TabletSmartphone },
     { to: '/install', label: 'settings.install', Icon: Smartphone },
   ];
   return (

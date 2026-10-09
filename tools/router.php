@@ -97,7 +97,7 @@ if (in_array($ext, ['html', 'js'], true)) {
     header('Permissions-Policy: camera=(self), microphone=(), geolocation=(), payment=(), usb=()');
     header('Cross-Origin-Opener-Policy: same-origin');
 }
-if (preg_match('/^(index\.html|sw\.js|manifest\.webmanifest|version\.json|reset\.html|reset\.js)$/', $name)) {
+if (preg_match('/^(index\.html|sw\.js|manifest\.webmanifest|version\.json|reset\.html|reset\.js|reset\.css)$/', $name)) {
     header('Cache-Control: no-cache');
 } elseif (str_starts_with($path, '/assets/')) {
     header('Cache-Control: public, max-age=31536000, immutable');

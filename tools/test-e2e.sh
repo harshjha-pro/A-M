@@ -31,4 +31,4 @@ PID=$!
 trap 'kill $PID 2>/dev/null || true' EXIT
 sleep 1
 cd web
-PLAYWRIGHT_CHROMIUM_PATH="${PLAYWRIGHT_CHROMIUM_PATH:-}" npx playwright test "$@"
+AM_E2E_SITE="$SITE" PLAYWRIGHT_CHROMIUM_PATH="${PLAYWRIGHT_CHROMIUM_PATH:-}" npx playwright test "$@"

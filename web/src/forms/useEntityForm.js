@@ -15,6 +15,7 @@ import { useSave } from './useSave.js';
 import { draftKey, saveDraft, loadDraft, clearDraft } from './drafts.js';
 import { merge3, applyChoices, changedKeys } from './merge3.js';
 import { formatTime } from '../format/ist.js';
+import { useDirtyForm } from '../pwa/dirtyForms.js';
 
 export const DRAFT_DELAY_MS = 1000;
 
@@ -28,6 +29,8 @@ export function useEntityForm({ form, recordId = null, record, fields, neverAuto
   const [fieldErrors, setFieldErrors] = useState({});
   const [conflict, setConflict] = useState(null);
   const [deleted, setDeleted] = useState(null);
+  // Unsaved typing blocks the "new version" refresh (PWA.md §6.2).
+  useDirtyForm(key, values !== null && base !== null && changedKeys(fields, base, values).length > 0);
   const [draft, setDraft] = useState(() => loadDraft(key));
   const timer = useRef(null);
 
