@@ -97,6 +97,16 @@ final class Strings
         'event_no_guests'          => "This event doesn't take guest invitations.",
         'rsvp_needs_event'         => 'Pick an event to filter by Coming?.',
         'restore_phone_clash'      => '{name} has the same phone as {other}. Check for a duplicate.',
+        'bulk_too_many'            => 'Please choose 2,000 families or fewer.',
+        'bulk_needs_event'         => 'Pick an event.',
+        'import_too_many'          => 'Please import 3,000 rows or fewer at a time.',
+        'import_has_errors'        => 'Some rows still have a problem. Fix them or choose Skip.',
+        'import_no_name'           => 'Name is missing.',
+        'import_bad_side'          => "Side must be bride's, groom's or both.",
+        'import_bad_food'          => 'Food must be Veg, Jain or Mixed.',
+        'import_bad_target'        => 'Choose which family to update.',
+        'import_bad_event'         => 'One of the events is not a guest event.',
+        'import_bad_number'        => 'Use a number from 0 to 50.',
         'tag_name_taken'           => 'A tag called {name} already exists. Rename that one first.',
     ];
 

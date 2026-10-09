@@ -98,6 +98,16 @@ final class BaseRepository
         return $batch + ['summary' => $summary];
     }
 
+    /**
+     * Soft delete one row (+ children) inside a batch someone else made: bulk delete,
+     * many families in one batch with one Undo. @return int rows marked
+     * @param class-string<EntityDef> $def
+     */
+    public static function softDeleteInBatch(App $app, Db $db, Request $request, string $def, array $row, int $batchId): int
+    {
+        return self::markDeleted($app, $db, $request, $def, $row, $batchId);
+    }
+
     /** @param class-string<EntityDef> $def @return int rows marked (this + children) */
     private static function markDeleted(App $app, Db $db, Request $request, string $def, array $row, int $batchId): int
     {
@@ -279,7 +289,9 @@ final class BaseRepository
         $out = ['undone' => 0, 'skipped' => [], 'already_undone' => false];
         $user = $request->attr('user');
         $now = $app->clock->dbNow();
-        foreach ($db->all('SELECT * FROM audit_log WHERE batch_id = ? ORDER BY id DESC', [$batch['id']]) as $a) {
+        $audits = $db->all('SELECT * FROM audit_log WHERE batch_id = ? ORDER BY id DESC', [$batch['id']]);
+        $keep = self::changedParents($db, $audits); // a family edited since an import keeps what the import gave it
+        foreach ($audits as $a) {
             $def = Entities::forType((string) $a['entity_type']);
             if ($def === null) {
                 continue;
@@ -292,10 +304,20 @@ final class BaseRepository
             $unchanged = $def::VERSIONED
                 ? (int) $row['version'] === (int) $a['entity_version']
                 : $a['action'] === 'delete' && (int) ($row['delete_batch_id'] ?? 0) === (int) $batch['id'];
+            foreach ($keep as $fkCol => $ids) {
+                if ($a['action'] === 'create' && array_key_exists($fkCol, $row) && isset($ids[(int) $row[$fkCol]])) {
+                    $unchanged = false;
+                    $silent = true;
+                }
+            }
             if (!$unchanged) {
+                if (($silent ?? false) === true) {
+                    $silent = false;
+                    continue;
+                }
                 if ($def::IN_ACTIVITY) { // a link row changed since is covered by its parent's line
                     $out['skipped'][] = [
-                        'type' => $def::TYPE, 'id' => Entities::key($def, $row), 'name' => $def::name($row),
+                        'type' => $def::TYPE, 'id' => Entities::key($def, $row), 'name' => $def::describe($refs, $row),
                         'reason' => 'changed_since', 'changed_by' => $refs->user(($row['updated_by'] ?? null) !== null ? (int) $row['updated_by'] : null),
                     ];
                 }
@@ -346,6 +368,28 @@ final class BaseRepository
         }
         ChangeBatches::setCount($db, $undoBatch['id'], $out['undone']);
         return $out;
+    }
+
+    /**
+     * Parents this batch created that were edited since: [child fk column => [parent id => true]].
+     * Their children created in the same batch stay too (AC-IMP-05: rows edited since are kept).
+     */
+    private static function changedParents(Db $db, array $audits): array
+    {
+        $keep = [];
+        foreach ($audits as $a) {
+            $def = Entities::forType((string) $a['entity_type']);
+            if ($a['action'] !== 'create' || $def === null || $def::CHILDREN === [] || !$def::VERSIONED) {
+                continue;
+            }
+            $v = $db->value('SELECT version FROM `' . self::table($def) . '` WHERE id = ?', [$a['entity_id']]);
+            if ($v !== null && (int) $v !== (int) $a['entity_version']) {
+                foreach ($def::CHILDREN as $fk) {
+                    $keep[$fk][(int) $a['entity_id']] = true;
+                }
+            }
+        }
+        return $keep;
     }
 
     /** @param class-string<EntityDef> $def */

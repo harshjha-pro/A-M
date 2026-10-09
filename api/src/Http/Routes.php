@@ -13,8 +13,11 @@ use AM\Modules\Dashboard\DashboardController;
 use AM\Modules\Events\CalendarController;
 use AM\Modules\Events\EventDef;
 use AM\Modules\Events\EventsController;
+use AM\Modules\Guests\BulkController;
+use AM\Modules\Guests\GuestCsv;
 use AM\Modules\Guests\HouseholdDef;
 use AM\Modules\Guests\HouseholdsController;
+use AM\Modules\Guests\ImportsController;
 use AM\Modules\Guests\InvitationsController;
 use AM\Modules\Health\HealthController;
 use AM\Modules\Members\MembersController;
@@ -127,6 +130,8 @@ final class Routes
         $r->add('POST', '/households', HouseholdsController::create(...));
         $r->add('GET', '/households/duplicate-check', HouseholdsController::duplicateCheck(...), ['query' => ['phone', 'alt_phone', 'name', 'city', 'exclude']]);
         $r->add('GET', '/households/suggestions', HouseholdsController::suggestions(...), ['query' => ['field', 'q']]);
+        $r->add('POST', '/households/bulk', BulkController::run(...));
+        $r->add('GET', '/households/export', GuestCsv::export(...), ['query' => array_diff(HouseholdsController::QUERY, ['sort', 'limit', 'cursor'])]);
         $r->add('GET', '/households/{id}', HouseholdsController::get(...));
         $r->add('PATCH', '/households/{id}', static fn (Request $q, App $a, array $p) => BaseController::update($q, $a, $p, HouseholdDef::class, $hhWrite));
         $r->add('DELETE', '/households/{id}', static fn (Request $q, App $a, array $p) => BaseController::delete($q, $a, $p, HouseholdDef::class, $hhWrite));
@@ -135,6 +140,14 @@ final class Routes
         $r->add('PATCH', '/households/{id}/invitations/{event_id}', InvitationsController::patch(...));
         $r->add('DELETE', '/households/{id}/invitations/{event_id}', InvitationsController::delete(...));
         $r->add('POST', '/households/{id}/invitations/{event_id}/whatsapp-opened', InvitationsController::whatsappOpened(...));
+
+        // Guest import (Session 8b): the phone reads the file and sends rows (≤ 3,000, 5 MB)
+        $big = ['max_body' => ImportsController::MAX_BODY];
+        $r->add('POST', '/imports/preview', ImportsController::preview(...), $big);
+        $r->add('POST', '/imports', ImportsController::run(...), $big);
+        $r->add('GET', '/imports', ImportsController::list(...), ['query' => ['cursor', 'limit']]);
+        $r->add('GET', '/imports/{id}', ImportsController::get(...));
+        $r->add('POST', '/imports/{id}/undo', ImportsController::undo(...));
 
         // Home (Session 7)
         $r->add('GET', '/dashboard', DashboardController::show(...), ['query' => ['payments_window_days']]);

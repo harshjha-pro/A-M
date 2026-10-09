@@ -109,6 +109,10 @@ final class History
                     return "$who changed {$c['label']} from {$c['from_text']} to {$c['to_text']}" . ($a['entity_type'] === 'settings' ? '' : " for $thing") . '.';
                 }
                 return "$who changed " . self::changeWords($changes) . ($a['entity_type'] === 'settings' ? '' : " for $thing") . '.';
+            case 'export':
+                return "$who downloaded " . ($note !== '' ? $note : 'an export') . '.';
+            case 'import':
+                return "$who imported $thing" . ($note !== '' ? " ($note)" : '') . '.';
             case 'login':
                 return "$who logged in.";
             case 'logout':

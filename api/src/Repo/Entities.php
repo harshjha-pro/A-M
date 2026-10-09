@@ -6,6 +6,7 @@ namespace AM\Repo;
 use AM\Modules\Events\EventDef;
 use AM\Modules\Events\InvitationDef;
 use AM\Modules\Guests\HouseholdDef;
+use AM\Modules\Guests\ImportDef;
 use AM\Modules\Members\UserDef;
 use AM\Modules\Safety\RestoreDrillDef;
 use AM\Modules\Settings\SettingsDef;
@@ -31,6 +32,7 @@ final class Entities
         'event' => EventDef::class,
         'household' => HouseholdDef::class,
         'invitation' => InvitationDef::class,
+        'import' => ImportDef::class,
     ];
 
     /** URL segment for /{resource}/{id}/history => definition */
