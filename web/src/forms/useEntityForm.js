@@ -18,7 +18,7 @@ import { formatTime } from '../format/ist.js';
 
 export const DRAFT_DELAY_MS = 1000;
 
-export function useEntityForm({ form, recordId = null, record, fields, neverAuto = [], fromServer, toBody, send, onSaved, mapError }) {
+export function useEntityForm({ form, recordId = null, record, fields, neverAuto = [], fromServer, toBody, send, onSaved, mapError, initial = null }) {
   const { user } = useSession();
   const key = useMemo(() => draftKey(user?.id ?? 'anon', form, recordId), [user?.id, form, recordId]);
   const save = useSave();
@@ -49,9 +49,10 @@ export function useEntityForm({ form, recordId = null, record, fields, neverAuto
     setVersion(ver);
   }
 
+  /** initial: values a new form starts with that still count as typed (e.g. the event a task is added from). */
   function start() {
     const v = fromServer(record);
-    begin(v, v, record.version);
+    begin(initial ? { ...v, ...initial } : v, v, record.version);
   }
 
   function useDraft() {

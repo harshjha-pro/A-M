@@ -9,7 +9,8 @@ export default function HistoryScreen() {
   const path = resource ? `/${resource}/${id}/history` : '/settings/history';
   const back = !resource ? '/settings/wedding'
     : resource === 'members' ? `/settings/members/${id}`
-      : resource === 'tasks' ? `/tasks/${id}` : '/settings/safety';
+      : resource === 'tasks' ? `/tasks/${id}`
+        : resource === 'events' ? `/calendar/events/${id}` : '/settings/safety';
   return (
     <Screen title={t('history.title')} back={back}>
       <HistoryList path={path} />

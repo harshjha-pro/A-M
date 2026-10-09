@@ -2,7 +2,7 @@
 // assigned to), the rest under "More details". Shared form rules: changed fields
 // only + If-Match, a draft on this phone, the conflict screen on a clash.
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Screen from '../../components/Screen.jsx';
 import { TextField, ChoiceChips, FixSummary, Notice } from '../../components/Field.jsx';
@@ -21,10 +21,10 @@ import { useTags } from './TaskList.jsx';
 import { formatDateOnly } from '../../format/ist.js';
 import { t } from '../../i18n/strings.en.js';
 
-const FIELDS = ['title', 'notes', 'status', 'priority', 'dueDate', 'dueTime', 'assigneeIds', 'tagIds', 'newTags'];
+const FIELDS = ['title', 'notes', 'status', 'priority', 'dueDate', 'dueTime', 'assigneeIds', 'tagIds', 'newTags', 'eventId'];
 const LABELS = {
   title: t('tasks.titleLabel'), notes: t('tasks.notes'), status: t('tasks.statusLabel'), priority: t('tasks.priorityLabel'),
-  dueDate: t('tasks.due'), dueTime: t('tasks.time'), assigneeIds: t('tasks.assignees'), tagIds: t('tasks.tags'), newTags: t('tasks.newTag'),
+  dueDate: t('tasks.due'), dueTime: t('tasks.time'), assigneeIds: t('tasks.assignees'), tagIds: t('tasks.tags'), newTags: t('tasks.newTag'), eventId: t('tasks.eventLabel'),
 };
 const EMPTY = { version: 0, title: '', notes: '', status: 'todo', priority: 'normal', dueDate: null, dueTime: null, assignees: null, tags: [] };
 
@@ -33,7 +33,7 @@ function toForm(task, meId) {
     title: task.title ?? '', notes: task.notes ?? '', status: task.status, priority: task.priority,
     dueDate: task.dueDate ?? '', dueTime: task.dueTime ?? '',
     assigneeIds: task.assignees ? task.assignees.map((a) => a.id) : [meId],
-    tagIds: (task.tags ?? []).map((g) => g.id), newTags: [],
+    tagIds: (task.tags ?? []).map((g) => g.id), newTags: [], eventId: task.event?.id ?? '',
   };
 }
 
@@ -48,7 +48,9 @@ export default function TaskForm() {
   const [dup, setDup] = useState(null);
   const [tagText, setTagText] = useState('');
   const allowDup = useRef(false);
+  const presetEvent = new URLSearchParams(useLocation().search).get('event');
   const record = id ? q.data : EMPTY;
+  const events = useQuery({ queryKey: ['events'], queryFn: () => api('GET', '/events').then((r) => r.data), staleTime: 60_000 });
 
   const f = useEntityForm({
     form: 'task',
@@ -56,13 +58,14 @@ export default function TaskForm() {
     record,
     fields: FIELDS,
     fromServer: (r) => toForm(r, user?.id),
+    initial: !id && presetEvent ? { eventId: presetEvent } : null,
     toBody(keys, v) {
       const body = {};
       for (const k of keys) {
         if (k === 'assigneeIds') body.assigneeIds = v.assigneeIds;
         else if (k === 'tagIds') body.tagIds = v.tagIds;
         else if (k === 'newTags') { if (v.newTags.length) body.newTags = v.newTags; }
-        else if (k === 'dueDate' || k === 'dueTime') body[k] = v[k] || null;
+        else if (k === 'dueDate' || k === 'dueTime' || k === 'eventId') body[k] = v[k] || null;
         else body[k] = v[k];
       }
       if (!id) {
@@ -153,10 +156,19 @@ export default function TaskForm() {
           <MultiChips label={t('tasks.assignees')} options={activeMembers.map((m) => ({ value: m.id, label: m.id === user?.id ? `${m.name} (me)` : m.name }))}
             value={v.assigneeIds} onChange={f.set('assigneeIds')} error={errors.assigneeIds} />
         )}
-        <details className="flex flex-col gap-5 rounded-md bg-surface p-4 shadow-card" open={Boolean(id)}>
+        <details className="flex flex-col gap-5 rounded-md bg-surface p-4 shadow-card" open={Boolean(id || presetEvent)}>
           <summary className="tap cursor-pointer font-bold text-primary">{t('tasks.moreDetails')}</summary>
           <div className="mt-4 flex flex-col gap-5">
             {v.dueDate && <TextField type="time" label={t('tasks.time')} value={v.dueTime} onChange={f.set('dueTime')} error={errors.dueTime} />}
+            {(events.data ?? []).length > 0 && (
+              <label className="flex flex-col gap-1">
+                <span className="font-bold">{t('tasks.eventLabel')}</span>
+                <select value={v.eventId} onChange={(e) => f.set('eventId')(e.target.value)} className="tap rounded-sm border-[1.5px] border-border-strong bg-surface px-3 text-base text-text">
+                  <option value="">{t('tasks.noEvent')}</option>
+                  {events.data.map((ev) => <option key={ev.id} value={ev.id}>{ev.name}</option>)}
+                </select>
+              </label>
+            )}
             <ChoiceChips label={t('tasks.priorityLabel')} options={['urgent', 'normal', 'low'].map((p) => ({ value: p, label: t(`tasks.priority.${p}`) }))} value={v.priority} onChange={f.set('priority')} />
             {id && <ChoiceChips label={t('tasks.statusLabel')} options={['todo', 'doing', 'waiting', 'done', 'cancelled'].map((s) => ({ value: s, label: t(`tasks.status.${s}`) }))} value={v.status} onChange={f.set('status')} />}
             {(tags.data ?? []).length > 0 && (

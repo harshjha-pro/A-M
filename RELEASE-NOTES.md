@@ -1,48 +1,42 @@
-# Release notes — Session 05 · Tasks · version 1.0.5
+# Release notes — Session 06 · Events and calendar · version 1.0.6
 
-**Goes to:** STAGING first, then **LIVE** (with the release checklist below).
+**Goes to:** STAGING first, then **LIVE** (release checklist below).
 **Migrations:** none. Nothing to run in phpMyAdmin.
 **.env:** no change.
 
 ## What's new
-- **Tasks** (bottom bar → Tasks):
-  - Add in 3 taps: **+ → Task → type → Save**. It's assigned to you unless you choose others.
-  - Due date chips (Today · Tomorrow · This week · Pick date · No date), optional time, priority (Urgent / Normal / Low), status (To do · Doing · Waiting · Done · Cancelled), tags (make a new one inline), notes.
-  - **Checklist** inside a task (e.g. items to buy). Ticking the last item asks "Mark the task done too?"
-  - **View chips with counts:** My tasks (Family start here), All (Ayush and Mahi start here), Today, This week, Overdue, No date, Done & cancelled. Search by title; filter by tag.
-  - **Overdue** follows India time: a task due today at 6 PM is overdue from 6:01 PM; one with no time is overdue from the next day.
-  - **Move date** → Tomorrow / Next Monday / Pick date. A later date counts as a move ("Moved 2×") and History says "Mummy postponed Book tent wala from 12 Oct to 19 Oct."
-  - **Tick done** from the list or the task. Anyone who edits can tick any task; ticking twice just says "Already done by Papa." Undo for 8 seconds.
-  - **Delete** with Undo. Family can delete only tasks they added or that are assigned to them; Ayush and Mahi any. Deleted tasks (with checklist) are in Settings → Deleted items.
-  - **Send on WhatsApp** to each person the task is assigned to: "Book tent wala — due Sat, 10 Oct 2026. Please update it in the wedding app."
-  - Two people editing the same task get the same merge / conflict screen as Wedding details.
-- **Tags**: 9 ready-made (Shopping, Outfit, Jewelry, Gifts, Decor, Food, Travel, Bride, Groom). Anyone who edits can add one; only Ayush and Mahi rename or delete.
-- The **+** button on Home opens "Add → Task" (more kinds arrive with their sessions).
+- **Calendar** (bottom bar → Calendar):
+  - **Agenda** (opens first): from today, grouped by day ("Sun, 22 Nov 2026"). Events with no date yet are at the top under **Date not set**. 60 days at a time: **Show later** / **Show past**.
+  - **Month** view: up to 3 dots per day and "+2" when there are more; tap a day to see its list.
+  - Shows events, open tasks with a due date, and (for money people, once Money is built) due payments. Each line says what it is — **Event** / **Task** / **Payment** — with its own icon.
+  - Toggles: Events / Tasks / Payments, and **Only mine** (your tasks).
+- **Event page** (tap an event): date and time, venue and address, **Open map**, side, dress code, notes, its tasks (+ **Add a task for this event**), headcount (fills in with Guests), **Share on WhatsApp** — "Mehndi · Sun, 14 Feb 2027, 4:00 PM IST · Porwal Niwas, Shastri Nagar · map link".
+- **Ayush and Mahi** can edit events (date, start/end time or **All day**, venue, map link, dress code, "Guests are invited"), add custom events (Ganesh puja, makeup trial…) with the + on Calendar, and delete one: a box first shows "12 tasks, 340 invited families, 3 payments…", then Undo for 8 seconds. Tasks keep the link and show "(deleted event)". Family and Dadi only read.
+- Same event type on the same day (e.g. Mayra on both sides) shows "Haldi is already on Sat, 13 Feb 2027. Add anyway?"
+- All times are India time. A phone set to another time zone shows "IST" next to times.
+- **Tasks:** the task form now has an **Event** picker.
 
 ## 1. Staging (≈ 10 minutes)
-Standard upload from the **`staging/`** folder: `_incoming` → extract → `1-server.zip`, `2-assets.zip`, `3-shell.zip` into the site folder (overwrite Yes) → `version.json` into `public_html/` last → delete `_incoming` → `/api/v1/health` says `{"status":"ok"}`. Then do the phone checks below on staging.
+Standard upload from the **`staging/`** folder → `/api/v1/health` = `{"status":"ok"}` → phone checks below.
 
-## 2. Live (only after staging checks pass) — release checklist (TESTING §8.2)
-1. Live Settings → **Safety** all green.
-2. **Backup now** — SSH: `php ~/domains/wedding.lumorrahouse.com/private/backup/backup.php --kind=manual_db` → last line `Done in … s.`
-3. Put `deploy-session05.zip` in Drive `deploys/`. Tell the family group "Updating the app at 10:30 PM" (quiet hour).
-4. Standard upload from the **`live/`** folder (same steps as staging).
-5. Within 10 minutes: live `/api/v1/health` → `{"status":"ok"}`; open the app → "New version available" → refresh; add a test task, tick it, delete it, Undo, delete again; Safety green; Mahi's phone does the same on the other platform; UptimeRobot "Up".
-6. If anything fails: upload `deploy-session04.zip` (`live/` folder) the same way. No migration, so the old code runs as before.
-
-From now on you may add **real tasks** on live.
+## 2. Live (after staging passes) — release checklist
+1. Live Settings → Safety all green.
+2. **Backup now** — SSH: `php ~/domains/wedding.lumorrahouse.com/private/backup/backup.php --kind=manual_db` → `Done in … s.`
+3. Save `deploy-session06.zip` to Drive `deploys/`; tell the family group (quiet hour).
+4. Standard upload from the **`live/`** folder.
+5. Within 10 minutes: health `ok`; app refreshes to 1.0.6; open Calendar; add a test task, tick, delete, Undo; Mahi's phone the same; UptimeRobot "Up".
+6. If anything fails: upload `deploy-session05.zip` (`live/`) the same way.
+7. Real event dates on live: fill them in only if you have them (Calendar → event → Edit). Otherwise they stay under "Date not set".
 
 ## Phone checks (staging, then live) — Android and iPhone
 | # | Do | Pass when |
 |---|---|---|
-| T1 | Add a task with due date **Tomorrow**, priority **Urgent**, then open it and add 3 checklist items | All saved; Urgent flag shows; the list row says "Tomorrow" |
-| T2 | Tick all 3 items | "All items are ticked. Mark the task done too?" appears |
-| T3 | Move date → **Next Monday**, then Move date → Pick a later date | "Moved 2×"; History shows both moves |
-| T4 | As Mummy (staging: 98290 00003), try to delete a task Ayush made and assigned to Papa | "You can delete only tasks you added or that are yours." — nothing deleted |
-| T5 | View chips: My tasks, Today, Overdue | The number on each chip matches the rows shown |
-| T6 | Delete a task with a checklist → tap **UNDO** | The task comes back with its checklist |
-| T7 | On a task assigned to someone with a phone: **Send to … on WhatsApp** | WhatsApp opens to that person with the task text |
-| T8 | As Dadi (Viewer) | Tasks list shows; no + button and no tick circles |
+| E1 | Calendar → Agenda | "Date not set" at the top (on staging: only events without dates); events on the right days; staging Engagement on **Sun, 22 Nov 2026** at **6:00 PM** |
+| E2 | Month → Next month → tap 22 | That day's list opens under the grid |
+| E3 | As Ayush: open Mehndi → Edit → change Venue → Save → **Share on WhatsApp** | Saved; WhatsApp opens with the new venue in the text |
+| E4 | As Mummy (staging 98290 00003): open an event | No Edit or Delete; "Only Ayush and Mahi can change events." |
+| E5 | As Ayush: open "Bridal makeup trial" → Delete | A box shows the counts → Delete → bar "Deleted Bridal makeup trial · UNDO" → UNDO → it's back |
+| E6 | Mehndi → **Add a task for this event** → Save | The task shows on the Mehndi page and in Tasks |
 
 ## Old files to delete later
 After 14 days: files in `public_html/assets/` that are not in this ZIP's `2-assets.zip`.

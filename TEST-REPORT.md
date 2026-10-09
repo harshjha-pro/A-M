@@ -1,17 +1,17 @@
-# Test report — Session 05 — Tasks
+# Test report — Session 06 — Events and calendar
 
-Date: 2026-10-09T05:33Z · App version: 1.0.5 · DB: **MySQL 8.0.46-0ubuntu0.24.04.4** (sandbox, same major as Hostinger) · PHP 8.3.6 · Node v22.22.0 · Web server for .htaccess tests: Apache/2.4.58 (Ubuntu)
+Date: 2026-10-09T05:59Z · App version: 1.0.6 · DB: **MySQL 8.0.46-0ubuntu0.24.04.4** (sandbox, same major as Hostinger) · PHP 8.3.6 · Node v22.22.0 · Web server for .htaccess tests: Apache/2.4.58 (Ubuntu)
 
 Overall: **GREEN — all suites passed**
 
 | Suite | Result |
 |---|---|
-| PHPUnit (unit, db, endpoints, security, static, coverage) | OK (386 tests, 3940 assertions) |
-| Endpoint coverage | 48/103 operations built and tested (the rest arrive session by session) |
-| Vitest (formats, API client, shell, routes, axe) | Tests 118 passed (118) |
-| Build (staging + live) | JS 99.56 kB gz · CSS 5.42 kB gz |
+| PHPUnit (unit, db, endpoints, security, static, coverage) | OK (434 tests, 4386 assertions) |
+| Endpoint coverage | 57/104 operations built and tested (the rest arrive session by session) |
+| Vitest (formats, API client, shell, routes, axe) | Tests 127 passed (127) |
+| Build (staging + live) | JS 100.32 kB gz · CSS 5.49 kB gz |
 | HTTP rules (real requests) | Apache 2.4.58 + real .htaccess: PASS · php -S + tools/router.php: PASS — OK (11 tests, 223 assertions) OK (11 tests, 220 assertions)  |
-| Playwright smoke (android, small-iphone, small-android; Chromium, not Safari) | 39 passed (1.1m) |
+| Playwright smoke (android, small-iphone, small-android; Chromium, not Safari) | 51 passed (59.2s) |
 
 Database checks: 001 → 002 → 003 apply with finished_at set; second run of each stops at its guard with data unchanged (DS-28); seed_demo.sql loads (61 families, Devanagari intact) and its second run stops at user id 1.
 
@@ -82,6 +82,19 @@ Endpoint Coverage (Tests\Coverage\EndpointCoverage)
 Error Leak (Tests\Security\ErrorLeak)
  ✔ Exception becomes plain 500
  ✔ Details go to the server log with request id
+Events Calendar (Tests\Endpoints\EventsCalendar)
+ ✔ Ac evt 01 seven events with date not set
+ ✔ Admin sets date and venue in ist family cannot
+ ✔ All day starts at ist midnight and ds01 stale version
+ ✔ Custom event duplicate same type same ist day
+ ✔ Event page counts and headcount
+ ✔ Headcount matches database 7 4
+ ✔ Delete preview counts admin only
+ ✔ Ac evt 06 ds11 delete takes invitations undo brings them back
+ ✔ Restore after 11 minutes
+ ✔ Ac evt 03 agenda items by ist day money only for money users
+ ✔ Range rules
+ ✔ A task can link to an event and not to a deleted one
 Headers (Tests\Security\Headers)
  ✔ Api security headers on success and error
  ✔ Cross origin preflight gets no cors
@@ -156,17 +169,4 @@ Migrations (Tests\Db\Migrations)
  ✔ All migrations applied and finished
  ✔ Reference data after 002
  ✔ Second run of every migration stops at its guard
- ✔ Seed demo loads and keeps hindi and emoji
- ✔ Emoji round trip
-Password Link (Tests\Endpoints\PasswordLink)
- ✔ Inspect shows who without revealing the number
- ✔ Complete sets the password logs in and burns the link
- ✔ Expired cancelled and garbage links are 410
- ✔ A link works on a phone where someone is already logged in
- ✔ Link of a deactivated member is dead
- ✔ Sec21 ten tries per 15 minutes
- ✔ Complete from a reset link logs out old phones
-Restore Drills (Tests\Endpoints\RestoreDrills)
- ✔ Admin logs a drill with one audit row
- ✔ Validation and permissions
 ```

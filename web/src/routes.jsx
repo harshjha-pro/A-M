@@ -26,6 +26,9 @@ export const routes = [
         children: [
           { path: '/', element: page(() => import('./screens/home/Home.jsx')) },
           { path: '/calendar', element: page(() => import('./screens/calendar/Calendar.jsx')) },
+          { path: '/calendar/events/new', element: page(() => import('./screens/calendar/EventForm.jsx')) },
+          { path: '/calendar/events/:id', element: page(() => import('./screens/calendar/EventDetail.jsx')) },
+          { path: '/calendar/events/:id/edit', element: page(() => import('./screens/calendar/EventForm.jsx')) },
           { path: '/tasks', element: page(() => import('./screens/tasks/TaskList.jsx')) },
           { path: '/tasks/new', element: page(() => import('./screens/tasks/TaskForm.jsx')) },
           { path: '/tasks/:id', element: page(() => import('./screens/tasks/TaskDetail.jsx')) },
