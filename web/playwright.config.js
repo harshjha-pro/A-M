@@ -18,8 +18,9 @@ export default defineConfig({
     screenshot: 'only-on-failure',
   },
   projects: [
-    { name: 'android', use: { ...devices['Pixel 7'], viewport: { width: 412, height: 915 } } },
-    { name: 'small-iphone', use: { ...devices['iPhone SE'], browserName: 'chromium', defaultBrowserType: 'chromium' } },
-    { name: 'small-android', use: { ...devices['Galaxy S9+'], viewport: { width: 360, height: 740 } } },
+    // Each phone gets its own address (tools/test-e2e.sh trusts X-Forwarded-For), like real phones on different networks.
+    { name: 'android', use: { ...devices['Pixel 7'], viewport: { width: 412, height: 915 }, extraHTTPHeaders: { 'X-Forwarded-For': '198.51.100.11' } } },
+    { name: 'small-iphone', use: { ...devices['iPhone SE'], browserName: 'chromium', defaultBrowserType: 'chromium', extraHTTPHeaders: { 'X-Forwarded-For': '198.51.100.12' } } },
+    { name: 'small-android', use: { ...devices['Galaxy S9+'], viewport: { width: 360, height: 740 }, extraHTTPHeaders: { 'X-Forwarded-For': '198.51.100.13' } } },
   ],
 });

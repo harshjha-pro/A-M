@@ -1,17 +1,17 @@
-# Test report — Session 02 — Login and members
+# Test report — Session 03 — Data safety
 
-Date: 2026-10-08T18:39Z · App version: 1.0.2 · DB: **MySQL 8.0.46-0ubuntu0.24.04.4** (sandbox, same major as Hostinger) · PHP 8.3.6 · Node v22.22.0 · Web server for .htaccess tests: Apache/2.4.58 (Ubuntu)
+Date: 2026-10-09T04:31Z · App version: 1.0.3 · DB: **MySQL 8.0.46-0ubuntu0.24.04.4** (sandbox, same major as Hostinger) · PHP 8.3.6 · Node v22.22.0 · Web server for .htaccess tests: Apache/2.4.58 (Ubuntu)
 
 Overall: **GREEN — all suites passed**
 
 | Suite | Result |
 |---|---|
-| PHPUnit (unit, db, endpoints, security, static, coverage) | OK (199 tests, 2117 assertions) |
-| Endpoint coverage | 20/100 operations built and tested (the rest arrive session by session) |
-| Vitest (formats, API client, shell, routes, axe) | Tests 88 passed (88) |
-| Build (staging + live) | JS 96.86 kB gz · CSS 4.88 kB gz |
+| PHPUnit (unit, db, endpoints, security, static, coverage) | OK (276 tests, 2951 assertions) |
+| Endpoint coverage | 33/101 operations built and tested (the rest arrive session by session) |
+| Vitest (formats, API client, shell, routes, axe) | Tests 110 passed (110) |
+| Build (staging + live) | JS 98.63 kB gz · CSS 5.06 kB gz |
 | HTTP rules (real requests) | Apache 2.4.58 + real .htaccess: PASS · php -S + tools/router.php: PASS — OK (11 tests, 223 assertions) OK (11 tests, 220 assertions)  |
-| Playwright smoke (android, small-iphone, small-android; Chromium, not Safari) | 21 passed (33.9s) |
+| Playwright smoke (android, small-iphone, small-android; Chromium, not Safari) | 30 passed (40.6s) |
 
 Database checks: 001 → 002 → 003 apply with finished_at set; second run of each stops at its guard with data unchanged (DS-28); seed_demo.sql loads (61 families, Devanagari intact) and its second run stops at user id 1.
 
@@ -77,6 +77,13 @@ Health (Tests\Endpoints\Health)
  ✔ Head request works for uptime monitors
  ✔ Unknown query parameter is 400
  ✔ Anonymous limit 30 per minute
+History Activity (Tests\Endpoints\HistoryActivity)
+ ✔ Record history in plain sentences
+ ✔ Member history hides admin fields from family
+ ✔ Activity feed for admins with filters
+ ✔ Activity hides money from admins without money
+ ✔ Backups list for the safety card
+ ✔ Logged in admin sees every check
 Kernel (Tests\Unit\Kernel)
  ✔ Env parser
  ✔ Env example parses and has no real secrets
@@ -133,6 +140,16 @@ Password Link (Tests\Endpoints\PasswordLink)
  ✔ Link of a deactivated member is dead
  ✔ Sec21 ten tries per 15 minutes
  ✔ Complete from a reset link logs out old phones
+Restore Drills (Tests\Endpoints\RestoreDrills)
+ ✔ Admin logs a drill with one audit row
+ ✔ Validation and permissions
+ ✔ Ds04 same key twice makes one drill
+ ✔ List is admin only and hides deleted
+ ✔ Update bumps version and ds01 stale version changes nothing
+ ✔ Ds18 delete is soft and offers undo for 10 minutes
+ ✔ Sec06 deleted record by id
+ ✔ Ds05 a retried delete is a replay
+ ✔ Restore one record admin only twice is fine
 Settings (Tests\Endpoints\Settings)
  ✔ Everyone reads facts only money users see the budget
  ✔ Ac set 01 admin sets the budget and facts
@@ -152,21 +169,4 @@ Standard Set (Tests\Security\StandardSet)
  ✔ S1 no session is 401 with data set "POST /auth/login"
  ✔ S1 no session is 401 with data set "POST /auth/logout"
  ✔ S1 no session is 401 with data set "POST /auth/logout-all"
- ✔ S1 no session is 401 with data set "GET /session"
- ✔ S1 no session is 401 with data set "POST /auth/password/change"
- ✔ S1 no session is 401 with data set "POST /auth/password-reset/request"
- ✔ S1 no session is 401 with data set "POST /auth/password-link/inspect"
- ✔ S1 no session is 401 with data set "POST /auth/password-link/complete"
- ✔ S1 no session is 401 with data set "POST /setup/owner"
- ✔ S1 no session is 401 with data set "GET /members"
- ✔ S1 no session is 401 with data set "POST /members"
- ✔ S1 no session is 401 with data set "GET /members/{id}"
- ✔ S1 no session is 401 with data set "PATCH /members/{id}"
- ✔ S1 no session is 401 with data set "POST /members/{id}/password-reset"
- ✔ S1 no session is 401 with data set "GET /me/sessions"
- ✔ S1 no session is 401 with data set "GET /settings"
- ✔ S1 no session is 401 with data set "PATCH /settings"
- ✔ S1 no session is 401 with data set "GET /settings/history"
- ✔ S7 unknown query parameter is 400 with data set "GET /health"
- ✔ S7 unknown query parameter is 400 with data set "POST /client-log"
 ```
