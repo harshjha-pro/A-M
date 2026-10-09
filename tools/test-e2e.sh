@@ -9,6 +9,7 @@ DB=am_test_e2e
 mysql -uroot -e "DROP DATABASE IF EXISTS $DB; CREATE DATABASE $DB CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
 for f in db/migrations/*.sql; do mysql -uroot $DB < "$f"; done
 mysql -uroot $DB < db/dev/seed_demo.sql
+mysql -uroot $DB < db/test/e2e_800_families.sql
 cat > "$SITE/private/.env" <<ENV
 APP_ENV=staging
 APP_URL=http://localhost:8083

@@ -8,7 +8,6 @@ import { axe } from '../test/axe.js';
 import AppShell from './AppShell.jsx';
 import Screen from './Screen.jsx';
 import More from '../screens/more/More.jsx';
-import Guests from '../screens/guests/Guests.jsx';
 import Calendar from '../screens/calendar/Calendar.jsx';
 import Money from '../screens/money/Money.jsx';
 import ErrorBoundary from './ErrorBoundary.jsx';
@@ -26,7 +25,7 @@ function renderAt(path) {
         { path: '/', element: <Screen title="Home"><p>home</p></Screen> },
         { path: '/calendar', element: <Calendar /> },
         { path: '/tasks', element: <Screen title="Tasks"><p>tasks</p></Screen> }, // the real list has its own tests
-        { path: '/guests', element: <Guests /> },
+        { path: '/guests', element: <Screen title="Guests"><p>guests</p></Screen> }, // the real list has its own tests
         { path: '/more', element: <More /> },
         { path: '/money', element: <Money /> },
       ],
@@ -66,7 +65,7 @@ describe('bottom nav', () => {
     renderAt('/');
     await user.click(screen.getByRole('link', { name: 'Guests' }));
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Guests');
-    expect(screen.getByText('No families yet. Add one, or import your list.')).toBeInTheDocument();
+    expect(screen.getByText('guests')).toBeInTheDocument();
   });
 });
 
