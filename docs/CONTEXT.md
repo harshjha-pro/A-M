@@ -140,7 +140,7 @@ Design for the 3/5 user: one main action per screen, words beside icons.
 | Charset | `utf8mb4` / `utf8mb4_unicode_ci` everywhere (Hindi, emoji) |
 | Database design | `DATABASE.md` (tables, rules for PHP, migrations) |
 | API paths | `/api/v1/<resource>`; reply `{ok, data, meta}` or `{ok:false, error:{code, message, fields}, meta}`. Full contract: `API.md` |
-| Uploads | Outside `public_html`: `uploads/YYYY/MM/<uuid>.<ext>`; original name in DB; served by an authenticated endpoint |
+| Uploads | Outside `public_html` (`STORAGE_ROOT/uploads/YYYY/MM/<uuid>.<ext>`, deny-all `.htaccess`); original name in DB; served only by `GET /api/v1/documents/{id}/file` (`private, no-store`). Photos shrunk on the phone (1,600 px JPEG, EXIF gone); max 10 MB; PHP `upload_max_filesize` 12M / `post_max_size` 16M set in hPanel. Staging ships demo files for the demo seed (`tools/make-demo-files.py`), live never |
 | Backups | `wedding_YYYYMMDD_HHMM.sql.gz.enc` |
 | Exports | `wedding-export_YYYY-MM-DD.zip` |
 | Secrets | `.env` outside web root; never in Git or frontend |

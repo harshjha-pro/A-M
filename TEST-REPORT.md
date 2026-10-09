@@ -1,18 +1,18 @@
-# Test report — Session 09 — Budget and payments
+# Test report — Session 10 — Documents and uploads
 
-Date: 2026-10-09T19:06Z · App version: 1.0.10 · DB: **MySQL 8.0.46-0ubuntu0.24.04.4** (sandbox, same major as Hostinger) · PHP 8.3.6 · Node v22.22.0 · Web server for .htaccess tests: Apache/2.4.58 (Ubuntu)
+Date: 2026-10-09T19:53Z · App version: 1.0.11 · DB: **MySQL 8.0.46-0ubuntu0.24.04.4** (sandbox, same major as Hostinger) · PHP 8.3.6 · Node v22.22.0 · Web server for .htaccess tests: Apache/2.4.58 (Ubuntu)
 
 Overall: **GREEN — all suites passed**
 
 | Suite | Result |
 |---|---|
-| PHPUnit (unit, db, endpoints, security, static, coverage) | OK (656 tests, 6448 assertions) |
-| Endpoint coverage | 97/108 operations built and tested (the rest arrive session by session) |
-| Vitest (formats, API client, shell, routes, axe) | Tests 164 passed (164) |
-| Build (staging + live) | JS 105.28 kB gz · CSS 5.88 kB gz |
-| HTTP rules (real requests) | Apache 2.4.58 + real .htaccess: PASS · php -S + tools/router.php: PASS — OK (13 tests, 233 assertions) OK (13 tests, 229 assertions)  |
-| Playwright smoke (android, small-iphone, small-android; Chromium, not Safari) | 90 passed (3.0m) |
-| Lighthouse mobile, simulated slow 4G (budget: Perf ≥ 90, A11y ≥ 95, BP ≥ 95) | login: Performance 98 · Accessibility 100 · Best Practices 96 · LCP 2.02 s · TBT 19 ms · CLS 0.000 home: Performance 93 · Accessibility 100 · Best Practices 100 · LCP 2.97 s · TBT 66 ms · CLS 0.057 guests: Performance 96 · Accessibility 100 · Best Practices 100 · LCP 2.68 s · TBT 62 ms · CLS 0.018  |
+| PHPUnit (unit, db, endpoints, security, static, coverage) | OK (694 tests, 6786 assertions) |
+| Endpoint coverage | 104/109 operations built and tested (the rest arrive session by session) |
+| Vitest (formats, API client, shell, routes, axe) | Tests 179 passed (179) |
+| Build (staging + live) | JS 106.62 kB gz · CSS 5.93 kB gz |
+| HTTP rules (real requests) | Apache 2.4.58 + real .htaccess: PASS · php -S + tools/router.php: PASS — OK (13 tests, 241 assertions) OK (13 tests, 237 assertions)  |
+| Playwright smoke (android, small-iphone, small-android; Chromium, not Safari) | 96 passed (3.3m) |
+| Lighthouse mobile, simulated slow 4G (budget: Perf ≥ 90, A11y ≥ 95, BP ≥ 95) | login: Performance 98 · Accessibility 100 · Best Practices 96 · LCP 1.95 s · TBT 3 ms · CLS 0.000 home: Performance 93 · Accessibility 100 · Best Practices 100 · LCP 2.95 s · TBT 46 ms · CLS 0.057 guests: Performance 96 · Accessibility 100 · Best Practices 100 · LCP 2.66 s · TBT 47 ms · CLS 0.018  |
 
 Database checks: 001 → 002 → 003 apply with finished_at set; second run of each stops at its guard with data unchanged (DS-28); seed_demo.sql loads (61 families, Devanagari intact) and its second run stops at user id 1.
 
@@ -85,6 +85,17 @@ Dashboard (Tests\Endpoints\Dashboard)
  ✔ Ac dash 05 safety backup 27 hours old is red
  ✔ Start here and recent activity for admins
  ✔ Documented demo results
+Documents (Tests\Endpoints\Documents)
+ ✔ Upload photo stored outside web auto title ds04
+ ✔ Ac doc 04 same file twice then save again on the same file
+ ✔ Sec25 dangerous uploads refused nothing kept
+ ✔ List visibility private and payment linked ac doc 03
+ ✔ Sec02 private document by id
+ ✔ File download headers range and sec02 sec03 ac doc 02
+ ✔ Edit details family own uploads only
+ ✔ Ds11 delete undo and payment with receipts
+ ✔ Restore admin only
+ ✔ Receipt link needs money
 Endpoint Coverage (Tests\Coverage\EndpointCoverage)
  ✔ Openapi file is readable
  ✔ Every built route is documented and tested
@@ -159,15 +170,4 @@ History Activity (Tests\Endpoints\HistoryActivity)
  ✔ Member history hides admin fields from family
  ✔ Activity feed for admins with filters
  ✔ Activity hides money from admins without money
- ✔ Backup runs show as plain sentences
- ✔ Backups list for the safety card
- ✔ Logged in admin sees every check
- ✔ Partial audit rows still make sentences
-Kernel (Tests\Unit\Kernel)
- ✔ Env parser
- ✔ Env example parses and has no real secrets
- ✔ Ulid and uuid
- ✔ Clock ist date
- ✔ Logger masks phones only
- ✔ Router matches params and methods
 ```
