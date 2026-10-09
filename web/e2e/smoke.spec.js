@@ -37,7 +37,12 @@ test('deep link and Back on a non-root screen', async ({ page }) => {
 });
 
 test('fonts are self-hosted and load', async ({ page }) => {
-  await page.evaluate(() => document.fonts.ready);
-  const ok = await page.evaluate(() => document.fonts.check('700 17px "Atkinson Hyperlegible"'));
-  expect(ok).toBe(true);
+  // Ask for the bold face explicitly: fonts load lazily, so checking before the page has used it raced.
+  const fontUrls = [];
+  page.on('response', (r) => { if (/\.woff2?(\?|$)/.test(r.url())) fontUrls.push(r.url()); });
+  const loaded = await page.evaluate(async () => (await document.fonts.load('700 17px "Atkinson Hyperlegible"')).length);
+  expect(loaded).toBeGreaterThan(0);
+  expect(await page.evaluate(() => document.fonts.check('700 17px "Atkinson Hyperlegible"'))).toBe(true);
+  const origin = new URL(page.url()).origin;
+  expect(fontUrls.every((u) => u.startsWith(origin))).toBe(true); // self-hosted: no font CDN
 });
