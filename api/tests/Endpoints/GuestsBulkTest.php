@@ -103,6 +103,18 @@ final class GuestsBulkTest extends ApiTestCase
         $this->assertSame(0, $this->rows('households', "side = 'both'"));
     }
 
+    /** Bug fix: a change in the same second the list was loaded is already on the phone, so it is not skipped. */
+    #[Endpoint('POST /households/bulk')]
+    public function test_change_in_the_same_second_as_loading_is_not_skipped(): void
+    {
+        $ids = $this->families(2);
+        $mummy = $this->loginAs('mummy');
+        $mummy->postJson('/households/bulk', ['action' => 'invite', 'event_id' => self::MEHNDI, 'ids' => $ids, 'as_of' => self::LOADED])->assertStatus(200);
+        $loaded = $mummy->get('/households', ['event' => self::MEHNDI])->json('meta.server_time'); // same frozen second as the invite
+        $r = $mummy->postJson('/households/bulk', ['action' => 'set_rsvp', 'event_id' => self::MEHNDI, 'rsvp' => 'coming', 'ids' => $ids, 'as_of' => $loaded])->assertStatus(200);
+        $this->assertSame([2, []], [$r->json('data.affected'), $r->json('data.skipped')]);
+    }
+
     #[Endpoint('POST /households/bulk')]
     public function test_uninvite_and_delete_with_undo_and_trash(): void
     {

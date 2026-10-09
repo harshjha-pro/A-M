@@ -208,6 +208,15 @@ final class HttpRulesTest extends TestCase
         $this->assertArrayNotHasKey('content-encoding', $api['headers']);
     }
 
+    /** FEATURES A8: the guest list template downloads as an Excel file (AC-IMP-10). */
+    public function test_guest_template_downloads_as_excel(): void
+    {
+        $r = $this->fetch('/templates/AM_Guest_List_Template.xlsx');
+        $this->assertSame(200, $r['status']);
+        $this->assertSame('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', $r['headers']['content-type'] ?? null);
+        $this->assertStringStartsWith("PK", $r['body'], 'a real .xlsx (zip) file');
+    }
+
     public function test_http_redirects_to_https(): void
     {
         $r = $this->fetch('/tasks?view=mine', https: false);

@@ -25,7 +25,8 @@ use DateTimeZone;
 /**
  * POST /households/bulk (API.md §6.7, FEATURES B5): one action on up to 2,000
  * families, one batch, one Undo. Rows changed after `as_of` are skipped and named
- * (DATABASE rule 10). Invite never touches an existing answer (AC-GST-05).
+ * (DATABASE rule 10). Strictly after: times are whole seconds, and the list's server_time is
+ * taken after its rows were read, so a change in that same second is already on the phone. Invite never touches an existing answer (AC-GST-05).
  * Everyone who edits may bulk-invite, remove, set Coming? and side; delete is admin-only (decision 31).
  */
 final class BulkController
@@ -89,7 +90,7 @@ final class BulkController
                     continue;
                 }
                 if (in_array($action, ['set_side', 'delete'], true)) {
-                    if ($h['updated_at'] >= $asOf) {
+                    if ($h['updated_at'] > $asOf) {
                         $skip($h, 'changed_since_loaded', $h['updated_by'] !== null ? (int) $h['updated_by'] : null);
                         continue;
                     }
@@ -116,7 +117,7 @@ final class BulkController
                     $skip($h, 'not_invited');
                     continue;
                 }
-                if ($inv['updated_at'] >= $asOf) {
+                if ($inv['updated_at'] > $asOf) {
                     $skip($h, 'changed_since_loaded', $inv['updated_by'] !== null ? (int) $inv['updated_by'] : null);
                     continue;
                 }

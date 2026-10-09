@@ -4,6 +4,7 @@ Options -Indexes
 DirectoryIndex index.html
 AddDefaultCharset utf-8
 AddType application/manifest+json .webmanifest
+AddType application/vnd.openxmlformats-officedocument.spreadsheetml.sheet .xlsx
 
 RewriteEngine On
 
