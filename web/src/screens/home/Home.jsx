@@ -2,6 +2,9 @@
 // The real dashboard cards arrive in Session 7.
 import { useQuery } from '@tanstack/react-query';
 import { CircleCheck, TriangleAlert } from 'lucide-react';
+import { useState } from 'react';
+import AddButton from '../../components/AddButton.jsx';
+import QuickAddSheet from '../../components/QuickAddSheet.jsx';
 import Screen from '../../components/Screen.jsx';
 import { api } from '../../api/client.js';
 import { t } from '../../i18n/strings.en.js';
@@ -11,6 +14,7 @@ const VERSION = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0.0.
 
 export default function Home() {
   const { user } = useSession();
+  const [adding, setAdding] = useState(false);
   const health = useQuery({
     queryKey: ['health'],
     queryFn: () => api('GET', '/health').then((r) => r.data),
@@ -47,6 +51,8 @@ export default function Home() {
         <p>{status}</p>
       </section>
       <p className="text-text-muted">{t('home.buildNote')}</p>
+      <AddButton onClick={() => setAdding(true)} />
+      {adding && <QuickAddSheet onClose={() => setAdding(false)} />}
     </Screen>
   );
 }

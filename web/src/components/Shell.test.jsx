@@ -8,7 +8,6 @@ import { axe } from '../test/axe.js';
 import AppShell from './AppShell.jsx';
 import Screen from './Screen.jsx';
 import More from '../screens/more/More.jsx';
-import Tasks from '../screens/tasks/Tasks.jsx';
 import Guests from '../screens/guests/Guests.jsx';
 import Calendar from '../screens/calendar/Calendar.jsx';
 import Money from '../screens/money/Money.jsx';
@@ -26,7 +25,7 @@ function renderAt(path) {
       children: [
         { path: '/', element: <Screen title="Home"><p>home</p></Screen> },
         { path: '/calendar', element: <Calendar /> },
-        { path: '/tasks', element: <Tasks /> },
+        { path: '/tasks', element: <Screen title="Tasks"><p>tasks</p></Screen> }, // the real list has its own tests
         { path: '/guests', element: <Guests /> },
         { path: '/more', element: <More /> },
         { path: '/money', element: <Money /> },

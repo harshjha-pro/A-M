@@ -1,17 +1,17 @@
-# Test report — Session 04 — Live site + backup
+# Test report — Session 05 — Tasks
 
-Date: 2026-10-09T04:58Z · App version: 1.0.4 · DB: **MySQL 8.0.46-0ubuntu0.24.04.4** (sandbox, same major as Hostinger) · PHP 8.3.6 · Node v22.22.0 · Web server for .htaccess tests: Apache/2.4.58 (Ubuntu)
+Date: 2026-10-09T05:33Z · App version: 1.0.5 · DB: **MySQL 8.0.46-0ubuntu0.24.04.4** (sandbox, same major as Hostinger) · PHP 8.3.6 · Node v22.22.0 · Web server for .htaccess tests: Apache/2.4.58 (Ubuntu)
 
 Overall: **GREEN — all suites passed**
 
 | Suite | Result |
 |---|---|
-| PHPUnit (unit, db, endpoints, security, static, coverage) | OK (299 tests, 3161 assertions) |
-| Endpoint coverage | 33/101 operations built and tested (the rest arrive session by session) |
-| Vitest (formats, API client, shell, routes, axe) | Tests 110 passed (110) |
-| Build (staging + live) | JS 98.62 kB gz · CSS 5.06 kB gz |
+| PHPUnit (unit, db, endpoints, security, static, coverage) | OK (386 tests, 3940 assertions) |
+| Endpoint coverage | 48/103 operations built and tested (the rest arrive session by session) |
+| Vitest (formats, API client, shell, routes, axe) | Tests 118 passed (118) |
+| Build (staging + live) | JS 99.56 kB gz · CSS 5.42 kB gz |
 | HTTP rules (real requests) | Apache 2.4.58 + real .htaccess: PASS · php -S + tools/router.php: PASS — OK (11 tests, 223 assertions) OK (11 tests, 220 assertions)  |
-| Playwright smoke (android, small-iphone, small-android; Chromium, not Safari) | 30 passed (44.9s) |
+| Playwright smoke (android, small-iphone, small-android; Chromium, not Safari) | 39 passed (1.1m) |
 
 Database checks: 001 → 002 → 003 apply with finished_at set; second run of each stops at its guard with data unchanged (DS-28); seed_demo.sql loads (61 families, Devanagari intact) and its second run stops at user id 1.
 

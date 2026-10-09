@@ -26,7 +26,10 @@ export const routes = [
         children: [
           { path: '/', element: page(() => import('./screens/home/Home.jsx')) },
           { path: '/calendar', element: page(() => import('./screens/calendar/Calendar.jsx')) },
-          { path: '/tasks', element: page(() => import('./screens/tasks/Tasks.jsx')) },
+          { path: '/tasks', element: page(() => import('./screens/tasks/TaskList.jsx')) },
+          { path: '/tasks/new', element: page(() => import('./screens/tasks/TaskForm.jsx')) },
+          { path: '/tasks/:id', element: page(() => import('./screens/tasks/TaskDetail.jsx')) },
+          { path: '/tasks/:id/edit', element: page(() => import('./screens/tasks/TaskForm.jsx')) },
           { path: '/guests', element: page(() => import('./screens/guests/Guests.jsx')) },
           { path: '/more', element: page(() => import('./screens/more/More.jsx')) },
           { path: '/money', element: page(() => import('./screens/money/Money.jsx')) },
