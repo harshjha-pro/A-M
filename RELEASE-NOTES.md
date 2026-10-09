@@ -1,7 +1,7 @@
 # Release notes — Session 04 · Live site + nightly backup · version 1.0.4
 
 **Goes to:** STAGING first (standard upload), then the new **LIVE** site `wedding.lumorrahouse.com` (first time).
-**Migrations:** none new. On the **live** database you run `001` → `002` → `003` once (they are in Drive from Session 1, and in `project-source-session04.zip` under `db/migrations/`). **Never run `seed_demo.sql` on live.**
+**Migrations:** none new. On the **live** database you run `001` → `002` → `003` once — they are in this ZIP's `migrations/` folder (the same files staging got in Session 1). **Staging: run nothing.** **Never run `seed_demo.sql` on live.**
 **.env:** staging — no change. Live — a new `.env` (step A5 below).
 **Time:** about 2 hours, on a computer. Do it in one sitting, in this order.
 
