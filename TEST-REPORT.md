@@ -1,18 +1,18 @@
-# Test report — Session 08b — Guests: bulk, import, CSV
+# Test report — Session 09 — Budget and payments
 
-Date: 2026-10-09T10:43Z · App version: 1.0.9 · DB: **MySQL 8.0.46-0ubuntu0.24.04.4** (sandbox, same major as Hostinger) · PHP 8.3.6 · Node v22.22.0 · Web server for .htaccess tests: Apache/2.4.58 (Ubuntu)
+Date: 2026-10-09T19:06Z · App version: 1.0.10 · DB: **MySQL 8.0.46-0ubuntu0.24.04.4** (sandbox, same major as Hostinger) · PHP 8.3.6 · Node v22.22.0 · Web server for .htaccess tests: Apache/2.4.58 (Ubuntu)
 
 Overall: **GREEN — all suites passed**
 
 | Suite | Result |
 |---|---|
-| PHPUnit (unit, db, endpoints, security, static, coverage) | OK (553 tests, 5586 assertions) |
-| Endpoint coverage | 77/105 operations built and tested (the rest arrive session by session) |
-| Vitest (formats, API client, shell, routes, axe) | Tests 154 passed (154) |
-| Build (staging + live) | JS 103.54 kB gz · CSS 5.87 kB gz |
+| PHPUnit (unit, db, endpoints, security, static, coverage) | OK (656 tests, 6448 assertions) |
+| Endpoint coverage | 97/108 operations built and tested (the rest arrive session by session) |
+| Vitest (formats, API client, shell, routes, axe) | Tests 164 passed (164) |
+| Build (staging + live) | JS 105.28 kB gz · CSS 5.88 kB gz |
 | HTTP rules (real requests) | Apache 2.4.58 + real .htaccess: PASS · php -S + tools/router.php: PASS — OK (13 tests, 233 assertions) OK (13 tests, 229 assertions)  |
-| Playwright smoke (android, small-iphone, small-android; Chromium, not Safari) | 78 passed (2.1m) |
-| Lighthouse mobile, simulated slow 4G (budget: Perf ≥ 90, A11y ≥ 95, BP ≥ 95) | login: Performance 99 · Accessibility 100 · Best Practices 96 · LCP 1.85 s · TBT 0 ms · CLS 0.000 home: Performance 97 · Accessibility 100 · Best Practices 96 · LCP 2.49 s · TBT 35 ms · CLS 0.003 guests: Performance 96 · Accessibility 100 · Best Practices 100 · LCP 2.61 s · TBT 0 ms · CLS 0.018  |
+| Playwright smoke (android, small-iphone, small-android; Chromium, not Safari) | 90 passed (3.0m) |
+| Lighthouse mobile, simulated slow 4G (budget: Perf ≥ 90, A11y ≥ 95, BP ≥ 95) | login: Performance 98 · Accessibility 100 · Best Practices 96 · LCP 2.02 s · TBT 19 ms · CLS 0.000 home: Performance 93 · Accessibility 100 · Best Practices 100 · LCP 2.97 s · TBT 66 ms · CLS 0.057 guests: Performance 96 · Accessibility 100 · Best Practices 100 · LCP 2.68 s · TBT 62 ms · CLS 0.018  |
 
 Database checks: 001 → 002 → 003 apply with finished_at set; second run of each stops at its guard with data unchanged (DS-28); seed_demo.sql loads (61 families, Devanagari intact) and its second run stops at user id 1.
 
@@ -162,6 +162,7 @@ History Activity (Tests\Endpoints\HistoryActivity)
  ✔ Backup runs show as plain sentences
  ✔ Backups list for the safety card
  ✔ Logged in admin sees every check
+ ✔ Partial audit rows still make sentences
 Kernel (Tests\Unit\Kernel)
  ✔ Env parser
  ✔ Env example parses and has no real secrets
@@ -169,5 +170,4 @@ Kernel (Tests\Unit\Kernel)
  ✔ Clock ist date
  ✔ Logger masks phones only
  ✔ Router matches params and methods
- ✔ Every error code has a plain message
 ```
