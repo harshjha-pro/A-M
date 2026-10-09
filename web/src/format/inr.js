@@ -46,7 +46,7 @@ const MULTIPLIERS = [
   [/^$/, 1],
 ];
 
-export const MAX_PAISE = 1000000000; // ₹10 crore per payment (FEATURES B6)
+export const MAX_PAISE = 1000000000; // ₹1 crore per payment (1,000,000,000 paise: the database limit)
 
 /**
  * What people type → paise, or null if it isn't an amount.

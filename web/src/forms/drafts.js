@@ -75,3 +75,19 @@ export function pruneDrafts(now = Date.now()) {
 export function countDrafts(userId, now = Date.now()) {
   return allDrafts().filter((d) => d.key.startsWith(`${PREFIX}${userId}:`) && now - d.savedAt <= TTL_MS).length;
 }
+
+/** Money access ended (FEATURES B6): drafts holding amounts are thrown away. */
+export function clearMoneyDrafts(userId) {
+  const s = store();
+  if (!s) return;
+  const keys = [];
+  for (let i = 0; i < s.length; i++) {
+    const k = s.key(i);
+    if (!k?.startsWith(`${PREFIX}${userId}:`)) continue;
+    const form = k.split(':')[2];
+    let values = null;
+    try { values = JSON.parse(s.getItem(k))?.values ?? null; } catch { /* broken: drop it */ }
+    if (form === 'payment' || form === 'category' || (form === 'vendor' && values?.agreedAmount)) keys.push(k);
+  }
+  keys.forEach((k) => { try { s.removeItem(k); } catch { /* ignore */ } });
+}

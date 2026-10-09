@@ -1,12 +1,14 @@
 // Quick Add (FEATURES A1, DESIGN §4.3): the + on Home opens a sheet with the kinds
-// this person may add: Task and Family now; payments and documents join later.
+// this person may add: Task, Family, and Payment for money users; documents join later.
 import { useNavigate } from 'react-router-dom';
-import { ListChecks, Users } from 'lucide-react';
+import { ListChecks, Users, IndianRupee } from 'lucide-react';
+import { useSession } from '../api/session.js';
 import Sheet from './Sheet.jsx';
 import { t } from '../i18n/strings.en.js';
 
 export default function QuickAddSheet({ onClose }) {
   const navigate = useNavigate();
+  const { permissions } = useSession();
   return (
     <Sheet title={t('quickAdd.title')} onClose={onClose}>
       <ul className="flex flex-col gap-2">
@@ -20,6 +22,13 @@ export default function QuickAddSheet({ onClose }) {
             <Users aria-hidden="true" size={24} className="text-primary" /> {t('quickAdd.family')}
           </button>
         </li>
+        {permissions?.money && (
+          <li>
+            <button type="button" onClick={() => navigate('/money/payments/new')} className="tap flex w-full items-center gap-3 rounded-md border-[1.5px] border-border px-4 text-lg">
+              <IndianRupee aria-hidden="true" size={24} className="text-primary" /> {t('quickAdd.payment')}
+            </button>
+          </li>
+        )}
       </ul>
       <p className="mt-4 text-sm text-text-muted">{t('quickAdd.soon')}</p>
     </Sheet>

@@ -3,6 +3,7 @@ export const DEMO = {
   ayush: { phone: '9829000001', name: 'Ayush Porwal' },
   mahi: { phone: '9829000002', name: 'Mahi Jagetiya' },
   papa: { phone: '9829000004', name: 'Rajendra Porwal (Papa)' },
+  kavita: { phone: '9829000005', name: 'Kavita' }, // Family, money off
   dadi: { phone: '9829000006', name: 'कमला देवी पोरवाल (Dadi)' },
 };
 export const PASSWORD = 'demo-1234';

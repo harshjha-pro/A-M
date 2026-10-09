@@ -266,7 +266,7 @@ final class PaymentsController
             ChangeBatches::setCount($db, $batch['id'], 2);
             $today = $app->clock->todayIst();
             $names = PaymentDef::refs($db, [$paidRow, $r['after']]);
-            $summary = 'Part paid: ' . PaymentDef::amountOn($amount, null) . ' of ' . $row['title'];
+            $summary = 'Paid ' . PaymentDef::amountOn($amount, null) . '. ' . PaymentDef::amountOn((int) $r['after']['amount_paise'], null) . ' still due.'; // TESTING M3
             return Response::ok(['paid' => PaymentDef::view($paidRow, $names, $today), 'due' => PaymentDef::view($r['after'], $names, $today)], 200,
                 ['undo' => BaseController::undoMeta($app, $batch['public_id'], $summary)]);
         });

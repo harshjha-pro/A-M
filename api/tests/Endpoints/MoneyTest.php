@@ -372,6 +372,7 @@ final class MoneyTest extends ApiTestCase
         $r = $papa->postJson("/payments/$id/pay-part", ['amount_paise' => 4000000, 'paid_on' => '2026-10-08', 'method' => 'upi', 'reference' => 'UPI 4821'], [], ['ifMatch' => 1])->assertStatus(200);
         $this->assertSame([4000000, 'paid', $id], [$r->json('data.paid.amount_paise'), $r->json('data.paid.status'), $r->json('data.paid.split_from.id')]);
         $this->assertSame([6000000, 'due'], [$r->json('data.due.amount_paise'), $r->json('data.due.status')]);
+        $this->assertSame('Paid ₹40,000. ₹60,000 still due.', $r->json('meta.undo.summary'));
         $s = $papa->get('/money/summary')->json('data');
         $this->assertSame([4000000, 6000000], [$s['spent_paise'], $s['still_to_pay_paise']]);
         $papa->postJson('/undo/' . $r->json('meta.undo.batch_id'), new \stdClass())->assertStatus(200);
