@@ -5,6 +5,7 @@ import { login, watchProblems } from './helpers.js';
 
 const RAMESH = '01M1DJ08V0HFGXZY3382EFCY3K'; // demo: Ramesh Sharma & family, +91 98280 10085
 const MEHNDI_NAME = 'Mehndi';
+const MEHNDI = '01M4DK5T3E6QZBMNQ0V7KQWW23';
 
 test('E2E-02: same phone → "Already on the list" → Open that family; back → Add anyway', async ({ page }, info) => {
   const problems = watchProblems(page);
@@ -27,14 +28,13 @@ test('E2E-02: same phone → "Already on the list" → Open that family; back �
   await page.getByRole('alert').filter({ hasText: 'Already on the list' }).getByRole('button', { name: 'Add anyway' }).click();
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(name);
   await expect(page.getByText('Shares a phone with another family. Check for a duplicate.')).toBeVisible();
-  expect(problems).toEqual([]);
+  expect(problems.filter((p) => !/status of 409/.test(p))).toEqual([]); // the 409 is the duplicate reply, on purpose
 });
 
 test('E2E-03: family page → Coming for Mehndi, 3 people → the event headcount moves by 3', async ({ page }, info) => {
   const name = `Kothari ${info.project.name} ${Date.now()}`;
   await login(page, 'mahi');
-  await page.goto('/calendar');
-  await page.getByRole('link', { name: MEHNDI_NAME }).first().click();
+  await page.goto(`/calendar/events/${MEHNDI}`);
   const line = page.getByText(/coming · up to/);
   const before = Number((await line.textContent()).match(/^(\d+) coming/)[1]);
   const eventUrl = page.url();
@@ -46,8 +46,8 @@ test('E2E-03: family page → Coming for Mehndi, 3 people → the event headcoun
   await page.getByRole('button', { name: 'Save family' }).click();
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(name);
   const card = page.getByRole('article').filter({ hasText: MEHNDI_NAME });
-  await card.getByRole('radio', { name: 'Coming' }).click();
-  await expect(card.getByRole('radio', { name: /Coming/ }).first()).toHaveAttribute('aria-checked', 'true');
+  await card.getByRole('radio', { name: 'Coming', exact: true }).click();
+  await expect(card.getByRole('radio', { name: /^✓?\s*Coming$/ })).toHaveAttribute('aria-checked', 'true');
   await card.getByRole('button', { name: 'Change numbers' }).click();
   await page.getByRole('button', { name: 'More Adults' }).click(); // 2 → 3
   await page.getByRole('dialog').getByRole('button', { name: 'Save family' }).click();
@@ -67,9 +67,11 @@ test('E2E-16: 800+ families — header totals, scroll to the end, search', async
   expect(Number((await header.textContent()).match(/^([\d,]+) families/)[1].replace(/,/g, ''))).toBeGreaterThanOrEqual(800);
   const last = page.getByRole('link', { name: /Test Family 0800/ });
   const t0 = Date.now();
-  for (let i = 0; i < 40 && !(await last.isVisible()); i++) {
-    await page.getByRole('listitem').last().scrollIntoViewIfNeeded();
-    await page.waitForTimeout(150);
+  const rows = page.getByRole('main').getByRole('listitem'); // not the bottom tabs
+  for (let i = 0; i < 30 && !(await last.isVisible()); i++) {
+    const n = await rows.count();
+    await rows.last().scrollIntoViewIfNeeded();
+    await expect.poll(async () => (await last.isVisible()) || (await rows.count()) > n, { timeout: 5000 }).toBe(true);
   }
   await expect(last).toBeVisible();
   expect(Date.now() - t0).toBeLessThan(20_000);

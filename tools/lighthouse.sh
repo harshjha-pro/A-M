@@ -32,9 +32,9 @@ COOKIE=$(curl -s -i -X POST http://localhost:8084/api/v1/auth/login -H 'Content-
 [ -n "$COOKIE" ] || { echo "login failed"; exit 1; }
 export CHROME_PATH="${CHROME_PATH:-/opt/pw-browsers/chromium-1194/chrome-linux/chrome}"
 STATUS=0
-for page in login home; do
-  url=http://localhost:8084/$([ $page = home ] || echo login)
-  headers=$([ $page = home ] && echo "{\"Cookie\":\"$COOKIE\"}" || echo '{}')
+for page in login home guests; do
+  case $page in login) url=http://localhost:8084/login ;; home) url=http://localhost:8084/ ;; guests) url=http://localhost:8084/guests ;; esac
+  headers=$([ $page = login ] && echo '{}' || echo "{\"Cookie\":\"$COOKIE\"}")
   npx --yes lighthouse@12.8.2 "$url" --quiet --form-factor=mobile --throttling-method=simulate \
     --only-categories=performance,accessibility,best-practices --extra-headers="$headers" \
     --chrome-flags="--headless=new --no-sandbox" --output=json --output-path="$OUT/$page.json" >/dev/null 2>&1 || { echo "$page: lighthouse failed"; STATUS=1; continue; }

@@ -39,6 +39,14 @@ export function useEntityForm({ form, recordId = null, record, fields, neverAuto
     return () => clearTimeout(timer.current);
   }, [key, values, version, base]);
 
+  // Leaving the screen within that second (e.g. "Open that family") still keeps the typing.
+  const latest = useRef(null);
+  latest.current = { key, values, version, base };
+  useEffect(() => () => {
+    const l = latest.current;
+    if (l.values !== null && changedKeys(fields, l.base, l.values).length > 0) saveDraft(l.key, { values: l.values, baseVersion: l.version, base: l.base });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   function begin(v, b, ver) {
     save.reset();
     setFieldErrors({});

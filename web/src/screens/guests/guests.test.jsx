@@ -120,6 +120,19 @@ describe('Add a family', () => {
     expect(calls).toHaveBeenCalled();
   });
 
+  test('bug fix: leaving the form at once (under 1 s) still keeps the typing as a draft', async () => {
+    signInAs('papa');
+    const user = userEvent.setup();
+    fakeApi({ 'GET /events': () => ok(events), 'GET /households/suggestions': () => ok([]) });
+    const { unmount } = renderAt('/guests/new');
+    await user.type(await screen.findByLabelText(/Family name/), 'Gupta ji');
+    unmount(); // e.g. tapped "Open that family" straight away
+    renderAt('/guests/new');
+    expect(await screen.findByText(/You have unsaved changes from/)).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Use them' }));
+    expect(screen.getByLabelText(/Family name/)).toHaveValue('Gupta ji');
+  });
+
   test('rules on the phone: name and side needed, people at least 1, Jain count only for Mixed', async () => {
     signInAs('papa');
     const user = userEvent.setup();
