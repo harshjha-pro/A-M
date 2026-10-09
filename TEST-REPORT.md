@@ -1,18 +1,18 @@
-# Test report — Session 07 — Home
+# Test report — Session 08 — Guests and RSVP
 
-Date: 2026-10-09T08:51Z · App version: 1.0.7 · DB: **MySQL 8.0.46-0ubuntu0.24.04.4** (sandbox, same major as Hostinger) · PHP 8.3.6 · Node v22.22.0 · Web server for .htaccess tests: Apache/2.4.58 (Ubuntu)
+Date: 2026-10-09T09:43Z · App version: 1.0.8 · DB: **MySQL 8.0.46-0ubuntu0.24.04.4** (sandbox, same major as Hostinger) · PHP 8.3.6 · Node v22.22.0 · Web server for .htaccess tests: Apache/2.4.58 (Ubuntu)
 
 Overall: **GREEN — all suites passed**
 
 | Suite | Result |
 |---|---|
-| PHPUnit (unit, db, endpoints, security, static, coverage) | OK (446 tests, 4557 assertions) |
-| Endpoint coverage | 58/104 operations built and tested (the rest arrive session by session) |
-| Vitest (formats, API client, shell, routes, axe) | Tests 131 passed (131) |
-| Build (staging + live) | JS 100.79 kB gz · CSS 5.58 kB gz |
+| PHPUnit (unit, db, endpoints, security, static, coverage) | OK (510 tests, 5182 assertions) |
+| Endpoint coverage | 70/105 operations built and tested (the rest arrive session by session) |
+| Vitest (formats, API client, shell, routes, axe) | Tests 142 passed (142) |
+| Build (staging + live) | JS 102.26 kB gz · CSS 5.83 kB gz |
 | HTTP rules (real requests) | Apache 2.4.58 + real .htaccess: PASS · php -S + tools/router.php: PASS — OK (12 tests, 230 assertions) OK (12 tests, 226 assertions)  |
-| Playwright smoke (android, small-iphone, small-android; Chromium, not Safari) | 63 passed (1.3m) |
-| Lighthouse mobile, simulated slow 4G (budget: Perf ≥ 90, A11y ≥ 95, BP ≥ 95) | login: Performance 98 · Accessibility 100 · Best Practices 96 · LCP 2.00 s · TBT 0 ms · CLS 0.000 home: Performance 97 · Accessibility 100 · Best Practices 96 · LCP 2.36 s · TBT 2 ms · CLS 0.004  |
+| Playwright smoke (android, small-iphone, small-android; Chromium, not Safari) | 72 passed (1.8m) |
+| Lighthouse mobile, simulated slow 4G (budget: Perf ≥ 90, A11y ≥ 95, BP ≥ 95) | login: Performance 98 · Accessibility 100 · Best Practices 96 · LCP 1.99 s · TBT 1 ms · CLS 0.000 home: Performance 97 · Accessibility 100 · Best Practices 96 · LCP 2.49 s · TBT 37 ms · CLS 0.003 guests: Performance 97 · Accessibility 100 · Best Practices 100 · LCP 2.48 s · TBT 22 ms · CLS 0.018  |
 
 Database checks: 001 → 002 → 003 apply with finished_at set; second run of each stops at its guard with data unchanged (DS-28); seed_demo.sql loads (61 families, Devanagari intact) and its second run stops at user id 1.
 
@@ -105,6 +105,24 @@ Events Calendar (Tests\Endpoints\EventsCalendar)
  ✔ Ac evt 03 agenda items by ist day money only for money users
  ✔ Range rules
  ✔ A task can link to an event and not to a deleted one
+Guests (Tests\Endpoints\Guests)
+ ✔ Add family with invitations defaults and rules
+ ✔ Duplicate phone 409 with matches and allow duplicate
+ ✔ Duplicate check hints phone and name city
+ ✔ Suggestions most used first
+ ✔ List filters totals and paging
+ ✔ Family page and numeric id 404
+ ✔ Edit history and ds01 stale version
+ ✔ Ds11 delete family with invitations undo identical and sec07
+ ✔ Ds16 restore with phone clash warns family 403
+ ✔ Invite twice revive undo and no guest event
+ ✔ Rsvp uses invitation version so family edit and rsvp both succeed
+ ✔ Remove from event with undo
+ ✔ Whatsapp tap is bookkeeping no version bump
+ ✔ Sec10 powers
+Guests Scale (Tests\Endpoints\GuestsScale)
+ ✔ Headcount matches database 7 4 on demo data
+ ✔ List of 50 with 2000 families under 300ms
 Headers (Tests\Security\Headers)
  ✔ Api security headers on success and error
  ✔ Cross origin preflight gets no cors
@@ -152,22 +170,4 @@ Members (Tests\Endpoints\Members)
  ✔ Ds04 retry with the same key never makes two and gives a fresh link
  ✔ Ds08 after 48 hours the client uuid still prevents a duplicate
  ✔ Ds09 a refused request frees its key
- ✔ Get one member
- ✔ Anyone may rename themselves but nothing else
- ✔ Sec11 the owner cannot be demoted or deactivated
- ✔ Sec23 deactivating logs the member out at once
- ✔ Sec13 money off applies on the very next request
- ✔ Access end date logs out after that day
- ✔ Partner role forces money and admins keep money
- ✔ Phone change is normalised and checked for duplicates
- ✔ Ds01 stale version gives 409 and changes nothing
- ✔ S6 missing if match is 428
- ✔ Ds05 a retried edit is a replay not a false conflict
- ✔ Admin reset logs out the member and shows the password once
- ✔ Reset rules
- ✔ My phones
-Methods And Routing (Tests\Security\MethodsAndRouting)
- ✔ Options trace connect are 405
- ✔ Unknown paths are 404 with envelope
- ✔ Routes need a session unless anonymous
 ```
