@@ -166,4 +166,17 @@ final class HistoryActivityTest extends ApiTestCase
         $this->assertSame('{"status":"ok"}', $this->loginAs('papa')->get('/health')->body());
         $this->assertSame('{"status":"ok"}', (new ApiClient($this->app))->get('/health')->body());
     }
+
+    /** Bug fix (found by the Session 9 full run): a history line holding only the changed fields (the demo data's hand-written rows) must not break Home or Activity. */
+    public function test_partial_audit_rows_still_make_sentences(): void
+    {
+        $this->db()->run("INSERT INTO audit_log (user_id, action, entity_type, entity_id, entity_version, before_json, after_json)
+            VALUES (1, 'update', 'task', 999, 2, '{\"due_date\": \"2026-10-01\"}', '{\"due_date\": \"2026-10-06\"}'),
+                   (1, 'update', 'user', 999, 2, '{\"role\": \"family\"}', '{\"role\": \"viewer\"}'),
+                   (1, 'update', 'tag', 999, 2, '{}', '{\"sort_order\": 2}')");
+        $ayush = $this->loginAs('ayush');
+        $lines = array_column($ayush->get('/activity')->assertStatus(200)->json('data'), 'sentence');
+        $this->assertNotEmpty(array_filter($lines, static fn ($l) => preg_match('/^Ayush changed Due date from .+ for a task\.$/', $l)), implode(' | ', $lines));
+        $ayush->get('/dashboard')->assertStatus(200);
+    }
 }

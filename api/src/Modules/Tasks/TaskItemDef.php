@@ -24,7 +24,7 @@ final class TaskItemDef extends EntityDef
 
     public static function name(array $row): string
     {
-        return '‘' . $row['text'] . '’';
+        return isset($row['text']) ? '‘' . $row['text'] . '’' : 'a checklist item';
     }
 
     public static function present(App $app, Db $db, Refs $refs, array $row, ?array $viewer): array

@@ -32,7 +32,7 @@ final class UserDef extends EntityDef
 
     public static function name(array $row): string
     {
-        return (string) $row['name'];
+        return (string) ($row['name'] ?? 'a member');
     }
 
     /** Everyone sees members' names and phones; only admins and the person see the rest. */

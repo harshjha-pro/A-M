@@ -42,7 +42,7 @@ final class TaskDef extends EntityDef
 
     public static function name(array $row): string
     {
-        return (string) $row['title'];
+        return (string) ($row['title'] ?? 'a task'); // old hand-written audit rows may hold only the changed fields
     }
 
     public static function present(App $app, Db $db, Refs $refs, array $row, ?array $viewer): array

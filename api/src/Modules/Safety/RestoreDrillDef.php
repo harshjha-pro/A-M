@@ -31,7 +31,7 @@ final class RestoreDrillDef extends EntityDef
 
     public static function name(array $row): string
     {
-        return 'Restore drill · ' . (new DateTimeImmutable((string) $row['done_on']))->format('j M Y');
+        return isset($row['done_on']) ? 'Restore drill · ' . (new DateTimeImmutable((string) $row['done_on']))->format('j M Y') : 'a restore drill';
     }
 
     public static function canView(?array $viewer, array $row): bool

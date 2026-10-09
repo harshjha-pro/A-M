@@ -27,7 +27,7 @@ final class TagDef extends EntityDef
 
     public static function name(array $row): string
     {
-        return 'Tag · ' . $row['name'];
+        return isset($row['name']) ? 'Tag · ' . $row['name'] : 'a tag';
     }
 
     public static function present(App $app, Db $db, Refs $refs, array $row, ?array $viewer): array
