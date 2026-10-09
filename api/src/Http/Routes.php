@@ -9,6 +9,7 @@ use AM\Kernel\Request;
 use AM\Kernel\Router;
 use AM\Modules\Auth\AuthController;
 use AM\Modules\ClientLog\ClientLogController;
+use AM\Modules\Dashboard\DashboardController;
 use AM\Modules\Events\CalendarController;
 use AM\Modules\Events\EventDef;
 use AM\Modules\Events\EventsController;
@@ -116,6 +117,9 @@ final class Routes
         $r->add('POST', '/events/{id}/restore', static fn (Request $q, App $a, array $p) => BaseController::restore($q, $a, $p, EventDef::class));
         $r->add('GET', '/events/{id}/headcount', EventsController::headcount(...));
         $r->add('GET', '/events/{id}/delete-preview', EventsController::deletePreview(...));
+
+        // Home (Session 7)
+        $r->add('GET', '/dashboard', DashboardController::show(...), ['query' => ['payments_window_days']]);
 
         return $r;
     }
