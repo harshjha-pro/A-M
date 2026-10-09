@@ -5,6 +5,7 @@ namespace AM\Repo;
 
 use AM\Modules\Events\EventDef;
 use AM\Modules\Events\InvitationDef;
+use AM\Modules\Guests\HouseholdDef;
 use AM\Modules\Members\UserDef;
 use AM\Modules\Safety\RestoreDrillDef;
 use AM\Modules\Settings\SettingsDef;
@@ -28,6 +29,7 @@ final class Entities
         'task_tag' => TaskTagDef::class,
         'tag' => TagDef::class,
         'event' => EventDef::class,
+        'household' => HouseholdDef::class,
         'invitation' => InvitationDef::class,
     ];
 
@@ -38,6 +40,7 @@ final class Entities
         'tasks' => TaskDef::class,
         'tags' => TagDef::class,
         'events' => EventDef::class,
+        'households' => HouseholdDef::class,
     ];
 
     /** The value that names a row (public id or checklist key); null for link rows. */
@@ -50,6 +53,21 @@ final class Entities
     public static function hiddenTypes(): array
     {
         return array_keys(array_filter(self::TYPES, static fn ($d) => !$d::IN_ACTIVITY));
+    }
+
+    /**
+     * SQL that drops a quiet child's lines when its parent's batch moved it
+     * (a family deleted with its invitations reads as one line). Needs audit_log a + change_batches cb.
+     * @return array{0:string, 1:list<string>}
+     */
+    public static function quietChildSql(): array
+    {
+        $types = array_keys(array_filter(self::TYPES, static fn ($d) => $d::QUIET_IN_PARENT_BATCH));
+        if ($types === []) {
+            return ['1 = 1', []];
+        }
+        $in = implode(',', array_fill(0, count($types), '?'));
+        return ["NOT (a.entity_type IN ($in) AND cb.id IS NOT NULL AND cb.entity_type <> a.entity_type)", $types];
     }
 
     /** @return class-string<EntityDef>|null */

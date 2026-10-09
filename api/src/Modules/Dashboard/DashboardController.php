@@ -183,10 +183,11 @@ final class DashboardController
     private static function recent(Db $db, Refs $refs, array $viewer): array
     {
         $hidden = Entities::hiddenTypes();
-        $not = $hidden === [] ? '' : ' WHERE a.entity_type NOT IN (' . implode(',', array_fill(0, count($hidden), '?')) . ')';
+        [$quiet, $quietArgs] = Entities::quietChildSql();
+        $not = $hidden === [] ? '' : ' AND a.entity_type NOT IN (' . implode(',', array_fill(0, count($hidden), '?')) . ')';
         $rows = $db->all(
-            "SELECT a.*, cb.public_id AS batch_public_id FROM audit_log a LEFT JOIN change_batches cb ON cb.id = a.batch_id$not ORDER BY a.id DESC LIMIT 10",
-            $hidden,
+            "SELECT a.*, cb.public_id AS batch_public_id FROM audit_log a LEFT JOIN change_batches cb ON cb.id = a.batch_id WHERE $quiet$not ORDER BY a.id DESC LIMIT 10",
+            [...$quietArgs, ...$hidden],
         );
         return array_map(static fn ($a) => History::line($refs, $a, Entities::forType((string) $a['entity_type']), $viewer), $rows);
     }

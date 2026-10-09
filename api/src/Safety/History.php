@@ -53,7 +53,7 @@ final class History
             }
         }
 
-        $thing = $row !== [] && $def !== null ? $def::name($row) : ($def !== null ? $def::LABEL : (string) $a['entity_type']);
+        $thing = $row !== [] && $def !== null ? $def::describe($refs, $row) : ($def !== null ? $def::LABEL : (string) $a['entity_type']);
         $sentence = self::sentence((string) $a['action'], $who, $thing, $changes, $a, $by);
 
         return [
@@ -71,6 +71,12 @@ final class History
     private static function sentence(string $action, string $who, string $thing, array $changes, array $a, ?array $by): string
     {
         $note = (string) ($a['note'] ?? '');
+        if ($a['entity_type'] === 'invitation') {
+            $s = self::invitationSentence($action, $who, $thing, $changes);
+            if ($s !== null) {
+                return $s;
+            }
+        }
         switch ($action) {
             case 'create':
                 return "$who added $thing.";
@@ -121,6 +127,21 @@ final class History
             default:
                 return "$who: $action $thing.";
         }
+    }
+
+    /** "Mummy invited Sharma family to Sangeet." / "Mummy marked Sharma family Coming for Sangeet." */
+    private static function invitationSentence(string $action, string $who, string $thing, array $changes): ?string
+    {
+        [$family, $event] = array_pad(explode(' · ', $thing, 2), 2, 'an event');
+        $fields = array_column($changes, 'field');
+        return match (true) {
+            $action === 'create' => "$who invited $family to $event.",
+            $action === 'delete' => "$who removed $family from $event.",
+            $action === 'restore' => "$who invited $family to $event again.",
+            $action === 'whatsapp_opened' => "$who opened a WhatsApp reminder to $family for $event.",
+            $action === 'update' && $fields === ['rsvp'] => "$who marked $family {$changes[0]['to_text']} for $event.",
+            default => null,
+        };
     }
 
     private static function changeWords(array $changes): string

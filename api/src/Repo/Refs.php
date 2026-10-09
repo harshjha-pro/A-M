@@ -13,6 +13,8 @@ final class Refs
 {
     /** @var array<int, array<string,mixed>> */
     private array $users = [];
+    /** @var array<string, array<int, array<string,mixed>>> */
+    private array $rows = [];
 
     public function __construct(private readonly Db $db, private readonly string $todayIst) {}
 
@@ -30,6 +32,16 @@ final class Refs
             $ref['left'] = true;
         }
         return $ref;
+    }
+
+    /** {id, name} of a row in a named table (invitation lines name the family and event). */
+    public function row(string $table, ?int $id): ?array
+    {
+        if ($id === null || !in_array($table, ['households', 'events'], true)) {
+            return null;
+        }
+        $r = $this->rows[$table][$id] ??= $this->db->one("SELECT public_id, name FROM `$table` WHERE id = ?", [$id]) ?? [];
+        return $r === [] ? null : ['id' => $r['public_id'], 'name' => $r['name']];
     }
 
     /** Deactivated, or past the access end date (IST). */

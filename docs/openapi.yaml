@@ -1149,7 +1149,20 @@ paths:
         '200': { $ref: '#/components/responses/Deleted' }
         '409': { $ref: '#/components/responses/Conflict' }
         default: { $ref: '#/components/responses/Error' }
-  /households/{id}/restore: { $ref: '#/components/pathItems/Restore' }
+  /households/{id}/restore:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    post:
+      tags: [Trash]
+      operationId: restoreHousehold
+      summary: Restore a deleted family with its same-batch invitations. A phone clash restores anyway and warns (meta.warnings).
+      x-permission: Adm
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IfMatch' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      responses:
+        '200': { $ref: '#/components/responses/HouseholdOne' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        default: { $ref: '#/components/responses/Error' }
   /households/{id}/invitations/{event_id}:
     parameters:
       - { $ref: '#/components/parameters/Id' }

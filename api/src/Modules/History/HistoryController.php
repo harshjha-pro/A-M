@@ -48,10 +48,12 @@ final class HistoryController
                 $args[] = $child::TYPE;
             }
         }
+        [$quiet, $quietArgs] = Entities::quietChildSql();
+        array_push($args, ...$quietArgs);
         $args[] = $cursor->before($request);
         $rows = $db->all(
             'SELECT a.*, cb.public_id AS batch_public_id FROM audit_log a LEFT JOIN change_batches cb ON cb.id = a.batch_id
-             WHERE (' . implode(' OR ', $scope) . ") AND a.action IN ('create','update','delete','restore','undo','role_change','merge','status_change')
+             WHERE (' . implode(' OR ', $scope) . ") AND $quiet AND a.action IN ('create','update','delete','restore','undo','role_change','merge','status_change','whatsapp_opened')
                AND a.id < ? ORDER BY a.id DESC LIMIT " . ($limit + 1),
             $args,
         );
@@ -76,6 +78,9 @@ final class HistoryController
             $where[] = 'a.entity_type NOT IN (' . implode(',', array_fill(0, count($hidden), '?')) . ')';
             array_push($args, ...$hidden);
         }
+        [$quiet, $quietArgs] = Entities::quietChildSql();
+        $where[] = $quiet;
+        array_push($args, ...$quietArgs);
         if (isset($filters['user'])) {
             $where[] = 'a.user_id = ?';
             $args[] = Users::byPublicId($db, $filters['user'])['id'];

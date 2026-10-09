@@ -90,6 +90,13 @@ final class Strings
         'field_end_before_start_time' => 'End time must be after the start time.',
         'field_https_only'         => 'Paste a link that starts with https://',
         'calendar_range_too_long'  => 'Pick at most 93 days at a time.',
+        'household_duplicate'      => 'Already on the list: {name} ({side}, added by {who})',
+        'field_people_min'         => 'Add at least 1 person.',
+        'field_jain_too_many'      => 'Jain people can be at most the family total.',
+        'field_bad_number'         => 'Enter a number from {min} to {max}.',
+        'event_no_guests'          => "This event doesn't take guest invitations.",
+        'rsvp_needs_event'         => 'Pick an event to filter by Coming?.',
+        'restore_phone_clash'      => '{name} has the same phone as {other}. Check for a duplicate.',
         'tag_name_taken'           => 'A tag called {name} already exists. Rename that one first.',
     ];
 

@@ -302,7 +302,15 @@ final class BaseRepository
                 continue;
             }
             $before = json_decode((string) $a['before_json'], true) ?: [];
-            if ($a['action'] === 'delete' && !$def::VERSIONED) {
+            if ($a['action'] === 'create') {
+                // Undo an add (an invitation): soft delete it in the undo batch. Never a hard delete.
+                if (!$def::SOFT_DELETE || $row['deleted_at'] !== null) {
+                    continue;
+                }
+                $vset = $def::VERSIONED ? ', version = version + 1, updated_at = ?, updated_by = ?' : '';
+                $db->run("UPDATE `$table` SET deleted_at = ?, deleted_by = ?, delete_batch_id = ?$vset WHERE id = ?",
+                    [$now, $user['id'] ?? null, $undoBatch['id'], ...($def::VERSIONED ? [$now, $user['id'] ?? null] : []), $row['id']]);
+            } elseif ($a['action'] === 'delete' && !$def::VERSIONED) {
                 $db->run("UPDATE `$table` SET deleted_at = NULL, deleted_by = NULL, delete_batch_id = NULL WHERE id = ?", [$row['id']]);
             } elseif ($a['action'] === 'delete') {
                 $db->run(

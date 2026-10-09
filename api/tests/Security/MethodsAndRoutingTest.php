@@ -28,7 +28,7 @@ final class MethodsAndRoutingTest extends ApiTestCase
 
     public function test_unknown_paths_are_404_with_envelope(): void
     {
-        foreach (['/nope', '/households/1', '/', '/health/extra'] as $p) {
+        foreach (['/nope', '/nothing-here/1', '/', '/health/extra'] as $p) {
             $this->api->get($p)->assertStatus(404)->assertEnvelope()->assertErrorCode('not_found');
         }
         $this->api->get('/api/v2/health')->assertStatus(404);

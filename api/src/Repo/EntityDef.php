@@ -38,6 +38,8 @@ abstract class EntityDef
     public const FIELD_LABELS = [];
     /** Fields a non-money user never sees (API.md §1.5). */
     public const MONEY_FIELDS = [];
+    /** A child whose lines are left out of Activity and History when its parent's delete, restore or undo moved it (invitations). */
+    public const QUIET_IN_PARENT_BATCH = false;
     /** Child defs deleted and restored in the same batch: [ChildDef::class => 'parent_fk_column']. */
     public const CHILDREN = [];
     /** [ParentDef::class, 'fk_column'] — restoring this child brings a deleted parent back (FEATURES B9). */
@@ -45,6 +47,12 @@ abstract class EntityDef
 
     /** Short name shown in Trash, History and Undo messages. */
     abstract public static function name(array $row): string;
+
+    /** Name for History lines; may look up linked rows (an invitation names its family and event). */
+    public static function describe(Refs $refs, array $row): string
+    {
+        return static::name($row);
+    }
 
     /** The record as this viewer may see it. */
     abstract public static function present(App $app, Db $db, Refs $refs, array $row, ?array $viewer): array;
