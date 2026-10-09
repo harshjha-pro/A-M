@@ -50,7 +50,7 @@ Standard upload from the **`staging/`** folder → `/api/v1/health` = `{"status"
    - Health check says `ok`, and the app refreshes to 1.0.9.
    - Guests → Import a list → **Download the Excel template**: it opens in Excel or Google Sheets with working dropdowns.
    - Paste "Test Family 98290 12345" → Check → Import 1 → Settings → Imports → Undo this import.
-6. **Your real list:** when you're ready, fill the template (or use your existing sheet) and import it on live. Check the preview counts before tapping Import. You can always Undo this import.
+6. **Your real list goes on live at launch (Sun 25 Oct), as planned.** Until then keep collecting it in the Excel template, and practise importing a copy on **staging**. Check the preview counts before tapping Import; Undo this import is always there.
 7. If anything fails: upload `deploy-session08.zip` (`live/`) the same way.
 
 ## Phone checks (staging, then live) — Android and iPhone
