@@ -24,7 +24,7 @@ final class Idempotency
 {
     public const TTL = 48 * 3600;
     public const STALE_PROCESSING = 120;
-    public const SECRET_KEYS = ['password_once', 'setup_link', 'setup_link_expires_at', 'csrf_token'];
+    public const SECRET_KEYS = ['password_once', 'setup_link', 'setup_link_expires_at', 'csrf_token', 'download_urls'];
 
     /**
      * @return array{claim:?array, replay:?Response}

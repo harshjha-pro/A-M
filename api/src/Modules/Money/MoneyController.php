@@ -25,7 +25,12 @@ final class MoneyController
     public static function summary(Request $request, App $app, array $params): Response
     {
         Permissions::requireMoney($request->attr('user'));
-        $db = $app->db();
+        return Response::ok(self::totals($app->db()));
+    }
+
+    /** The totals card + categories (also used by the export's summary.html, inside its snapshot). */
+    public static function totals(Db $db): array
+    {
         $cats = self::categoryRows($db);
         $s = $db->one(
             "SELECT s.total_budget_paise AS total,
@@ -38,7 +43,7 @@ final class MoneyController
         $planned = $s['total'] !== null ? (int) $s['total'] : $split; // the total budget from Settings if set, else Σ planned
         $spent = (int) ($s['spent'] ?? 0);
         $due = (int) ($s['due'] ?? 0);
-        return Response::ok([
+        return [
             'planned_paise' => $planned,
             'spent_paise' => $spent,
             'still_to_pay_paise' => $due,
@@ -47,7 +52,7 @@ final class MoneyController
             'not_yet_split_paise' => $s['total'] !== null ? max(0, $planned - $split) : 0,
             'total_budget_set' => $s['total'] !== null,
             'categories' => $cats,
-        ]);
+        ];
     }
 
     /** DATABASE §7.5: live categories, plus a deleted one while it still holds live money (fix R3). */

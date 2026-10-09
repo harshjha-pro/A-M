@@ -7,6 +7,7 @@ use AM\Auth\Permissions;
 use AM\Db\Db;
 use AM\Db\UnitOfWork;
 use AM\Kernel\App;
+use AM\Kernel\Csv;
 use AM\Kernel\Request;
 use AM\Kernel\Response;
 use AM\Modules\Events\InvitationDef;
@@ -63,24 +64,14 @@ final class GuestCsv
         return $r;
     }
 
-    /** One RFC 4180 line. */
+    /** One RFC 4180 line (shared rules: AM\Kernel\Csv). */
     public static function line(array $cells): string
     {
-        return implode(',', array_map(static function ($v): string {
-            $s = self::safe($v === null ? '' : (string) $v);
-            return preg_match('/[",\r\n]/', $s) ? '"' . str_replace('"', '""', $s) . '"' : $s;
-        }, $cells));
+        return Csv::line($cells);
     }
 
-    /** Formula safety (AC-EXP-07): =, @, tab or CR first, or + / - that isn't a phone or a number → a leading '. */
     public static function safe(string $s): string
     {
-        if ($s === '') {
-            return $s;
-        }
-        $first = $s[0];
-        $risky = in_array($first, ['=', '@', "\t", "\r"], true)
-            || (($first === '+' || $first === '-') && !preg_match('/^\+\d{8,15}$/', $s) && !preg_match('/^-?\d+(\.\d+)?$/', $s));
-        return $risky ? "'" . $s : $s;
+        return Csv::safe($s);
     }
 }

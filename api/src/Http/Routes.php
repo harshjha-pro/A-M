@@ -13,6 +13,7 @@ use AM\Modules\Dashboard\DashboardController;
 use AM\Modules\Documents\DocumentDef;
 use AM\Modules\Documents\DocumentsController;
 use AM\Modules\Events\CalendarController;
+use AM\Modules\Exports\ExportsController;
 use AM\Modules\Events\EventDef;
 use AM\Modules\Events\EventsController;
 use AM\Modules\Guests\BulkController;
@@ -187,6 +188,11 @@ final class Routes
         $r->add('PATCH', '/documents/{id}', DocumentsController::update(...));
         $r->add('GET', '/documents/{id}/file', DocumentsController::file(...), ['query' => ['download']]);
         $r->add('DELETE', '/documents/{id}', static fn (Request $q, App $a, array $p) => BaseController::delete($q, $a, $p, DocumentDef::class, DocumentsController::canWrite()));
+        // Full export (Session 11, API.md §9.1)
+        $r->add('POST', '/exports', ExportsController::create(...), ['on_replay' => ExportsController::createReplay(...)]);
+        $r->add('GET', '/exports', ExportsController::list(...));
+        $r->add('GET', '/exports/{id}', ExportsController::get(...));
+        $r->add('GET', '/exports/{id}/download', ExportsController::download(...), ['anon' => true, 'query' => ['part', 't']]);
         $r->add('POST', '/documents/{id}/restore', static fn (Request $q, App $a, array $p) => BaseController::restore($q, $a, $p, DocumentDef::class));
 
         // Home (Session 7)

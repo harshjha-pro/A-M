@@ -36,6 +36,9 @@ cp VERSION "$OUT/private/app/VERSION"
 # Cron scripts (both sites) and the backup script (live only: staging holds demo data).
 mkdir -p "$OUT/private/cron"
 cp scripts/cron/daily.php "$OUT/private/cron/daily.php"
+# Emergency restore from an export (Session 11): CLI only, outside public_html.
+mkdir -p "$OUT/private/app/tools"
+cp tools/restore-from-export.php "$OUT/private/app/tools/restore-from-export.php"
 if [ "$FLAVOUR" = live ]; then
   mkdir -p "$OUT/private/backup"
   cp scripts/backup/backup.php scripts/backup/config.example.php "$OUT/private/backup/"

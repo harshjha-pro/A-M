@@ -116,7 +116,7 @@ final class TestDb
         self::$snapshot = [];
         foreach ($pdo->query("SELECT table_name FROM information_schema.tables WHERE table_schema = '$db' AND table_type = 'BASE TABLE'")->fetchAll(PDO::FETCH_COLUMN) as $t) {
             $cols = $pdo->query("SELECT column_name FROM information_schema.columns WHERE table_schema = '$db' AND table_name = '$t'
-                                 AND extra NOT LIKE '%GENERATED%' ORDER BY ordinal_position")->fetchAll(PDO::FETCH_COLUMN);
+                                 AND extra NOT IN ('VIRTUAL GENERATED', 'STORED GENERATED') ORDER BY ordinal_position")->fetchAll(PDO::FETCH_COLUMN);
             $list = implode(', ', array_map(static fn ($c) => "`$c`", $cols));
             self::$snapshot[$t] = ['cols' => $cols, 'rows' => $pdo->query("SELECT $list FROM `$t`")->fetchAll(PDO::FETCH_NUM)];
         }

@@ -45,8 +45,9 @@ final class HouseholdDef extends EntityDef
     public static function normName(string $name): string
     {
         $s = mb_strtolower($name);
-        $s = (string) preg_replace('/[^\p{L}\p{N}\s]+/u', ' ', $s);
-        $words = array_filter(preg_split('/\s+/u', $s) ?: [], static fn ($w) => $w !== '' && !in_array($w, ['ji', 'family', 'and', 'parivar', 'sahab', 'saheb'], true));
+        // \p{M}: Hindi vowel signs (ा ि ी …) belong to the word; without them राम and रमा looked the same.
+        $s = (string) preg_replace('/[^\p{L}\p{M}\p{N}\s]+/u', ' ', $s);
+        $words = array_filter(preg_split('/\s+/u', $s) ?: [], static fn ($w) => $w !== '' && !in_array($w, ['ji', 'family', 'and', 'parivar', 'sahab', 'saheb', 'जी', 'परिवार', 'साहब'], true));
         return mb_substr(implode(' ', $words), 0, 120);
     }
 

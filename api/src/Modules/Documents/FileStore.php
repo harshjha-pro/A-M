@@ -27,6 +27,12 @@ final class FileStore
         return new self($root);
     }
 
+    /** STORAGE_ROOT (holds uploads/ and exports/). */
+    public function root(): string
+    {
+        return $this->root;
+    }
+
     public function absolute(string $relative): string
     {
         if (!preg_match('#^uploads/\d{4}/\d{2}/[0-9a-f-]{36}\.(jpg|png|webp|pdf)$#', $relative)) {

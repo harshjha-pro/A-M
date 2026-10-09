@@ -23,6 +23,9 @@ final class Response
     /** A file sent in 1 MB chunks instead of a body (document downloads): [path, offset, length]. */
     public ?array $stream = null;
 
+    /** Bytes made while sending (the export ZIP, built as it streams): called with an output function. */
+    public ?\Closure $writer = null;
+
     public function __construct(public int $status = 200) {}
 
     /** {ok:true, data, meta} */
@@ -94,9 +97,26 @@ final class Response
         return $r;
     }
 
+    /** A reply written while it is sent (API.md §9.1: the export ZIP). @param \Closure(\Closure(string):void):void $write */
+    public static function streamed(\Closure $write, int $status = 200): self
+    {
+        $r = new self($status);
+        $r->writer = $write;
+        return $r;
+    }
+
     /** Body or streamed bytes (tests). */
     public function contents(): string
     {
+        if ($this->writer !== null) {
+            $buf = '';
+            ($this->writer)(static function (string $b) use (&$buf): void {
+                $buf .= $b;
+            });
+            $this->writer = null; // made once; later reads get the same bytes
+            $this->body = $buf;
+            return $buf;
+        }
         if ($this->stream === null) {
             return $this->body;
         }
@@ -123,6 +143,13 @@ final class Response
             foreach ($this->headers as $k => $v) {
                 header($k . ': ' . $v);
             }
+        }
+        if ($this->writer !== null) {
+            ($this->writer)(static function (string $b): void {
+                echo $b;
+                flush();
+            });
+            return;
         }
         if ($this->stream === null) {
             echo $this->body;

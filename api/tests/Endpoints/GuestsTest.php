@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Tests\Endpoints;
 
 use Tests\Support\ApiClient;
+use AM\Modules\Guests\HouseholdDef;
 use Tests\Support\ApiTestCase;
 use Tests\Support\Endpoint;
 use Tests\Support\TestResponse;
@@ -97,6 +98,19 @@ final class GuestsTest extends ApiTestCase
         $none = $mummy->get('/households/duplicate-check', ['phone' => '9829012345', 'exclude' => $id])->json('data');
         $this->assertSame(['phone_matches' => [], 'name_matches' => []], $none);
         $this->loginAs('nani')->get('/households/duplicate-check', ['phone' => '9829012345'])->assertStatus(403);
+    }
+
+    #[Endpoint('GET /households/duplicate-check')]
+    public function test_hindi_names_keep_their_vowel_signs_in_the_duplicate_check(): void
+    {
+        // Bug found in Session 11: \p{M} (ा ि ी …) was stripped, so राम शर्मा and रमा शर्मी both became "र म शर म".
+        $this->assertSame('राम शर्मा', HouseholdDef::normName('राम शर्मा ji'));
+        $mummy = $this->loginAs('mummy');
+        $this->add($mummy, ['name' => 'राम शर्मा', 'phone' => '9829012345']);
+        $other = $mummy->get('/households/duplicate-check', ['name' => 'रमा शर्मी', 'city' => 'Bhilwara'])->assertStatus(200);
+        $this->assertSame([], $other->json('data.name_matches'), 'a different name is not a possible duplicate');
+        $same = $mummy->get('/households/duplicate-check', ['name' => 'राम शर्मा जी', 'city' => 'Bhilwara'])->assertStatus(200);
+        $this->assertCount(1, $same->json('data.name_matches'));
     }
 
     #[Endpoint('GET /households/suggestions')]

@@ -34,6 +34,11 @@ final class StaticRulesTest extends TestCase
             foreach ($m[1] as $table) {
                 $this->assertContains(strtolower($table), $allowed, "Hard DELETE FROM $table in $path");
             }
+            // A table name in a variable is a hard delete too. Only the restore tool may do it:
+            // it empties a brand-new database's starter rows (it refuses one with people in it).
+            if (!str_ends_with($path, 'Modules/Exports/Restore.php')) {
+                $this->assertDoesNotMatchRegularExpression('/DELETE\s+FROM\s+`?\$/i', $code, "Hard DELETE FROM a variable table in $path");
+            }
         }
     }
 

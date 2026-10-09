@@ -46,19 +46,25 @@ final class DailyJobTest extends ApiTestCase
         }
     }
 
-    public function test_export_files_older_than_24_hours_go_and_rows_stay(): void
+    public function test_export_folders_past_24_hours_go_and_rows_stay(): void
     {
         $dir = $this->logDir . '/storage/exports';
-        mkdir($dir, 0700, true);
-        touch("$dir/old.zip", $this->clock->now()->getTimestamp() - 25 * 3600);
-        touch("$dir/new.zip", $this->clock->now()->getTimestamp() - 3600);
+        foreach (['01JA7Q3M2K8V5R1T9W4X6Y0E01', '01JA7Q3M2K8V5R1T9W4X6Y0E02', '01JA7Q3M2K8V5R1T9W4X6Y0E03'] as $id) {
+            mkdir("$dir/$id/csv", 0700, true);
+            file_put_contents("$dir/$id/csv/users.csv", "x\n");
+        }
+        touch("$dir/01JA7Q3M2K8V5R1T9W4X6Y0E03", $this->clock->now()->getTimestamp() - 3600); // a failed one, an hour old
+        touch("$dir/old.zip", $this->clock->now()->getTimestamp() - 25 * 3600); // the old layout
         $this->db()->run("INSERT INTO exports (public_id, status, requested_by, file_name, finished_at, expires_at) VALUES
             ('01JA7Q3M2K8V5R1T9W4X6Y0E01', 'ready', 1, 'old.zip', '2026-10-07 08:00:00', '2026-10-08 08:00:00'),
-            ('01JA7Q3M2K8V5R1T9W4X6Y0E02', 'ready', 1, 'new.zip', '2026-10-08 08:00:00', '2026-10-09 08:00:00')");
-        $this->assertSame(1, $this->job()->expireExports());
+            ('01JA7Q3M2K8V5R1T9W4X6Y0E02', 'ready', 1, 'new.zip', '2026-10-08 08:00:00', '2026-10-09 08:00:00'),
+            ('01JA7Q3M2K8V5R1T9W4X6Y0E03', 'failed', 1, NULL, '2026-10-08 08:00:00', NULL)");
+        $this->assertSame(3, $this->job()->expireExports());
+        $this->assertDirectoryDoesNotExist("$dir/01JA7Q3M2K8V5R1T9W4X6Y0E01");
+        $this->assertDirectoryExists("$dir/01JA7Q3M2K8V5R1T9W4X6Y0E02");
+        $this->assertDirectoryDoesNotExist("$dir/01JA7Q3M2K8V5R1T9W4X6Y0E03");
         $this->assertFileDoesNotExist("$dir/old.zip");
-        $this->assertFileExists("$dir/new.zip");
-        $this->assertSame(['expired', 'ready'], array_column($this->db()->all('SELECT status FROM exports ORDER BY id'), 'status'));
+        $this->assertSame(['expired', 'ready', 'failed'], array_column($this->db()->all('SELECT status FROM exports ORDER BY id'), 'status'));
     }
 
     public function test_logs_rotate_weekly_and_keep_8_weeks(): void

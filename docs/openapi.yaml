@@ -3330,6 +3330,7 @@ components:
         parts: { type: integer }
         size_bytes: { type: [integer, 'null'] }
         files_bytes: { type: [integer, 'null'] }
+        file_name: { type: [string, 'null'], description: 'wedding-export_YYYY-MM-DD.zip' }
         created_at: { $ref: '#/components/schemas/DateTime' }
         expires_at: { oneOf: [ { $ref: '#/components/schemas/DateTime' }, { type: 'null' } ] }
         download_urls: { type: array, items: { type: string } }

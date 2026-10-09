@@ -18,7 +18,7 @@ use Throwable;
  *   2. deletes only the ephemeral rows DATABASE rule 12 allows: sessions expired or ended
  *      > 30 days ago, login_attempts > 30 days, idempotency_keys past expires_at,
  *      rate_limits windows older than 1 day;
- *   3. export ZIPs older than 24 h: file removed, row marked 'expired' (the row stays);
+ *   3. exports older than 24 h: snapshot folder removed, row marked 'expired' (the row stays);
  *   4. logs rotated weekly, rotated copies kept 8 weeks.
  * Each step runs on its own: one failing never stops the others.
  */
@@ -70,14 +70,31 @@ final class DailyJob
         return $n;
     }
 
-    /** Export ZIPs live 24 h (API.md exports). The file goes; the exports row stays, marked expired. */
+    /**
+     * Exports live 24 h (API.md §9.1). Each export is a snapshot folder exports/<id>/
+     * (the ZIP is built while it downloads). Past expires_at: folder removed, row
+     * marked expired (the row stays). Folders with no ready row (a failed or
+     * half-made export) go once they are a day old.
+     */
     public function expireExports(): int
     {
         $now = $this->clock->now()->getTimestamp();
+        $nowDb = gmdate('Y-m-d H:i:s', $now);
         $removed = 0;
         $dir = rtrim($this->env->get('STORAGE_ROOT'), '/') . '/exports';
         if (is_dir($dir)) {
-            foreach (glob($dir . '/*.zip') ?: [] as $f) {
+            $live = array_flip(array_column($this->db->all(
+                "SELECT public_id FROM exports WHERE status = 'ready' AND (expires_at IS NULL OR expires_at >= ?)",
+                [$nowDb],
+            ), 'public_id'));
+            foreach (glob($dir . '/*', GLOB_ONLYDIR) ?: [] as $d) {
+                $id = basename($d);
+                if (preg_match('/^[0-9A-Z]{26}$/', $id) && !isset($live[$id]) && (filemtime($d) < $now - 86400 || $this->db->value('SELECT 1 FROM exports WHERE public_id = ?', [$id]) !== null)) {
+                    \AM\Modules\Exports\ExportsController::removeDir($d);
+                    $removed++;
+                }
+            }
+            foreach (glob($dir . '/*.zip') ?: [] as $f) { // ZIPs from before Session 11
                 if (filemtime($f) < $now - 86400 && @unlink($f)) {
                     $removed++;
                 }
@@ -85,7 +102,7 @@ final class DailyJob
         }
         $this->db->run(
             "UPDATE exports SET status = 'expired' WHERE status = 'ready' AND expires_at IS NOT NULL AND expires_at < ?",
-            [gmdate('Y-m-d H:i:s', $now)],
+            [$nowDb],
         );
         $this->say("Export files removed: $removed.");
         return $removed;
