@@ -142,7 +142,7 @@ Design for the 3/5 user: one main action per screen, words beside icons.
 | API paths | `/api/v1/<resource>`; reply `{ok, data, meta}` or `{ok:false, error:{code, message, fields}, meta}`. Full contract: `API.md` |
 | Uploads | Outside `public_html` (`STORAGE_ROOT/uploads/YYYY/MM/<uuid>.<ext>`, deny-all `.htaccess`); original name in DB; served only by `GET /api/v1/documents/{id}/file` (`private, no-store`). Photos shrunk on the phone (1,600 px JPEG, EXIF gone); max 10 MB; PHP `upload_max_filesize` 12M / `post_max_size` 16M set in hPanel. Staging ships demo files for the demo seed (`tools/make-demo-files.py`), live never |
 | Backups | `wedding_YYYYMMDD_HHMM.sql.gz.enc` |
-| Exports | `wedding-export_YYYY-MM-DD.zip` |
+| Exports | `wedding-export_YYYY-MM-DD.zip` (parts 2…n: `_files-partN.zip` above 200 MB). Snapshot folder `STORAGE_ROOT/exports/<id>/`, ZIP built while it downloads by our own `ZipWriter` (no third-party PHP packages on the server). Link valid 24 h (session or `?t=` token). No passwords or login keys inside. Restore: `private/app/tools/restore-from-export.php` (DATA-SAFETY §2.1) |
 | Secrets | `.env` outside web root; never in Git or frontend |
 
 ## 9. Open Questions
