@@ -1,11 +1,14 @@
 // 🕒 Saving… → ✓ Saved 10:42 → ⚠ Couldn't save (DESIGN §7). Announced politely.
+// Kept on the phone for later (PWA §5.4): 🕒 Waiting to send.
 import { Clock, Check, TriangleAlert } from 'lucide-react';
 import { OfflineError, ServerError } from '../api/errors.js';
 import { t } from '../i18n/strings.en.js';
 
-export default function SavedIndicator({ status, savedAt, error }) {
+export default function SavedIndicator({ status, savedAt, error, queued = false }) {
   let content = null;
-  if (status === 'saving') {
+  if (status === 'saved' && queued) {
+    content = <span className="inline-flex items-center gap-1 text-warning"><Clock aria-hidden="true" size={18} />{t('outbox.waitingMark')}</span>;
+  } else if (status === 'saving') {
     content = <span className="inline-flex items-center gap-1 text-text-muted"><Clock aria-hidden="true" size={18} />{t('saving')}</span>;
   } else if (status === 'saved') {
     content = <span className="inline-flex items-center gap-1 text-success"><Check aria-hidden="true" size={18} />{t('saved', { time: savedAt })}</span>;

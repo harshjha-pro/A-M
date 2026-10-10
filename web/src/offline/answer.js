@@ -23,7 +23,9 @@ export async function rememberReply(path, query, data, meta, gen) {
 /** @returns {Promise<{data, meta, from: string}|null>} — throws OfflineError('needs_internet') for advanced filters */
 export async function offlineAnswer(path, query, user) {
   if (!keepable(path)) return null;
-  const [snap, synced] = await Promise.all([readReply(replyKey(path, query)), getMeta('lastSyncedAt')]);
+  const [snap, synced, changed] = await Promise.all([readReply(replyKey(path, query)), getMeta('lastSyncedAt'), getMeta('localChangedAt')]);
+  // A change waiting to be sent is in the saved rows, not in older saved replies.
+  const rowsAt = changed && synced && changed > synced ? changed : synced;
   let local = null;
   let localError = null;
   try {
@@ -31,7 +33,7 @@ export async function offlineAnswer(path, query, user) {
   } catch (e) {
     localError = e;
   }
-  if (snap && (!local || !synced || snap.savedAt > synced)) return { data: snap.data, meta: snap.meta ?? {}, from: snap.savedAt };
+  if (snap && (!local || !synced || snap.savedAt > rowsAt)) return { data: snap.data, meta: snap.meta ?? {}, from: snap.savedAt };
   if (local) return { ...local, from: synced };
   if (localError) throw localError;
   return null;

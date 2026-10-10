@@ -12,6 +12,7 @@ import NumberStepper from '../../components/NumberStepper.jsx';
 import { Notice, ChoiceChips } from '../../components/Field.jsx';
 import { api, newIdemKey } from '../../api/client.js';
 import { withRelogin } from '../../api/auth.js';
+import { saveViaOutbox } from '../../offline/outbox.js';
 import { useSession } from '../../api/session.js';
 import { showUndo, showToast } from '../../undo/undoStore.js';
 import { formatPhone } from '../../format/phone.js';
@@ -19,6 +20,7 @@ import { formatDateTime } from '../../format/ist.js';
 import { mobileOf, reminderText, waUrl, getLang, setLang, peopleText } from '../../data/guests.js';
 import { useGuestEvents } from './GuestList.jsx';
 import RsvpChips from './RsvpChips.jsx';
+import WaitingMark from '../../components/WaitingMark.jsx';
 import { t } from '../../i18n/strings.en.js';
 
 /** Record the tap (bookkeeping, never "sent"), then WhatsApp opens through the link itself. */
@@ -88,8 +90,11 @@ export default function FamilyDetail() {
   }
 
   async function saveNumbers(inv, adults, children) {
-    const res = await run(() => api('PATCH', `/households/${id}/invitations/${inv.event.id}`, { body: { expectedAdults: adults, expectedChildren: children }, ifMatch: inv.version, idemKey: newIdemKey() }));
-    if (res) { putInvitation(res.data); setNumbers(null); }
+    const idemKey = newIdemKey();
+    const res = await run(() => saveViaOutbox('PATCH', `/households/${id}/invitations/${inv.event.id}`, {
+      body: { expectedAdults: adults, expectedChildren: children }, ifMatch: inv.version, idemKey, base: inv, label: t('outbox.label.people', { name: h.name, event: inv.event.name }),
+    }));
+    if (res) { if (res.queued) showToast(t('outbox.queuedToast')); putInvitation(res.data); setNumbers(null); }
   }
 
   async function remove() {
@@ -112,6 +117,7 @@ export default function FamilyDetail() {
           <span className="rounded-full bg-bg px-3 py-1">{peopleText(h.people)} ({h.adults} + {h.children})</span>
           <span className="rounded-full bg-bg px-3 py-1">{t(`guests.food.${h.food}`)}{h.food === 'mixed' ? ` · ${t('guests.jainCount')} ${h.jainCount}` : ''}</span>
           {h.isVip && <span className="inline-flex items-center gap-1 rounded-full bg-warning-soft px-3 py-1"><Star aria-hidden="true" size={16} className="fill-current" />{t('guests.important')}</span>}
+          <WaitingMark entity={`/households/${h.id}`} className="px-1 py-1" />
         </p>
         {h.possibleDuplicate && <Notice kind="warning">{t('guests.possibleDuplicate')}</Notice>}
         {[h.phone, h.altPhone].filter(Boolean).map((p) => (
@@ -144,7 +150,7 @@ export default function FamilyDetail() {
                 </button>
               )}
             </div>
-            <RsvpChips familyId={id} invitation={inv} disabled={!canEdit} onSaved={putInvitation} />
+            <RsvpChips familyId={id} familyName={h.name} invitation={inv} disabled={!canEdit} onSaved={putInvitation} />
             <p className="flex flex-wrap items-center gap-2 text-text-muted">
               {t('guests.peopleFor', { n: inv.people })}
               {canEdit && <button type="button" className="tap font-bold text-primary" onClick={() => setNumbers(inv)}>{t('guests.changeNumbers')}</button>}

@@ -23,7 +23,7 @@ export const setMeta = (k, v, gen) => safe(() => withDb((d) => (fresh(gen) ? d.p
 export async function ensureUser(userId) {
   if (!userId) return;
   const owner = await getMeta('userId');
-  if (owner && owner !== userId) await wipe();
+  if (owner && owner !== userId) await wipe({ keepOutbox: true });
   if (owner !== userId) await setMeta('userId', userId);
 }
 
@@ -31,7 +31,7 @@ export async function ensureUser(userId) {
 let generation = 0;
 export const currentGeneration = () => generation;
 
-export const wipe = () => { generation += 1; return safe(() => wipeAll()); };
+export const wipe = (opts) => { generation += 1; return safe(() => wipeAll(opts)); };
 
 /** "path?query" with the query sorted, so the same screen always finds its copy. */
 export function replyKey(path, query) {

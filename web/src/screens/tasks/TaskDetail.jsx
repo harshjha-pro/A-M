@@ -11,6 +11,8 @@ import ConfirmDialog from '../../components/ConfirmDialog.jsx';
 import { Notice } from '../../components/Field.jsx';
 import { api, newIdemKey } from '../../api/client.js';
 import { withRelogin } from '../../api/auth.js';
+import { saveViaOutbox } from '../../offline/outbox.js';
+import WaitingMark from '../../components/WaitingMark.jsx';
 import { useSession } from '../../api/session.js';
 import { showUndo, showToast } from '../../undo/undoStore.js';
 import { markDone } from './TaskList.jsx';
@@ -36,6 +38,7 @@ export default function TaskDetail() {
   if (q.isPending) return <Screen title={t('tasks.title')} back="/tasks"><p aria-busy="true">…</p></Screen>;
   if (q.isError) return <Screen title={t('tasks.title')} back="/tasks"><Notice kind="danger">{q.error.message || t('errors.loadFailed')}</Notice></Screen>;
 
+  const queuedNote = (res) => { if (res.queued) showToast(t('outbox.queuedToast')); };
   const refresh = (data) => { qc.setQueryData(['task', id], data); qc.invalidateQueries({ queryKey: ['tasks'] }); };
   const run = async (fn) => {
     setBusy(true);
@@ -43,13 +46,16 @@ export default function TaskDetail() {
   };
 
   async function move(date) {
-    const res = await run(() => api('PATCH', `/tasks/${id}`, { body: { dueDate: date }, ifMatch: task.version, idemKey: newIdemKey() }));
-    if (res) { refresh(res.data); setMoving(false); }
+    const idemKey = newIdemKey();
+    const res = await run(() => saveViaOutbox('PATCH', `/tasks/${id}`, { body: { dueDate: date }, ifMatch: task.version, idemKey, base: task, label: t('outbox.label.taskMove', { title: task.title }) }));
+    if (res) { queuedNote(res); refresh(res.data); setMoving(false); }
   }
 
   async function tick(item) {
-    const res = await run(() => api('PATCH', `/tasks/${id}/items/${item.key}`, { body: { isDone: !item.isDone }, ifMatch: item.version, idemKey: newIdemKey() }));
+    const idemKey = newIdemKey();
+    const res = await run(() => saveViaOutbox('PATCH', `/tasks/${id}/items/${item.key}`, { body: { isDone: !item.isDone }, ifMatch: item.version, idemKey, base: item, label: t('outbox.label.itemTick', { text: item.text }) }));
     if (!res) return;
+    queuedNote(res);
     qc.setQueryData(['task', id], { ...task, items: task.items.map((i) => (i.key === item.key ? res.data : i)) });
     qc.invalidateQueries({ queryKey: ['tasks'] });
     if (res.meta.lastItemDone) setAskDone(true);
@@ -60,8 +66,8 @@ export default function TaskDetail() {
     const text = itemText.trim();
     if (!text) return;
     const key = newIdemKey();
-    const res = await run(() => api('POST', `/tasks/${id}/items`, { body: { key, text }, idemKey: key }));
-    if (res) { setItemText(''); qc.setQueryData(['task', id], { ...task, items: [...task.items, res.data] }); }
+    const res = await run(() => saveViaOutbox('POST', `/tasks/${id}/items`, { body: { key, text }, idemKey: key, label: t('outbox.label.itemAdd', { text }) }));
+    if (res) { queuedNote(res); setItemText(''); qc.setQueryData(['task', id], { ...task, items: [...task.items, res.data] }); }
   }
 
   async function removeItem(item) {
@@ -97,6 +103,7 @@ export default function TaskDetail() {
           {task.priority !== 'normal' && <span className={`rounded-full px-3 py-1 ${task.priority === 'urgent' ? 'bg-danger-soft text-danger' : 'bg-bg text-text-muted'}`}>{t(`tasks.priority.${task.priority}`)}</span>}
           {task.overdue && <span className="rounded-full bg-danger-soft px-3 py-1 font-bold text-danger">{t('tasks.overdue')}</span>}
           {task.postponeCount > 0 && <span className="rounded-full bg-warning-soft px-3 py-1">{t('tasks.postponed', { n: task.postponeCount })}</span>}
+          <WaitingMark entity={`/tasks/${task.id}`} className="px-1 py-1" />
         </p>
         <dl className="flex flex-col gap-2">
           <div><dt className="text-sm text-text-muted">{t('tasks.due')}</dt><dd className="text-lg">{dueText(task)}</dd></div>

@@ -11,6 +11,8 @@ import EmptyState from '../../components/EmptyState.jsx';
 import { Notice } from '../../components/Field.jsx';
 import { api, newIdemKey } from '../../api/client.js';
 import { withRelogin } from '../../api/auth.js';
+import { saveViaOutbox } from '../../offline/outbox.js';
+import WaitingMark from '../../components/WaitingMark.jsx';
 import { useSession } from '../../api/session.js';
 import { showUndo, showToast } from '../../undo/undoStore.js';
 import { VIEWS, dueText, isClosed } from '../../data/tasks.js';
@@ -22,13 +24,15 @@ export function useTags() {
   return useQuery({ queryKey: ['tags'], queryFn: () => api('GET', '/tags').then((r) => r.data), staleTime: 60_000 });
 }
 
-/** Tick a task done from anywhere; Undo for 8 s (AC-TASK-07). */
+/** Tick a task done from anywhere; Undo for 8 s (AC-TASK-07). No internet: it waits on the phone. */
 export async function markDone(qc, task) {
   try {
-    const res = await withRelogin(() => api('POST', `/tasks/${task.id}/done`, { body: {}, ifMatch: task.version, idemKey: newIdemKey() }));
+    const idemKey = newIdemKey();
+    const res = await withRelogin(() => saveViaOutbox('POST', `/tasks/${task.id}/done`, { body: {}, ifMatch: task.version, idemKey, base: task, label: t('outbox.label.taskDone', { title: task.title }) }));
     qc.invalidateQueries({ queryKey: ['tasks'] });
     qc.setQueryData(['task', task.id], res.data);
-    if (res.meta.alreadyDone) showToast(res.meta.message);
+    if (res.queued) showToast(t('outbox.queuedToast'));
+    else if (res.meta.alreadyDone) showToast(res.meta.message);
     else if (res.meta.undo) showUndo({ batchId: res.meta.undo.batchId, summary: res.meta.undo.summary });
     return res.data;
   } catch (e) {
@@ -58,6 +62,7 @@ export function TaskRow({ task, canEdit, onTick }) {
           {!isClosed(task) && task.dueDate === addDays(todayIst(), 1) && <span className="font-bold">{t('tasks.tomorrow')}</span>}
           {task.priority === 'urgent' && <span className="inline-flex items-center gap-1 text-danger"><Flag aria-hidden="true" size={14} />{t('tasks.priority.urgent')}</span>}
           {task.status === 'waiting' && <span className="inline-flex items-center gap-1"><Hourglass aria-hidden="true" size={14} />{t('tasks.status.waiting')}</span>}
+          <WaitingMark entity={`/tasks/${task.id}`} />
           <span>{dueText(task)}</span>
           {task.assignees.length > 0 && <span>· {task.assignees.map((a) => a.name).join(', ')}</span>}
           {task.itemCount > 0 && <span>· ☑ {t('tasks.items', { done: task.itemsDone, n: task.itemCount })}</span>}

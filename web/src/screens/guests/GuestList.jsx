@@ -15,6 +15,7 @@ import Button from '../../components/Button.jsx';
 import { Notice, Toggle } from '../../components/Field.jsx';
 import { api, API_BASE } from '../../api/client.js';
 import BulkBar from './BulkBar.jsx';
+import WaitingMark from '../../components/WaitingMark.jsx';
 import { useSession } from '../../api/session.js';
 import { formatCount } from '../../format/inr.js';
 import { SIDES, FOODS, RSVPS, listQuery, loadFilters, saveFilters, peopleText } from '../../data/guests.js';
@@ -44,6 +45,7 @@ export function FamilyRow({ family, eventId, selecting, checked, onToggle }) {
           <span className="truncate">{family.name}</span>
         </span>
         <span className="flex flex-wrap items-center gap-x-2 text-sm text-text-muted">
+          <WaitingMark entity={`/households/${family.id}`} />
           <span>{peopleText(family.people)}</span>
           <span>· {t(`guests.sideShort.${family.side}`)}</span>
           {family.area && <span>· {family.area}</span>}
