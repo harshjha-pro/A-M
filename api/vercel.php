@@ -13,4 +13,5 @@ foreach (array_keys($_GET) as $k) {
     }
 }
 
+if ($_GET !== []) { error_log('vercel.php query keys: ' . implode(',', array_keys($_GET))); } // TEMP: which keys arrive
 require __DIR__ . '/bootstrap.php';
