@@ -39,3 +39,27 @@ export async function swControlled(page) {
   }
   throw new Error('page never came under the service worker');
 }
+
+/** Has the first sync finished on this phone (meta.lastSyncedAt)? Polled from the test side. */
+export async function waitSynced(page, timeout = 40000) {
+  const done = () => page.evaluate(() => new Promise((resolve) => {
+    indexedDB.databases().then((dbs) => {
+      if (!dbs.some((d) => d.name === 'am-wedding' && d.version >= 3)) { resolve(false); return; }
+      const req = indexedDB.open('am-wedding');
+      req.onsuccess = () => {
+        const db = req.result;
+        if (!db.objectStoreNames.contains('meta')) { resolve(false); return; }
+        const get = db.transaction('meta').objectStore('meta').get('lastSyncedAt');
+        get.onsuccess = () => resolve(Boolean(get.result));
+        get.onerror = () => resolve(false);
+      };
+      req.onerror = () => resolve(false);
+    }, () => resolve(false));
+  })).catch(() => false);
+  const t0 = Date.now();
+  while (Date.now() - t0 < timeout) {
+    if (await done()) return;
+    await page.waitForTimeout(500);
+  }
+  throw new Error('the first sync never finished');
+}

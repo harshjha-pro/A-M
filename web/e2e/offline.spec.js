@@ -2,26 +2,11 @@
 // opens with none — lists from the phone's copy with "No internet · from …", search by
 // name works, a never-opened screen says so — and logging out leaves nothing behind.
 import { test, expect } from '@playwright/test';
-import { login, swControlled } from './helpers.js';
+import { login, swControlled, waitSynced } from './helpers.js';
 
 async function controlledAndSynced(page) {
   await swControlled(page);
-  // The phone's copy is filled by /sync after login
-  await page.waitForFunction(() => new Promise((resolve) => {
-    // Only look once the app has made its database (opening it first would create an empty one).
-    indexedDB.databases().then((dbs) => {
-      if (!dbs.some((d) => d.name === 'am-wedding' && d.version >= 2)) { resolve(false); return; }
-    const req = indexedDB.open('am-wedding');
-    req.onsuccess = () => {
-      const db = req.result;
-      if (!db.objectStoreNames.contains('meta')) { resolve(false); return; }
-      const get = db.transaction('meta').objectStore('meta').get('lastSyncedAt');
-      get.onsuccess = () => resolve(Boolean(get.result));
-      get.onerror = () => resolve(false);
-    };
-    req.onerror = () => resolve(false);
-    });
-  }), null, { timeout: 30000 });
+  await waitSynced(page); // the phone's copy is filled by /sync a few seconds after the page loads
 }
 
 async function recordCount(page) {

@@ -6,7 +6,7 @@
 //          the task on the phone and Send now saves it once
 //   E2E-11 the login ends mid-form → login sheet → the form is kept → saved once
 import { test, expect } from '@playwright/test';
-import { login, swControlled } from './helpers.js';
+import { login, swControlled, waitSynced } from './helpers.js';
 
 /** Calls the API from a logged-in page, the way the app does (CSRF + Idempotency-Key). */
 async function call(page, method, path, body) {
@@ -31,18 +31,7 @@ function phone(browser, info, n) {
 
 async function synced(page) {
   await swControlled(page);
-  await page.waitForFunction(() => new Promise((resolve) => {
-    indexedDB.databases().then((dbs) => {
-      if (!dbs.some((d) => d.name === 'am-wedding' && d.version >= 3)) { resolve(false); return; }
-      const req = indexedDB.open('am-wedding');
-      req.onsuccess = () => {
-        const get = req.result.transaction('meta').objectStore('meta').get('lastSyncedAt');
-        get.onsuccess = () => resolve(Boolean(get.result));
-        get.onerror = () => resolve(false);
-      };
-      req.onerror = () => resolve(false);
-    });
-  }), null, { timeout: 30000 });
+  await waitSynced(page);
 }
 
 test('E2E-07: offline → 2 ticks, a family edit, 3 Coming? → close → reopen offline → 6 waiting → online → all sent once', async ({ browser, page, context }, info) => {
