@@ -5,7 +5,7 @@
   "outputDirectory": "web/dist-staging",
   "functions": {
     "api/php-bridge.js": {
-      "includeFiles": "{api/autoload.php,api/bootstrap.php,api/vercel.php,api/src/**,node_modules/@libphp/amazon-linux-2-v83/native/php/php,node_modules/@libphp/amazon-linux-2-v83/native/php/php.ini,node_modules/@libphp/amazon-linux-2-v83/native/php/modules/**,node_modules/@libphp/amazon-linux-2-v83/native/lib/**}",
+      "includeFiles": "{api/*.php,api/src/**,node_modules/@libphp/*/native/{lib/**,php/modules/**,php/php,php/php.ini}}",
       "memory": 1024,
       "maxDuration": 30
     }
