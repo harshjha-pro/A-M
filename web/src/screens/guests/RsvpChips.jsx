@@ -1,7 +1,8 @@
 // Coming? chips for one invitation (FEATURES B5). Saves at once on the invitation's
 // own version; if someone changed it first, an inline choice (B5 "Two editing").
 import { useState } from 'react';
-import { api, newIdemKey } from '../../api/client.js';
+import { newIdemKey } from '../../api/client.js';
+import { saveViaOutbox } from '../../offline/save.js';
 import { withRelogin } from '../../api/auth.js';
 import { ConflictError } from '../../api/errors.js';
 import { showToast } from '../../undo/undoStore.js';
@@ -9,7 +10,7 @@ import { formatTime } from '../../format/ist.js';
 import { RSVPS } from '../../data/guests.js';
 import { t } from '../../i18n/strings.en.js';
 
-export default function RsvpChips({ familyId, invitation, disabled, onSaved }) {
+export default function RsvpChips({ familyId, familyName, invitation, disabled, onSaved }) {
   const [busy, setBusy] = useState(false);
   const [clash, setClash] = useState(null); // { mine, current, by, at }
   const value = invitation.rsvp;
@@ -17,7 +18,11 @@ export default function RsvpChips({ familyId, invitation, disabled, onSaved }) {
   async function send(rsvp, version) {
     setBusy(true);
     try {
-      const res = await withRelogin(() => api('PATCH', `/households/${familyId}/invitations/${invitation.event.id}`, { body: { rsvp }, ifMatch: version, idemKey: newIdemKey() }));
+      const idemKey = newIdemKey();
+      const res = await withRelogin(() => saveViaOutbox('PATCH', `/households/${familyId}/invitations/${invitation.event.id}`, {
+        body: { rsvp }, ifMatch: version, idemKey, base: invitation, label: t('outbox.label.rsvp', { name: familyName ?? '', event: invitation.event.name, rsvp: t(`guests.rsvp.${rsvp}`) }),
+      }));
+      if (res.queued) showToast(t('outbox.queuedToast'));
       setClash(null);
       onSaved(res.data);
     } catch (e) {

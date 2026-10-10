@@ -14,6 +14,7 @@ import { storageInfo, askToKeepData } from '../../pwa/persist.js';
 import { formatBytes } from '../../data/documents.js';
 import { cacheSummary } from '../../offline/cache.js';
 import { fromLabel } from '../../offline/OfflineBanner.jsx';
+import { useOutbox, refreshOutbox } from '../../offline/save.js';
 import { t } from '../../i18n/strings.en.js';
 
 const APP_VERSION = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0.0.0';
@@ -23,7 +24,8 @@ export default function ThisPhone() {
   const sw = useSyncExternalStore(subscribeSw, getSwState, getSwState);
   const [store, setStore] = useState(null);
   const [copy, setCopy] = useState(null);
-  useEffect(() => { storageInfo().then(setStore); cacheSummary().then(setCopy); }, []);
+  const outbox = useOutbox();
+  useEffect(() => { storageInfo().then(setStore); cacheSummary().then(setCopy); refreshOutbox(); }, []);
 
   const offline = !('serviceWorker' in navigator) ? t('phone.offlineNo') : sw.failed ? t('phone.offlineFailed') : sw.registered ? t('phone.offlineOn') : t('phone.offlineOff');
   const rows = [
@@ -35,10 +37,12 @@ export default function ThisPhone() {
     [t('phone.space'), store?.usage != null ? formatBytes(store.usage) : '—'],
     [t('offline.data'), copy ? t('offline.dataLine', { families: copy.households, tasks: copy.tasks, events: copy.events, vendors: copy.vendors, documents: copy.documents }) : '…'],
     [t('offline.lastSync'), copy?.lastSyncedAt ? fromLabel(copy.lastSyncedAt) : t('offline.never')],
+    [t('outbox.phoneWaiting'), outbox.mine.length ? <Link to="/settings/waiting" className="text-primary underline">{outbox.mine.length}</Link> : t('outbox.phoneNone')],
   ];
   return (
     <Screen title={t('phone.title')} back="/settings">
       <OldPhoneNotice dismissible={false} />
+      {outbox.others.map((o) => <p key={o.name} className="rounded-md bg-info-soft p-3">{t('outbox.othersLine', { n: o.count, name: o.name })}</p>)}
       <dl className="overflow-hidden rounded-md bg-surface shadow-card">
         {rows.map(([k, v]) => (
           <div key={k} className="flex min-h-14 items-center justify-between gap-4 border-b border-border px-4 py-2 last:border-b-0">

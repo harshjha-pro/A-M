@@ -8,6 +8,8 @@ import Button from '../../components/Button.jsx';
 import SavedIndicator from '../../components/SavedIndicator.jsx';
 import ConfirmDialog from '../../components/ConfirmDialog.jsx';
 import { countDrafts } from '../../forms/drafts.js';
+import { useOutbox, refreshOutbox, flushOutbox } from '../../offline/save.js';
+import { useOnline } from '../../offline/useOnline.js';
 import { api } from '../../api/client.js';
 import { ValidationError, ConflictError } from '../../api/errors.js';
 import { useSession } from '../../api/session.js';
@@ -32,6 +34,11 @@ export default function MyAccount() {
   const [pwDone, setPwDone] = useState(false);
   const [theme, setThemeState] = useState(getTheme);
   const [confirm, setConfirm] = useState(null);
+  const [lose, setLose] = useState(false);
+  const outbox = useOutbox();
+  const online = useOnline();
+  useEffect(() => { refreshOutbox(); }, []);
+  const unsent = outbox.mine.length; // PWA §5.5: changes not yet sent are lost on logout
   const drafts = confirm ? countDrafts(user?.id) : 0;
   const draftWarning = drafts === 0 ? null : drafts === 1 ? t('draft.logoutOne') : t('draft.logout', { n: drafts }); // FEATURES A3
   const saveName = useSave();
@@ -108,7 +115,24 @@ export default function MyAccount() {
 
       <Button variant="danger" onClick={() => setConfirm('one')}>{t('account.logout')}</Button>
       <Button variant="danger" onClick={() => setConfirm('all')}>{t('account.logoutAll')}</Button>
-      {confirm && (
+      {confirm && unsent > 0 && !lose && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center" role="presentation" onClick={() => setConfirm(null)}>
+          <div role="alertdialog" aria-modal="true" aria-labelledby="unsent-title" className="m-4 flex w-full max-w-md flex-col gap-4 rounded-lg bg-surface p-5 shadow-sheet" onClick={(e) => e.stopPropagation()}>
+            <h2 id="unsent-title" className="text-xl font-bold">{unsent === 1 ? t('outbox.logoutTitleOne') : t('outbox.logoutTitle', { n: unsent })}</h2>
+            <p>{t('outbox.logoutBody')}</p>
+            <Button onClick={() => flushOutbox({ force: true })} loading={outbox.sending} disabled={!online}>{t('outbox.sendNow')}</Button>
+            {!online && <p className="text-sm text-text-muted">{t('outbox.connectFirst')}</p>}
+            <Button variant="secondary" onClick={() => navigate('/settings/waiting')}>{t('outbox.logoutShow')}</Button>
+            <Button variant="danger" onClick={() => setLose(true)}>{t('outbox.logoutLose')}</Button>
+            <Button variant="secondary" onClick={() => setConfirm(null)}>{t('login.cancel')}</Button>
+          </div>
+        </div>
+      )}
+      {confirm && unsent > 0 && lose && (
+        <ConfirmDialog title={t('outbox.logoutLoseConfirm')} body={t('outbox.logoutBody')} confirmLabel={t('outbox.logoutLose')} danger
+          onConfirm={() => { setLose(false); doLogout(confirm === 'all'); }} onCancel={() => setLose(false)} />
+      )}
+      {confirm && unsent === 0 && (
         <ConfirmDialog
           title={t(confirm === 'all' ? 'account.confirmLogoutAll' : 'account.confirmLogout')}
           body={[t(confirm === 'all' ? 'account.confirmLogoutAllBody' : 'account.confirmLogoutBody'), draftWarning].filter(Boolean).join(' ')}

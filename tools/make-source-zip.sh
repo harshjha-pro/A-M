@@ -10,7 +10,7 @@ NAME="project-source-session$NN"
 mkdir -p "$OUT"
 rm -f "$OUT/$NAME.zip"
 # Tracked files + the git history. Untracked junk and ignored files stay out.
-git ls-files -z | xargs -0 zip -qX "$OUT/$NAME.zip"
+git ls-files -z -- . ":(exclude)releases/*" | xargs -0 zip -qX "$OUT/$NAME.zip"   # not the old release ZIPs
 zip -qrX "$OUT/$NAME.zip" .git
 if unzip -l "$OUT/$NAME.zip" | awk '{print $4}' | grep -E '(^|/)\.env$|backup\.key|(^|/)vendor/|node_modules/|(^|/)dist(-live|-staging)?/' ; then
   echo "REFUSED: forbidden file inside $NAME.zip"; rm -f "$OUT/$NAME.zip"; exit 1

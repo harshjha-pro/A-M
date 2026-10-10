@@ -1,7 +1,6 @@
 // answer.js — a GET with no internet: the phone's copy, never a pretend success.
 // Order: the saved rows from /sync (searchable, PWA §5.1) or the saved reply of this exact
 // screen, whichever is newer; nothing saved → "Open this once with internet to see it offline."
-import { localAnswer } from './local.js';
 import { readReply, replyKey, getMeta, saveReply, putRecords } from './cache.js';
 
 /** Replies never kept (secrets, live-only, or the sync itself). */
@@ -23,15 +22,18 @@ export async function rememberReply(path, query, data, meta, gen) {
 /** @returns {Promise<{data, meta, from: string}|null>} — throws OfflineError('needs_internet') for advanced filters */
 export async function offlineAnswer(path, query, user) {
   if (!keepable(path)) return null;
-  const [snap, synced] = await Promise.all([readReply(replyKey(path, query)), getMeta('lastSyncedAt')]);
+  const [snap, synced, changed] = await Promise.all([readReply(replyKey(path, query)), getMeta('lastSyncedAt'), getMeta('localChangedAt')]);
+  // A change waiting to be sent is in the saved rows, not in older saved replies.
+  const rowsAt = changed && synced && changed > synced ? changed : synced;
   let local = null;
   let localError = null;
   try {
-    local = synced ? await localAnswer(path, query, user) : null;
+    // local.js only loads when the phone is actually offline (keeps the first screen light)
+    local = synced ? await (await import('./local.js')).localAnswer(path, query, user) : null;
   } catch (e) {
     localError = e;
   }
-  if (snap && (!local || !synced || snap.savedAt > synced)) return { data: snap.data, meta: snap.meta ?? {}, from: snap.savedAt };
+  if (snap && (!local || !synced || snap.savedAt > rowsAt)) return { data: snap.data, meta: snap.meta ?? {}, from: snap.savedAt };
   if (local) return { ...local, from: synced };
   if (localError) throw localError;
   return null;

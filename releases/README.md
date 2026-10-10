@@ -12,3 +12,9 @@ Also here for Session 13:
 
 - `project-source-session13.zip` — the source code only
 - `deploy-session13.zip` — the upload packages only (`staging/`, `live/`, `RELEASE-NOTES.md`, `TEST-REPORT.md`)
+
+Session 14 (version 1.0.15, offline saving):
+
+- `AM-Wedding-master-v1.0.15.zip` — everything in one file (source + deploy)
+- `deploy-session14.zip` — the Hostinger upload packages (staging/ and live/)
+- The source-only ZIP is not stored here: it is this repository.

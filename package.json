@@ -1,0 +1,8 @@
+{
+  "name": "am-wedding-vercel",
+  "private": true,
+  "description": "Vercel TEST hosting only (docs/VERCEL.md): the PHP binaries the api/php-bridge.js function runs. Hostinger doesn't use this file.",
+  "dependencies": {
+    "@libphp/amazon-linux-2-v83": "0.0.14"
+  }
+}

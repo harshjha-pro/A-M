@@ -94,7 +94,7 @@ export default function DocumentForm() {
           <textarea value={v.notes} onChange={(e) => f.set('notes')(e.target.value)} rows={3} maxLength={5000} className="w-full rounded-sm border-[1.5px] border-border-strong bg-surface p-3 text-base text-text" />
         </label>
         <SavedIndicator {...f.save} />
-        <Button type="submit" loading={f.save.status === 'saving'}>{t('documents.saveDetails')}</Button>
+        <Button needsInternet type="submit" loading={f.save.status === 'saving'}>{t('documents.saveDetails')}</Button>
         <Button variant="secondary" onClick={() => { f.cancel(); navigate(back); }}>{t('login.cancel')}</Button>
       </form>
     </Screen>

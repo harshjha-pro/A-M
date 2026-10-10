@@ -13,6 +13,7 @@ import SavedIndicator from '../../components/SavedIndicator.jsx';
 import DraftBanner from '../../components/DraftBanner.jsx';
 import ConflictScreen from '../../components/ConflictScreen.jsx';
 import { api } from '../../api/client.js';
+import { saveViaOutbox } from '../../offline/save.js';
 import { DuplicateError } from '../../api/errors.js';
 import { useSession } from '../../api/session.js';
 import { useEntityForm } from '../../forms/useEntityForm.js';
@@ -74,9 +75,10 @@ export default function TaskForm() {
       }
       return body;
     },
+    // Through the outbox: with no internet the task waits on the phone (PWA §5.2).
     send: (body, version, idemKey) => (id
-      ? api('PATCH', `/tasks/${id}`, { body, ifMatch: version, idemKey })
-      : api('POST', '/tasks', { body, idemKey })).then((r) => r.data),
+      ? saveViaOutbox('PATCH', `/tasks/${id}`, { body, ifMatch: version, idemKey, base: q.data, label: t('outbox.label.taskEdit', { title: body.title ?? q.data?.title ?? '' }) })
+      : saveViaOutbox('POST', '/tasks', { body, idemKey, label: t('outbox.label.taskAdd', { title: body.title }) })).then((r) => (r.queued ? r : r.data)),
     mapError: (err) => {
       if (err instanceof DuplicateError) { setDup(err.matches[0] ?? { name: '' }); return {}; }
       return null;
@@ -87,7 +89,7 @@ export default function TaskForm() {
       if (!saved) return;
       qc.setQueryData(['task', saved.id], saved);
       if (id) navigate(`/tasks/${id}`, { replace: true });
-      else { showToast(t('tasks.added')); navigate('/tasks', { replace: true }); }
+      else { if (!saved.waiting) showToast(t('tasks.added')); navigate('/tasks', { replace: true }); }
     },
   });
 

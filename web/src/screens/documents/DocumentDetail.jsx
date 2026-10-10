@@ -84,7 +84,7 @@ export default function DocumentDetail() {
       <div className="flex flex-col gap-3">
         <Link to={`/history/documents/${id}`} className="tap inline-flex items-center justify-center gap-2 font-bold text-primary"><History aria-hidden="true" size={20} />{t('documents.history')}</Link>
         {change && <Button variant="secondary" onClick={() => navigate(`/documents/${id}/edit`)}><Pencil aria-hidden="true" size={20} />{t('documents.edit')}</Button>}
-        {change && <Button variant="danger" onClick={remove}><Trash2 aria-hidden="true" size={20} />{t('documents.delete')}</Button>}
+        {change && <Button needsInternet variant="danger" onClick={remove}><Trash2 aria-hidden="true" size={20} />{t('documents.delete')}</Button>}
         {!change && permissions?.edit && <p className="text-center text-text-muted">{t('documents.onlyOwn')}</p>}
       </div>
     </Screen>

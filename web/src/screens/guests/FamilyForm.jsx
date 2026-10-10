@@ -14,6 +14,7 @@ import SavedIndicator from '../../components/SavedIndicator.jsx';
 import DraftBanner from '../../components/DraftBanner.jsx';
 import ConflictScreen from '../../components/ConflictScreen.jsx';
 import { api } from '../../api/client.js';
+import { saveViaOutbox } from '../../offline/save.js';
 import { DuplicateError } from '../../api/errors.js';
 import { useSession } from '../../api/session.js';
 import { useEntityForm } from '../../forms/useEntityForm.js';
@@ -90,16 +91,18 @@ export default function FamilyForm() {
       if (allowDup.current) body.allowDuplicate = true;
       return body;
     },
+    // Through the outbox: with no internet the family waits on the phone; the duplicate
+    // check runs when it's sent (PWA §5.2).
     send: (body, version, idemKey) => (id
-      ? api('PATCH', `/households/${id}`, { body, ifMatch: version, idemKey })
-      : api('POST', '/households', { body, idemKey })).then((r) => r.data),
+      ? saveViaOutbox('PATCH', `/households/${id}`, { body, ifMatch: version, idemKey, base: q.data, label: t('outbox.label.familyEdit', { name: body.name ?? q.data?.name ?? '' }) })
+      : saveViaOutbox('POST', '/households', { body, idemKey, label: t('outbox.label.familyAdd', { name: body.name }) })).then((r) => (r.queued ? r : r.data)),
     mapError: (err) => (err instanceof DuplicateError ? (setDup(err), {}) : null),
     onSaved(saved) {
       qc.invalidateQueries({ queryKey: ['households'] });
       qc.invalidateQueries({ queryKey: ['events'] });
       if (!saved) return;
       qc.setQueryData(['household', saved.id], saved);
-      if (!id) { saveSticky(saved); showToast(t('guests.added')); }
+      if (!id) { saveSticky(saved); if (!saved.waiting) showToast(t('guests.added')); }
       navigate(`/guests/${saved.id}`, { replace: true });
     },
   });

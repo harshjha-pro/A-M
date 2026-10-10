@@ -88,7 +88,7 @@ export default function BulkBar({ count, target, asOf, events, isAdmin, defaultE
             {def.needs === 'side' && (
               <ChoiceChips label={t('bulk.side')} value={side} onChange={setSide} options={SIDES.map((s) => ({ value: s, label: t(`guests.sides.${s}`) }))} />
             )}
-            <Button onClick={apply} loading={busy} disabled={tooMany || (def.needs.includes('event') && !eventId)}>
+            <Button needsInternet onClick={apply} loading={busy} disabled={tooMany || (def.needs.includes('event') && !eventId)}>
               {t('bulk.apply', { n: formatCount(count) })}
             </Button>
           </div>

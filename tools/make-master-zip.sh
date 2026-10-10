@@ -17,7 +17,7 @@ STAGE="$(mktemp -d)"
 trap 'rm -rf "$STAGE"' EXIT
 M="$STAGE/$NAME"
 mkdir -p "$M/source" "$M/deploy"
-git ls-files -z | xargs -0 -I{} cp --parents {} "$M/source/"
+git ls-files -z -- . ":(exclude)releases/*" | xargs -0 -I{} cp --parents {} "$M/source/"   # not the old release ZIPs
 cp -r .git "$M/source/.git"
 (cd "$M/deploy" && unzip -q "$DEPLOY" && mv "deploy-session$NN"/* . && rmdir "deploy-session$NN")
 cat > "$M/README-MASTER.txt" <<TXT
