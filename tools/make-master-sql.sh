@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Builds db/master.sql (all migrations) and db/master_with_demo.sql (+ demo data): ONE file to
+# Builds sql/master.sql (all migrations) and sql/master_with_demo.sql (+ demo data): ONE file to
 # import into a NEW, EMPTY database with phpMyAdmin. The real sources stay db/migrations/*.sql.
 # Usage: tools/make-master-sql.sh
 set -euo pipefail
@@ -20,8 +20,8 @@ build() {
 
 HDR
     for f in "$@"; do printf -- '\n-- ##### %s #####\n\n' "$f"; cat "$f"; printf '\n'; done
-  } > "$out"
-  echo "Built db/$out"
+  } > "../sql/$out"
+  echo "Built sql/$out"
 }
 MIG=(migrations/001_init.sql migrations/002_open_answers.sql migrations/003_api_support.sql)
 build master.sql "${MIG[@]}"
