@@ -29,6 +29,18 @@ Release: install, service worker, offline reading, the outbox and updates are **
 | Outbox wait before refresh (§6.3) | Not yet | The outbox arrives in Session 14; the prompt will wait for it then. |
 | `reset.css` | Added (plain styles for `reset.html`); never precached, `no-cache` | CSP forbids inline styles. |
 
+## Built in Session 13 (10 Oct 2026) — offline reading, what differs from §5.1
+
+| Topic | As built | Why |
+|---|---|---|
+| Stores | `records` keyed `[kind, id]` holding `{ kind, id, row }`; `snapshots` (every GET reply seen online, keyed by path + sorted query); `meta`. Outbox store comes in Session 14 (DB version 2 creates missing stores). | Rows have their own `type` fields (documents). |
+| Offline answers | Main lists/details answered from `records` with the server's filter rules (`offline/local.js`); any other screen from its saved reply; whichever is newer. | Search works for words never searched online. |
+| Invitations | Come inside their family (a changed invitation resends the family) | One shape for the list and the family page. |
+| Full sync | Never empties the copy first: rows are written as pages arrive, unseen ones removed only when the last page is in. Access change (`full_resync_required`) clears at once. | Found by E2E: an interrupted first sync left a half copy. |
+| Wipes | A generation counter: writes from a sync or reply that began before a wipe are dropped at transaction time. | Found by E2E: a sync finishing after logout wrote rows back. |
+| Offline start | Last `GET /session` reply (no CSRF token) kept in `meta`; used only when the server can't be reached. | So the icon opens offline. |
+| "Updated 10:42 AM" when online | Not shown; online screens are live | Only the offline age is required to never hide. |
+
 ## Answers applied (8 Oct 2026)
 
 | # | Question | Answer | Applied in |

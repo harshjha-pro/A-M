@@ -1,80 +1,66 @@
-# Release notes — Session 12 · Install and updates · version 1.0.13
+# Release notes — Session 13 · Reading without internet · version 1.0.14
 
 **Goes to:** STAGING first, then **LIVE** (release checklist below).
 **Migrations:** none. Nothing to run in phpMyAdmin.
-**.env / hPanel:** no change.
-**`.htaccess`:** changed (in `3-shell.zip`): `reset.css` joins the "always ask the server" files.
+**.env / hPanel / `.htaccess`:** no change.
 
-## ⚠ The upload order matters from now on
-The app now keeps a copy of itself on each phone (so it opens fast and without internet). Phones check `version.json` to learn that a new version exists, so **`version.json` must go up last**:
+## Upload order (as since Session 12)
+1. `1-server.zip` → extract in the site folder
+2. `2-assets.zip` → extract into `public_html`
+3. `3-shell.zip` → extract into `public_html`
+4. **`version.json`** → upload into `public_html`, **always last**
 
-1. `1-server.zip` → extract in the site folder (as before)
-2. `2-assets.zip` → extract into `public_html` (as before)
-3. `3-shell.zip` → extract into `public_html` (as before; it now holds `sw.js`, `reset.html`, the guide pictures)
-4. **`version.json`** (a single file in the `staging/` or `live/` folder) → upload into `public_html`, replacing the old one. **Always last.**
-
-A phone that checks halfway through simply sees the old version, never half of the new one.
-**Keep old files in `public_html/assets/` for 14 days** (a phone still on the old version may need them), then delete the ones not in this ZIP.
+Keep old files in `public_html/assets/` for 14 days.
 
 ## What's new
-- **Install on the Home Screen.**
-  - **Android (Chrome):** after login a banner says "Install A&M Wedding on this phone" with **Install** and **Not now** (Not now hides it for 7 days).
-    - Long-press the icon for shortcuts: Add task, Add family, My tasks.
-    - A link opened inside WhatsApp first asks you to open it in Chrome.
-  - **iPhone (Safari):** after the first login a 4-step illustrated guide opens once (Share → Add to Home Screen → keep "Open as Web App" on → Add).
-    - In Chrome on iPhone it says "Please open this in Safari".
-    - **On iPhone, log in once more inside the Home Screen app.** It keeps its own login; that's normal.
-  - **More → Install Guide** always has the steps, for both phones.
-- **Opens fast, and opens without internet.** The app's screens are kept on the phone.
-  - Your data still always comes fresh from the server: a save that fails says so, never pretends.
-  - Reading your data without internet comes in Session 13.
-- **"New version available. Tap to refresh."**
-  - Appears within a minute of a new upload, at the bottom of the screen.
-  - It **never reloads by itself**, and never while you are typing in a form: "Save or close the open form first. Then tap Refresh."
-  - While it shows, the screen makes room under it, so Save and Cancel are never covered.
-  - If the server ever refuses old versions, it says "Please refresh to keep saving. Your typing is kept."
-- **Settings → This phone** (everyone): the phone type, app version, installed or not, whether the app opens without internet, whether the phone keeps the app's data (with a button to ask it to), and space used.
-  - **Fix the app:** clears the app's files on this phone and opens the newest version.
-  - It keeps your login and anything not yet sent.
-  - The same button is in the Install Guide, and at `https://<site>/reset.html`.
-- **Old phones:** iPhone below iOS 17 → "Please update this iPhone: Settings › General › Software Update." Chrome below 120 → "Please update Chrome from the Play Store."
+- **The app works with no internet for reading.** After it has been opened once with internet, it keeps a copy on the phone and refreshes it:
+  - when the app opens;
+  - when you come back to it;
+  - when the internet returns;
+  - every 5 minutes while it's open.
+- **With no internet, these screens show that copy:**
+  - Home, Tasks, Calendar and event pages, Guests and family pages, Vendors, Money and payments (people with money access, read only), Documents (details; photos and PDFs need internet), Members and Wedding details.
+  - **Search by name and the main chips work offline** (Guests: side, event, Coming?; Tasks: Mine, Today, This week, Overdue, No date).
+  - Advanced filters say "Needs internet."
+  - A screen never opened on this phone says "Open this once with internet to see it offline."
+- **Always with its age:** a yellow bar says **"No internet · from Sat 10 Oct 2026, 9:40 PM"**. A saved value never shows without it.
+- **Opening the app from the icon with no internet works:** it opens as the person who last used it on this phone. The login is checked for real once the internet is back.
+- **Saving still needs internet** for now: it says so instead of pretending. Saving offline comes in the next update.
+- **Privacy:**
+  - **Log out** removes everything the app saved on the phone.
+  - If someone else logs in on the same phone, the previous person's copy is wiped first, so they never see any of it.
+  - Amounts, payments and private documents are only ever saved for the people allowed to see them.
+- **Settings → This phone:** "Saved on this phone: 812 families · 64 tasks · …" and "Last updated".
+- **Size:** about 1 MB for 500 families. The first download on a slow 3G connection took 6 seconds in testing.
 
-## 1. Staging (≈ 15 minutes)
-Upload in the order above from the **`staging/`** folder → `/api/v1/health` = `{"status":"ok"}` → phone checks below.
+## 1. Staging (≈ 10 minutes)
+Upload in the order above from **`staging/`** → `/api/v1/health` = `{"status":"ok"}` → phone checks below.
 
 ## 2. Live (after staging passes) — release checklist
 1. Live Settings → Safety all green.
 2. **Backup now** — SSH: `php ~/domains/wedding.lumorrahouse.com/private/backup/backup.php --kind=manual_db` → `Done in … s.`
-3. Save `deploy-session12.zip` to Drive `deploys/`; tell the family group (quiet hour): "The app can now be put on your Home Screen. Open the link, then follow the Install banner (Android) or the steps (iPhone)."
-4. Upload in the order above from the **`live/`** folder, `version.json` last.
+3. Save `deploy-session13.zip` to Drive `deploys/`; tell the family group (quiet hour).
+4. Upload in the order above from **`live/`**, `version.json` last.
 5. Within 10 minutes:
    - Health check says `ok`.
-   - An open app shows "New version available" → tap → Settings → This phone says 1.0.13.
-6. If anything fails: upload `deploy-session11.zip` (`live/`) the same way, `version.json` last.
-   - If a phone then seems stuck: Settings → This phone → **Fix the app**.
+   - The open app shows "New version available" → tap → Settings → This phone says 1.0.14 and "Saved on this phone: …".
+6. If anything fails: upload `deploy-session12.zip` (`live/`) the same way, `version.json` last.
 
 ## Phone checks (staging, then live) — Android and iPhone
-Staging logins (password `demo-1234`): Ayush 98290 00001 · Papa 98290 00004.
-Staging installs as **"A&M Staging"** with its own icon colour, separate from the live app.
+Staging logins (password `demo-1234`): Papa 98290 00004 · Kavita 98290 00005 (no money).
+Do these **from the installed app** (Home Screen icon).
 
 | # | Do | Pass when |
 |---|---|---|
-| R1 / T1 / T3 | Send yourself the staging link on WhatsApp, open it, log in | Android: "Open in Chrome" hint if inside WhatsApp; then the **Install** banner → Chrome's dialog → icon on the Home screen. iPhone: open in Safari; the 4-step guide; icon "A&M Staging" |
-| R2 / T5 | Look at the icon | Android: launcher shape, no white square. iPhone: no black corners; "&" readable |
-| R3 / T4 | Open from the icon | No address bar. iPhone asks to log in once more (expected, once); Android doesn't |
-| R4 | Log in, swipe the app away, wait 10 min, reopen | Still logged in (repeat after a phone restart) |
-| R5 | Don't open it for 14 days | Still logged in |
-| R10 / T29 | Ask me for a new staging build (or re-upload `version.json` after any change). Open **Add task**, type something, wait ≤ 1 min | "New version available." → **Tap to refresh** → "Save or close the open form first."; your typing is still there; Cancel → Tap to refresh → reloads; This phone shows the new version |
-| T30 | Close the app, upload a new build, open it | Prompt within a minute |
-| R11 / T9 | Notch / home bar / landscape | Top bar below the notch, bottom nav and + above the home bar; the update prompt never covers Save |
-| R12 | Back | Android Back = one step; iPhone ← Back on inner screens |
-| R14 / T6 | Phone in dark mode | App follows; status bar readable |
-| R15 / T10 | Largest text size | Rows wrap, nothing cut |
-| R16 | Pinch-zoom | Works everywhere |
-| R17 / T8 | Android: long-press the icon | 3 shortcuts (Add task, Add family, My tasks) open the right screens. (Wedding Day comes in Release 2b) |
-| R18 | A phone with iOS < 17 or old Chrome (if you can borrow one) | "Please update…" note |
-| T31 | Settings → This phone → **Fix the app** | "Fixing the app…" → opens Home, still logged in |
-| X | Airplane mode → open the app from the icon | The app opens (screens show "can't load" until Session 13 adds offline reading) |
+| T11 / R9 (reading) | Open the app with internet, wait 10 seconds, then turn on **airplane mode**, close the app fully and open it from the icon | The app opens on Home; the yellow bar "No internet · from …" shows. Guests, Tasks and Calendar show their lists |
+| O1 | Airplane mode → Guests → type part of a family name | The list narrows to matching families |
+| O2 | Airplane mode → open a family, a task, an event | Each opens with its details |
+| O3 | Airplane mode → try to save anything | "No internet connection." — nothing pretends to be saved |
+| O4 | Airplane mode → Activity | "Open this once with internet to see it offline." |
+| O5 | Airplane mode off | The yellow bar goes away within a few seconds of the next screen |
+| R13 / T19 | Settings → This phone | "Offline data: Protected ✓" (write down what it says on each phone), "Saved on this phone: … families …", "Last updated …" |
+| O6 | Log out, then airplane mode, open the app | The login page, no guest list |
+| O7 | Log in as Papa, then log out and log in as **Kavita** on the same phone; airplane mode → Money / Vendors | Kavita sees no amounts and no payments from Papa's login |
 
 ## Old files to delete later
 After 14 days: files in `public_html/assets/` that are not in this ZIP's `2-assets.zip`.

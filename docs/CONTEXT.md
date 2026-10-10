@@ -140,6 +140,7 @@ Design for the 3/5 user: one main action per screen, words beside icons.
 | Charset | `utf8mb4` / `utf8mb4_unicode_ci` everywhere (Hindi, emoji) |
 | Database design | `DATABASE.md` (tables, rules for PHP, migrations) |
 | API paths | `/api/v1/<resource>`; reply `{ok, data, meta}` or `{ok:false, error:{code, message, fields}, meta}`. Full contract: `API.md` |
+| Offline reading | IndexedDB `am-wedding` (records from `GET /sync` + saved GET replies), refreshed on open, return, back online and every 5 min. Offline screens always show "No internet · from …". Logout or a different person wipes it. Saving offline: Session 14 (outbox) |
 | App updates | Service worker `/sw.js` (Workbox, precached shell; `/api/*` never cached). New version only via "Tap to refresh" (never automatic, never over unsaved typing). **Deploy order: 1-server → 2-assets → 3-shell → `version.json` last; keep old `assets/` 14 days.** Escape hatch: `/reset.html` (Settings → This phone → Fix the app) |
 | Uploads | Outside `public_html` (`STORAGE_ROOT/uploads/YYYY/MM/<uuid>.<ext>`, deny-all `.htaccess`); original name in DB; served only by `GET /api/v1/documents/{id}/file` (`private, no-store`). Photos shrunk on the phone (1,600 px JPEG, EXIF gone); max 10 MB; PHP `upload_max_filesize` 12M / `post_max_size` 16M set in hPanel. Staging ships demo files for the demo seed (`tools/make-demo-files.py`), live never |
 | Backups | `wedding_YYYYMMDD_HHMM.sql.gz.enc` |
