@@ -1,10 +1,10 @@
-# Release notes — Session 13 · Reading without internet · version 1.0.14
+# Release notes — Session 14 · Saving without internet · version 1.0.15
 
-**Goes to:** STAGING first, then **LIVE** (release checklist below).
+**Goes to:** **STAGING only.** Live waits until the offline tests OC-01 … OC-22 pass on two real phones (plan: by Thu 22 Oct). One duplicate or lost change blocks live.
 **Migrations:** none. Nothing to run in phpMyAdmin.
 **.env / hPanel / `.htaccess`:** no change.
 
-## Upload order (as since Session 12)
+## Upload order (same as Session 12 and 13)
 1. `1-server.zip` → extract in the site folder
 2. `2-assets.zip` → extract into `public_html`
 3. `3-shell.zip` → extract into `public_html`
@@ -13,54 +13,60 @@
 Keep old files in `public_html/assets/` for 14 days.
 
 ## What's new
-- **The app works with no internet for reading.** After it has been opened once with internet, it keeps a copy on the phone and refreshes it:
-  - when the app opens;
-  - when you come back to it;
-  - when the internet returns;
-  - every 5 minutes while it's open.
-- **With no internet, these screens show that copy:**
-  - Home, Tasks, Calendar and event pages, Guests and family pages, Vendors, Money and payments (people with money access, read only), Documents (details; photos and PDFs need internet), Members and Wedding details.
-  - **Search by name and the main chips work offline** (Guests: side, event, Coming?; Tasks: Mine, Today, This week, Overdue, No date).
-  - Advanced filters say "Needs internet."
-  - A screen never opened on this phone says "Open this once with internet to see it offline."
-- **Always with its age:** a yellow bar says **"No internet · from Sat 10 Oct 2026, 9:40 PM"**. A saved value never shows without it.
-- **Opening the app from the icon with no internet works:** it opens as the person who last used it on this phone. The login is checked for real once the internet is back.
-- **Saving still needs internet** for now: it says so instead of pretending. Saving offline comes in the next update.
-- **Privacy:**
-  - **Log out** removes everything the app saved on the phone.
-  - If someone else logs in on the same phone, the previous person's copy is wiped first, so they never see any of it.
-  - Amounts, payments and private documents are only ever saved for the people allowed to see them.
-- **Settings → This phone:** "Saved on this phone: 812 families · 64 tasks · …" and "Last updated".
-- **Size:** about 1 MB for 500 families. The first download on a slow 3G connection took 6 seconds in testing.
+- **Small changes can now be made with no internet.** They wait on the phone and are sent by themselves when the internet is back:
+  - tick a task;
+  - add or edit a task;
+  - add, tick or rename a checklist item;
+  - add or edit a family;
+  - set Coming? for a family that is already invited.
+- **Each change is sent exactly once.** Closing the app, a weak signal or a lost reply never makes a second copy, and nothing is lost.
+- **You always see what's waiting:**
+  - 🕒 **Waiting to send** on the task or family;
+  - a yellow bar "3 changes waiting to send." with **Send now**;
+  - it goes away once everything has landed.
+- **When someone else changed the same thing:** the bar turns red, "1 change needs your choice." → **Open**. Each field shows **Yours** and **Theirs** (e.g. "Mummy's"); pick, then **Save my choices** — or **Keep theirs**. If they changed other fields only, it's sent by itself with no question.
+- **A family that looks like one already on the list** (found when it's sent): **Add anyway** or **Discard**.
+- **Discard** always asks first, because Undo can't bring it back.
+- **Still need internet** (greyed out, with "Needs internet" under them):
+  - deletes, Undo and restore;
+  - bulk actions and import;
+  - everything about money;
+  - events, settings and members;
+  - uploads;
+  - Coming? on a family added offline ("Send the new family first").
+- **Log out with changes waiting:** "3 changes haven't been sent. If you log out now, they are lost." — **Send now**, **Show changes**, or **Log out and lose them** (asks twice).
+- **Settings → This phone:** shows how many changes are waiting. If someone else's unsent changes are on the phone: "2 changes from Papa's login are on this phone. Papa must log in here to send them."
+- **Bug fixed:** if airplane mode was switched on while the app was open, new screens could stay on "…". They now open from the copy saved on the phone.
 
-## 1. Staging (≈ 10 minutes)
-Upload in the order above from **`staging/`** → `/api/v1/health` = `{"status":"ok"}` → phone checks below.
+## Staging (≈ 10 minutes)
+Upload in the order above from **`staging/`** → `/api/v1/health` = `{"status":"ok"}` → the phone checks below.
 
-## 2. Live (after staging passes) — release checklist
-1. Live Settings → Safety all green.
-2. **Backup now** — SSH: `php ~/domains/wedding.lumorrahouse.com/private/backup/backup.php --kind=manual_db` → `Done in … s.`
-3. Save `deploy-session13.zip` to Drive `deploys/`; tell the family group (quiet hour).
-4. Upload in the order above from **`live/`**, `version.json` last.
-5. Within 10 minutes:
-   - Health check says `ok`.
-   - The open app shows "New version available" → tap → Settings → This phone says 1.0.14 and "Saved on this phone: …".
-6. If anything fails: upload `deploy-session12.zip` (`live/`) the same way, `version.json` last.
-
-## Phone checks (staging, then live) — Android and iPhone
-Staging logins (password `demo-1234`): Papa 98290 00004 · Kavita 98290 00005 (no money).
-Do these **from the installed app** (Home Screen icon).
+## Phone checks on staging — Android and iPhone, from the Home Screen icon
+Staging logins (password `demo-1234`): Ayush 98290 00001 · Papa 98290 00004 · Mummy/Kavita 98290 00005.
 
 | # | Do | Pass when |
 |---|---|---|
-| T11 / R9 (reading) | Open the app with internet, wait 10 seconds, then turn on **airplane mode**, close the app fully and open it from the icon | The app opens on Home; the yellow bar "No internet · from …" shows. Guests, Tasks and Calendar show their lists |
-| O1 | Airplane mode → Guests → type part of a family name | The list narrows to matching families |
-| O2 | Airplane mode → open a family, a task, an event | Each opens with its details |
-| O3 | Airplane mode → try to save anything | "No internet connection." — nothing pretends to be saved |
-| O4 | Airplane mode → Activity | "Open this once with internet to see it offline." |
-| O5 | Airplane mode off | The yellow bar goes away within a few seconds of the next screen |
-| R13 / T19 | Settings → This phone | "Offline data: Protected ✓" (write down what it says on each phone), "Saved on this phone: … families …", "Last updated …" |
-| O6 | Log out, then airplane mode, open the app | The login page, no guest list |
-| O7 | Log in as Papa, then log out and log in as **Kavita** on the same phone; airplane mode → Money / Vendors | Kavita sees no amounts and no payments from Papa's login |
+| S1 | Airplane mode → Tasks → tick a task | 🕒 "Waiting to send" on it; yellow bar "1 change waiting to send." |
+| S2 | Still offline: add a task, edit a family, set Coming? on two events | The bar says "5 changes waiting to send." |
+| S3 | Close the app fully, open it again (still offline) | Still 5 waiting; the changes still show |
+| S4 | Airplane mode off | Within a minute (or tap **Send now**) the bar goes. On another phone each change is there **once** |
+| S5 | Two phones: both open the same task. Phone A offline edits the title; phone B (online) edits the title differently. Phone A back online | Red bar "1 change needs your choice." → Open → Yours / Theirs → Save my choices → both phones show your pick |
+| S6 | Offline: add a family with a phone number already on the list; go online | "Looks like a family already on the list" → Add anyway or Discard |
+| S7 | Offline: open a task | Delete is greyed out with "Needs internet" under it |
+| S8 | Offline with 1 change waiting → Settings → My account → Log out | "1 change hasn't been sent." Cancel. Go online, tap Send now, then log out normally |
+| R9 / T16–T22 | PWA §10 device checklist rows for offline saving | As written there |
+
+## Before live — the offline tests (TESTING §3, OC-01 … OC-22)
+Two phones and a helper, about 2 hours, by **Thu 22 Oct**. Write down each result. **Any duplicate or lost change blocks live** (TESTING §3.2).
+
+## Live (only after the offline tests pass) — release checklist
+1. Live Settings → Safety all green.
+2. **Backup now** — SSH: `php ~/domains/wedding.lumorrahouse.com/private/backup/backup.php --kind=manual_db` → `Done in … s.`
+3. Save `deploy-session14.zip` to Drive `deploys/`.
+4. Upload in the order above from **`live/`**, `version.json` last.
+5. Within 10 minutes: health `ok`; the open app shows "New version available" → tap → Settings → This phone says 1.0.15.
+6. If anything fails: upload `deploy-session13.zip` (`live/`) the same way, `version.json` last.
+   Changes waiting on phones are kept on the phone: 1.0.14 can't read them (or the offline copy), and 1.0.15 sends them once it is back.
 
 ## Old files to delete later
 After 14 days: files in `public_html/assets/` that are not in this ZIP's `2-assets.zip`.

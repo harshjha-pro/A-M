@@ -33,13 +33,28 @@ Release: install, service worker, offline reading, the outbox and updates are **
 
 | Topic | As built | Why |
 |---|---|---|
-| Stores | `records` keyed `[kind, id]` holding `{ kind, id, row }`; `snapshots` (every GET reply seen online, keyed by path + sorted query); `meta`. Outbox store comes in Session 14 (DB version 2 creates missing stores). | Rows have their own `type` fields (documents). |
+| Stores | `records` keyed `[kind, id]` holding `{ kind, id, row }`; `snapshots` (every GET reply seen online, keyed by path + sorted query); `meta`. Outbox store added in Session 14 (DB version 3). | Rows have their own `type` fields (documents). |
 | Offline answers | Main lists/details answered from `records` with the server's filter rules (`offline/local.js`); any other screen from its saved reply; whichever is newer. | Search works for words never searched online. |
 | Invitations | Come inside their family (a changed invitation resends the family) | One shape for the list and the family page. |
 | Full sync | Never empties the copy first: rows are written as pages arrive, unseen ones removed only when the last page is in. Access change (`full_resync_required`) clears at once. | Found by E2E: an interrupted first sync left a half copy. |
 | Wipes | A generation counter: writes from a sync or reply that began before a wipe are dropped at transaction time. | Found by E2E: a sync finishing after logout wrote rows back. |
 | Offline start | Last `GET /session` reply (no CSRF token) kept in `meta`; used only when the server can't be reached. | So the icon opens offline. |
 | "Updated 10:42 AM" when online | Not shown; online screens are live | Only the offline age is required to never hide. |
+
+## Built in Session 14 (10 Oct 2026) — offline saving (outbox), what differs from §5.2–§5.5
+
+| Topic | As built | Why |
+|---|---|---|
+| Store | `outbox` in `am-wedding` (DB version 3), keyed by the Idempotency-Key. Entries `v: 1` with `key, seq, userId, userName, method, path, body, ifMatch, base, entity, type, kind, status, attempted, label, error`. Older shapes are upgraded on read, never dropped. | §5.2 rule 8. |
+| Online saves | Every queueable save goes through the outbox even online, and the screen waits for that entry's reply: 2xx → the reply as before; conflict / duplicate / field errors → thrown to the open form as before (nothing left queued); no internet, timeout, 5xx, 429 → kept, 🕒 "Waiting to send" + "Kept on this phone…" toast. | One path for every save; forms keep their tested conflict and duplicate screens. |
+| Merging | Two edits to the same record not yet tried → one request. An edit to a record added offline whose create wasn't tried yet rides in the create. Already tried → `ifMatch: 'chain'`, takes the version from the reply ahead of it. | §5.2 rule 3. |
+| Conflicts found later | No clashing fields (by value against `base`) → sent again by itself with the server's version and a new key. Clash → "Needs your choice": per field Yours / Theirs → Save my choices (new key, server version) or Keep theirs (= discard). | AC-CON-01 in the background too. |
+| Duplicate family found later | "Looks like a family already on the list" + matches → Add anyway resends with `allow_duplicate` under the **same** key (the server released it: nothing was saved). | Placeholders of later edits stay valid. |
+| 401 | Kept. Background: the login sheet opens, sent after login. Form open: the form's login sheet, then the same key again (no second entry). | §5.2 flow. |
+| Another person on the phone | Their reading copy is wiped (Session 13), their outbox entries stay, never sent with another login; This phone says "N changes from Papa's login are on this phone…". Logout wipes everything after the warning. | Owner choice 10 Oct ("up to you"). |
+| Phone's copy | A queued change is written into the phone's rows at once (`localApply.js`), so offline lists and pages show it; replaced by the server's row when it lands, put back on Discard. `meta.localChangedAt` makes those rows win over older saved replies. | Offline screens never hide your own change. |
+| Online-only buttons | `<Button needsInternet>`: delete, invite, bulk, money saves, document saves and uploads; greyed out with "Needs internet" under them when the phone is offline. | §5.2 table. |
+| Fix found while building | React Query paused every read once the browser said "offline" (networkMode 'online'), so screens opened after airplane mode was switched on stayed on "…". Now `networkMode: 'always'`; api() answers from the phone. | Session 13 bug, test in outboxUi.test.jsx. |
 
 ## Answers applied (8 Oct 2026)
 
