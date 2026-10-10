@@ -6,7 +6,6 @@
   "functions": {
     "api/php-bridge.js": {
       "includeFiles": "{api/*.php,api/src/**,node_modules/@libphp/*/native/{lib/**,php/modules/**,php/php,php/php.ini}}",
-      "memory": 1024,
       "maxDuration": 30
     }
   },
@@ -15,11 +14,7 @@
   ],
   "rewrites": [
     {
-      "source": "/api/v1/:path*",
-      "destination": "/api/php-bridge"
-    },
-    {
-      "source": "/api/:path*",
+      "source": "/api/(.*)",
       "destination": "/api/php-bridge"
     },
     {

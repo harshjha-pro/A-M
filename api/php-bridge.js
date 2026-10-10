@@ -49,7 +49,7 @@ function start() {
   const local = process.env.AM_PHP_BIN;
   const php = spawn(local || phpBinary(), [...(local ? [] : ['-c', phpIni()]), '-S', `127.0.0.1:${PORT}`, '-t', ROOT, path.join(__dirname, 'vercel.php')], {
     cwd: ROOT,
-    env: { ...process.env, LD_LIBRARY_PATH: `${path.join(PKG, 'lib')}:${process.env.LD_LIBRARY_PATH || ''}`, PHP_CLI_SERVER_WORKERS: '1' },
+    env: { ...process.env, LD_LIBRARY_PATH: `${path.join(PKG, 'lib')}:${process.env.LD_LIBRARY_PATH || ''}` },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   php.stdout.on('data', (d) => process.stdout.write(`php: ${d}`));
