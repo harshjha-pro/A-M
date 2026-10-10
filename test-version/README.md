@@ -23,4 +23,13 @@
 - **Install on the phone:** Android shows "Add to Home screen". On iPhone, open in Safari → Share → Add to Home Screen.
 - **Only use this exact address.** Other `….vercel.app` addresses Vercel shows won't let you log in.
 
-*Database and Vercel passwords are not in this file and never should be.*
+## Setting up the test database (only once)
+
+1. hPanel → MySQL Databases → create a test database and user.
+2. phpMyAdmin → Import [`sql/master_with_demo.sql`](../sql/master_with_demo.sql) (these demo logins come from it).
+3. hPanel → Remote MySQL → **Any Host** for that database.
+4. Vercel → am-wedding → Settings → Environment Variables → `DB_HOST` (website IP), `DB_NAME`, `DB_USER`, `DB_PASS`.
+
+More detail: [`docs/VERCEL.md`](../docs/VERCEL.md) · empty database instead: [`sql/master.sql`](../sql/master.sql)
+
+*Database and Vercel passwords are not in this folder and never should be.*
