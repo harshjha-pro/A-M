@@ -18,9 +18,9 @@
 //  8. Entries carry v: 1. A new shape means a migration here, never dropping entries.
 //  9. Each entry keeps one Idempotency-Key for every retry, so it is saved at most once.
 // 10. Only the person who made a change can send it (their login, their entry).
-import { useSyncExternalStore } from 'react';
 import { withDb } from './db.js';
 import { hasIndexedDb, setMeta } from './cache.js';
+import { ENTRY_VERSION, allEntries, refreshOutbox, setSending, getOutboxState, patchOutboxState, _resetOutboxStateForTests } from './outboxState.js';
 import { ruleFor, entityFor, placeholderId, hasPlaceholder, blockedReason } from './queueable.js';
 import { applyLocally, landLocally, revertLocally } from './localApply.js';
 import { api, newIdemKey } from '../api/client.js';
@@ -31,89 +31,15 @@ import {
 } from '../api/errors.js';
 import { t } from '../i18n/strings.en.js';
 
-export const ENTRY_VERSION = 1;
 export const EVERY_MS = 60 * 1000;
 export const BACKOFF_FIRST_MS = 15 * 1000;
 export const BACKOFF_MAX_MS = 5 * 60 * 1000;
+const FIRST_DELAY_MS = 1500;
 
-/* ------------------------------------------------------------ the store */
-
-const read = (fn, fallback) => (hasIndexedDb() ? withDb(fn).catch(() => fallback) : Promise.resolve(fallback));
-
-/** Every entry on this phone (all logins), oldest first. Old shapes are upgraded here. */
-export async function allEntries() {
-  const rows = await read((d) => d.getAll('outbox'), []);
-  return rows.map(upgrade).sort((a, b) => a.seq - b.seq);
-}
-
-/** Entries written by an older app: never dropped, only brought up to the current shape. */
-export function upgrade(e) {
-  const out = { ...e };
-  if (!out.v) { // before v: 1 there was no status or entity
-    out.v = ENTRY_VERSION;
-    out.status = out.status || 'pending';
-    out.attempted = Boolean(out.attempted);
-  }
-  if (!out.entity) {
-    const rule = ruleFor(out.method, out.path);
-    out.entity = rule ? entityFor(rule, out.key) : out.path;
-  }
-  if (out.status === undefined) out.status = 'pending';
-  return out;
-}
+export { ENTRY_VERSION, allEntries, upgrade, refreshOutbox, getOutboxState, summarise, useOutbox, useWaiting } from './outboxState.js';
 
 const putEntry = (e) => withDb((d) => d.put('outbox', e));
 const deleteEntry = (key) => withDb((d) => d.delete('outbox', key));
-
-/* --------------------------------------------------------- live state */
-
-let state = { entries: [], sending: false, nextTryAt: 0 };
-const subs = new Set();
-const emit = () => subs.forEach((fn) => fn());
-
-/** Re-reads the store and tells the screens. */
-export async function refreshOutbox() {
-  state = { ...state, entries: await allEntries() };
-  emit();
-  return state.entries;
-}
-
-function setSending(sending) {
-  if (state.sending === sending) return;
-  state = { ...state, sending };
-  emit();
-}
-
-export function getOutboxState() {
-  return state;
-}
-
-/** { mine, waiting, needsYou, others, sending, pendingEntities } for the signed-in person. */
-export function summarise(s, userId) {
-  const mine = s.entries.filter((e) => e.userId === userId);
-  const others = s.entries.filter((e) => e.userId !== userId);
-  const byOwner = new Map();
-  for (const e of others) byOwner.set(e.userId, { name: e.userName || '', count: (byOwner.get(e.userId)?.count ?? 0) + 1 });
-  return {
-    mine,
-    waiting: mine.filter((e) => e.status === 'pending').length,
-    needsYou: mine.filter((e) => e.status !== 'pending').length,
-    others: [...byOwner.values()],
-    sending: s.sending,
-    pendingEntities: new Set(mine.map((e) => e.entity)),
-  };
-}
-
-export function useOutbox() {
-  const s = useSyncExternalStore((fn) => { subs.add(fn); return () => subs.delete(fn); }, () => state, () => state);
-  return summarise(s, getState().user?.id ?? null);
-}
-
-/** Is this record (or something inside it, like an invitation) waiting to be sent? 🕒 on rows and screens. */
-export function useWaiting(entity) {
-  const { mine } = useOutbox();
-  return Boolean(entity) && mine.some((e) => e.entity === entity || e.entity.startsWith(`${entity}/`));
-}
 
 /* ------------------------------------------------------------- saving */
 
@@ -273,7 +199,7 @@ const RETRY = (err) => err instanceof OfflineError || err instanceof ServerError
 async function drain(force) {
   const user = getState().user;
   if (!user || getState().status !== 'in') return;
-  if (!force && Date.now() < state.nextTryAt) return;
+  if (!force && Date.now() < getOutboxState().nextTryAt) return;
   if (typeof navigator !== 'undefined' && navigator.onLine === false) return;
   if (!getCsrfToken()) {
     // Opened with no internet: the login is checked first (it brings the CSRF token).
@@ -310,7 +236,7 @@ async function sendOne(e, entries) {
   try {
     const res = await api(e.method, e.path, { body: e.body, ifMatch: typeof e.ifMatch === 'number' ? e.ifMatch : undefined, idemKey: e.key });
     failures = 0;
-    state = { ...state, nextTryAt: 0 };
+    patchOutboxState({ nextTryAt: 0 });
     await landed(e, res, entries);
     const [wk, w] = waiterFor(e);
     if (w) { dropWaiter(wk); w.resolve(res); }
@@ -347,7 +273,7 @@ async function failed(e, err) {
   if (RETRY(err)) {
     failures += 1;
     const wait = Math.min(BACKOFF_FIRST_MS * 2 ** (failures - 1), BACKOFF_MAX_MS);
-    state = { ...state, nextTryAt: Date.now() + wait };
+    patchOutboxState({ nextTryAt: Date.now() + wait });
     return true; // no internet / server trouble: everything waits, nothing is lost
   }
   if (err instanceof UpdateRequiredError) return true; // the update prompt is showing; entries are kept for the new app
@@ -508,11 +434,16 @@ export function startOutboxLoop() {
   const go = (force) => () => { refreshOutbox().then((list) => { if (list.some((e) => e.userId === getState().user?.id && e.status === 'pending')) flushOutbox({ force }); }); };
   const onOnline = go(true);
   const onVisible = () => { if (document.visibilityState === 'visible') go(false)(); };
-  go(true)();
+  // The first look waits until the page has loaded, so it never slows the first screen.
+  let first = null;
+  const begin = () => { first = setTimeout(go(true), FIRST_DELAY_MS); };
+  if (document.readyState === 'complete') begin(); else window.addEventListener('load', begin, { once: true });
   window.addEventListener('online', onOnline);
   document.addEventListener('visibilitychange', onVisible);
   const timer = setInterval(() => { if (document.visibilityState === 'visible') go(false)(); }, EVERY_MS);
   return () => {
+    clearTimeout(first);
+    window.removeEventListener('load', begin);
     window.removeEventListener('online', onOnline);
     document.removeEventListener('visibilitychange', onVisible);
     clearInterval(timer);
@@ -521,7 +452,7 @@ export function startOutboxLoop() {
 
 /** Tests only. */
 export function _resetOutboxForTests() {
-  state = { entries: [], sending: false, nextTryAt: 0 };
+  _resetOutboxStateForTests();
   failures = 0;
   flushing = null;
   again = false;

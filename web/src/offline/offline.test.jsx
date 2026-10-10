@@ -125,14 +125,14 @@ describe('Sync fills the phone', () => {
     fakeApi({ 'GET /sync': () => syncPage({ households: [family()] }) });
     expect(await canWait(PEOPLE.ayush.id)).toBe(false); // nothing on the phone yet
     const stop = startSyncLoop(PEOPLE.ayush.id);
-    await waitFor(async () => expect(await getRecords('households')).toHaveLength(1), { timeout: 4000 });
+    await waitFor(async () => expect(await getRecords('households')).toHaveLength(1), { timeout: 9000 });
     stop();
     const calls = () => globalThis.fetch.mock.calls.filter((c) => String(c[0]).includes('/sync')).length;
     expect(calls()).toBe(1);
     expect(await canWait(PEOPLE.ayush.id)).toBe(true); // a page reload now waits
     expect(await canWait(PEOPLE.ayush.id, Date.now() + MIN_GAP_MS)).toBe(false); // a minute later it syncs
     expect(await canWait(PEOPLE.papa.id)).toBe(false); // someone else on this phone
-  }, 8000);
+  }, 15000);
 });
 
 describe('Reading without internet', () => {

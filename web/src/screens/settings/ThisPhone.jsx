@@ -14,7 +14,7 @@ import { storageInfo, askToKeepData } from '../../pwa/persist.js';
 import { formatBytes } from '../../data/documents.js';
 import { cacheSummary } from '../../offline/cache.js';
 import { fromLabel } from '../../offline/OfflineBanner.jsx';
-import { useOutbox, refreshOutbox } from '../../offline/outbox.js';
+import { useOutbox, refreshOutbox } from '../../offline/save.js';
 import { t } from '../../i18n/strings.en.js';
 
 const APP_VERSION = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0.0.0';

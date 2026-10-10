@@ -8,7 +8,7 @@ import Button from '../../components/Button.jsx';
 import SavedIndicator from '../../components/SavedIndicator.jsx';
 import ConfirmDialog from '../../components/ConfirmDialog.jsx';
 import { countDrafts } from '../../forms/drafts.js';
-import { useOutbox, refreshOutbox, flushOutbox } from '../../offline/outbox.js';
+import { useOutbox, refreshOutbox, flushOutbox } from '../../offline/save.js';
 import { useOnline } from '../../offline/useOnline.js';
 import { api } from '../../api/client.js';
 import { ValidationError, ConflictError } from '../../api/errors.js';

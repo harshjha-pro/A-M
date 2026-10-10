@@ -11,7 +11,7 @@ import EmptyState from '../../components/EmptyState.jsx';
 import { Notice } from '../../components/Field.jsx';
 import { api, newIdemKey } from '../../api/client.js';
 import { withRelogin } from '../../api/auth.js';
-import { saveViaOutbox } from '../../offline/outbox.js';
+import { saveViaOutbox } from '../../offline/save.js';
 import WaitingMark from '../../components/WaitingMark.jsx';
 import { useSession } from '../../api/session.js';
 import { showUndo, showToast } from '../../undo/undoStore.js';

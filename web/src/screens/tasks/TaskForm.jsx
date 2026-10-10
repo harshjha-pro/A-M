@@ -13,7 +13,7 @@ import SavedIndicator from '../../components/SavedIndicator.jsx';
 import DraftBanner from '../../components/DraftBanner.jsx';
 import ConflictScreen from '../../components/ConflictScreen.jsx';
 import { api } from '../../api/client.js';
-import { saveViaOutbox } from '../../offline/outbox.js';
+import { saveViaOutbox } from '../../offline/save.js';
 import { DuplicateError } from '../../api/errors.js';
 import { useSession } from '../../api/session.js';
 import { useEntityForm } from '../../forms/useEntityForm.js';

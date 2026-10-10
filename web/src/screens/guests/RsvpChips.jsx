@@ -2,7 +2,7 @@
 // own version; if someone changed it first, an inline choice (B5 "Two editing").
 import { useState } from 'react';
 import { newIdemKey } from '../../api/client.js';
-import { saveViaOutbox } from '../../offline/outbox.js';
+import { saveViaOutbox } from '../../offline/save.js';
 import { withRelogin } from '../../api/auth.js';
 import { ConflictError } from '../../api/errors.js';
 import { showToast } from '../../undo/undoStore.js';

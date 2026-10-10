@@ -3,7 +3,7 @@
 // Plain words only: no "sync", "queue" or "server" (DESIGN §8).
 import { Link } from 'react-router-dom';
 import { Clock, TriangleAlert } from 'lucide-react';
-import { useOutbox, flushOutbox } from './outbox.js';
+import { useOutbox, flushOutbox } from './save.js';
 import { useOnline } from './useOnline.js';
 import { t } from '../i18n/strings.en.js';
 

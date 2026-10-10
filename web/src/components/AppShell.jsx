@@ -16,7 +16,7 @@ import { askToKeepData } from '../pwa/persist.js';
 import OfflineBanner from '../offline/OfflineBanner.jsx';
 import { startSyncLoop } from '../offline/sync.js';
 import OutboxBar from '../offline/OutboxBar.jsx';
-import { startOutboxLoop } from '../offline/outbox.js';
+import { startOutboxLoop } from '../offline/save.js';
 import { useSession } from '../api/session.js';
 
 export default function AppShell() {

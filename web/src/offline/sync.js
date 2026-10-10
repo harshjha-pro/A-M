@@ -6,7 +6,7 @@ import { getMeta, setMeta, putRecords, deleteRecords, clearRecords, pruneRecords
 
 export const EVERY_MS = 5 * 60 * 1000;
 export const MIN_GAP_MS = 60 * 1000;   // at most one sync a minute (the server allows 30 per 5 min)
-const FIRST_DELAY_MS = 2000;          // the first screen draws first
+const FIRST_DELAY_MS = 6000;          // the first screen settles first (Lighthouse: a sync 2 s after load cost ~2 points)
 const LAST_KEY = 'am.syncStartedAt.';
 
 /** When this phone last started a sync for this person — kept across page loads (never throws). */
@@ -125,7 +125,8 @@ export function startSyncLoop(userId) {
     runSync(userId);
   };
   let first = null;
-  const begin = () => { first = setTimeout(() => go(), FIRST_DELAY_MS); };
+  const idle = (fn) => (typeof requestIdleCallback === 'function' ? requestIdleCallback(fn, { timeout: 3000 }) : fn());
+  const begin = () => { first = setTimeout(() => idle(() => go()), FIRST_DELAY_MS); };
   if (document.readyState === 'complete') begin(); else window.addEventListener('load', begin, { once: true });
   const onOnline = () => go(true);
   const onVisible = () => { if (document.visibilityState === 'visible') go(); };
