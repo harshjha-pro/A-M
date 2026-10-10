@@ -1,0 +1,12 @@
+# Vercel TEST hosting (docs/VERCEL.md): only what the build and the PHP function need.
+api/vendor
+api/tests
+web/node_modules
+web/dist
+web/dist-live
+web/dist-staging
+web/test-results
+releases
+db/dev
+*.zip
+.env
