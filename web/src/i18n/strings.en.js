@@ -735,6 +735,16 @@ export const strings = {
     stuckTitle: 'App looks old or stuck?',
     stuckText: 'Fix the app clears the app files on this phone and opens the newest version. Your login and anything waiting to be sent are kept.',
   },
+  offline: {
+    banner: 'No internet · from {when}',
+    bannerNoData: 'No internet',
+    notCached: 'Open this once with internet to see it offline.',
+    needsInternet: 'Needs internet. Search by name and the main chips work offline.',
+    data: 'Saved on this phone',
+    dataLine: '{families} families · {tasks} tasks · {events} events · {vendors} vendors · {documents} documents',
+    lastSync: 'Last updated',
+    never: 'Not yet',
+  },
   update: {
     available: 'New version available.',
     forced: 'Please refresh to keep saving. Your typing is kept.',

@@ -12,6 +12,8 @@ import { deviceLabel, isIOS, isStandalone } from '../../pwa/platform.js';
 import { getSwState, subscribeSw } from '../../pwa/swClient.js';
 import { storageInfo, askToKeepData } from '../../pwa/persist.js';
 import { formatBytes } from '../../data/documents.js';
+import { cacheSummary } from '../../offline/cache.js';
+import { fromLabel } from '../../offline/OfflineBanner.jsx';
 import { t } from '../../i18n/strings.en.js';
 
 const APP_VERSION = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0.0.0';
@@ -20,7 +22,8 @@ const BUILT_AT = typeof __BUILT_AT__ !== 'undefined' ? __BUILT_AT__ : '';
 export default function ThisPhone() {
   const sw = useSyncExternalStore(subscribeSw, getSwState, getSwState);
   const [store, setStore] = useState(null);
-  useEffect(() => { storageInfo().then(setStore); }, []);
+  const [copy, setCopy] = useState(null);
+  useEffect(() => { storageInfo().then(setStore); cacheSummary().then(setCopy); }, []);
 
   const offline = !('serviceWorker' in navigator) ? t('phone.offlineNo') : sw.failed ? t('phone.offlineFailed') : sw.registered ? t('phone.offlineOn') : t('phone.offlineOff');
   const rows = [
@@ -30,6 +33,8 @@ export default function ThisPhone() {
     [t('phone.offline'), offline],
     [t('phone.kept'), store === null ? '…' : store.persisted ? t('phone.keptYes') : t('phone.keptNo')],
     [t('phone.space'), store?.usage != null ? formatBytes(store.usage) : '—'],
+    [t('offline.data'), copy ? t('offline.dataLine', { families: copy.households, tasks: copy.tasks, events: copy.events, vendors: copy.vendors, documents: copy.documents }) : '…'],
+    [t('offline.lastSync'), copy?.lastSyncedAt ? fromLabel(copy.lastSyncedAt) : t('offline.never')],
   ];
   return (
     <Screen title={t('phone.title')} back="/settings">

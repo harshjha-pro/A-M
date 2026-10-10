@@ -17,6 +17,10 @@ import { toCamel, toSnake, toSnakeKey, camelPath } from './case.js';
 import { getCsrfToken, getState, askToLogin, clearSession } from './session.js';
 import { deviceLabel } from '../pwa/platform.js';
 import { setForcedUpdate, versionGreater } from '../pwa/updateState.js';
+import { offlineAnswer, rememberReply } from '../offline/answer.js';
+import { t } from '../i18n/strings.en.js';
+import { markOffline, markOnline } from '../offline/state.js';
+import { currentGeneration } from '../offline/cache.js';
 import {
   ApiError, OfflineError, TimeoutError, AuthError, ForbiddenError, NotFoundError,
   ConflictError, DeletedError, DuplicateError, InProgressError, ValidationError,
@@ -54,6 +58,7 @@ function buildUrl(path, query) {
 export async function api(method, path, opts = {}) {
   const m = method.toUpperCase();
   const isWrite = WRITE_METHODS.has(m);
+  const gen = currentGeneration(); // the phone's copy at the start: a reply after a logout isn't kept
   const idempotent = opts.idempotent !== false;
   const idemKey = isWrite && idempotent ? (opts.idemKey || newIdemKey()) : null;
 
@@ -83,15 +88,25 @@ export async function api(method, path, opts = {}) {
   const onAbort = () => controller.abort();
   opts.signal?.addEventListener('abort', onAbort);
 
+  // No internet at all: a read goes straight to the phone's copy (no 15 s wait).
+  if (m === 'GET' && typeof navigator !== 'undefined' && navigator.onLine === false && !opts.signal?.aborted) {
+    clearTimeout(timer);
+    opts.signal?.removeEventListener('abort', onAbort);
+    return fromPhone(path, opts.query, new OfflineError('No internet connection.', { code: 'offline', idemKey }));
+  }
+
   let res;
   try {
     res = await fetch(buildUrl(path, opts.query), {
       method: m, headers, body, credentials: 'same-origin', cache: 'no-store', signal: controller.signal,
     });
   } catch (e) {
-    if (timedOut) throw new TimeoutError('No reply from the server in time.', { code: 'timeout', idemKey });
-    if (opts.signal?.aborted) throw e; // the caller cancelled on purpose
-    throw new OfflineError('No internet connection.', { code: 'offline', idemKey });
+    if (opts.signal?.aborted && !timedOut) throw e; // the caller cancelled on purpose
+    const err = timedOut
+      ? new TimeoutError('No reply from the server in time.', { code: 'timeout', idemKey })
+      : new OfflineError('No internet connection.', { code: 'offline', idemKey });
+    if (m === 'GET') return fromPhone(path, opts.query, err);
+    throw err;
   } finally {
     clearTimeout(timer);
     opts.signal?.removeEventListener('abort', onAbort);
@@ -108,9 +123,13 @@ export async function api(method, path, opts = {}) {
     if (isEnvelope && json.ok !== true) {
       throw new ServerError('Unexpected reply from the server.', { status: res.status, code: 'bad_reply', idemKey });
     }
+    const data = toCamel(isEnvelope ? json.data : json);
+    const meta = toCamel(isEnvelope ? json.meta ?? {} : {});
+    markOnline();
+    if (m === 'GET' && isEnvelope) rememberReply(path, opts.query, data, meta, gen).catch(() => {}); // the phone's copy for later
     return {
-      data: toCamel(isEnvelope ? json.data : json),
-      meta: toCamel(isEnvelope ? json.meta ?? {} : {}),
+      data,
+      meta,
       status: res.status,
       etag: res.headers.get('ETag'),
       replayed: res.headers.get('Idempotent-Replayed') === 'true',
@@ -202,6 +221,19 @@ export function upload(path, fields, opts = {}) {
     };
     xhr.send(form);
   });
+}
+
+/**
+ * A read with no internet: the phone's copy with its age (meta.offline, meta.savedAt), or
+ * "Open this once with internet to see it offline." — never a made-up answer (PWA §5.1).
+ */
+async function fromPhone(path, query, err) {
+  const ans = await offlineAnswer(path, query, getState().user);
+  if (!ans) {
+    throw new OfflineError(t('offline.notCached'), { code: 'not_cached', idemKey: err.idemKey });
+  }
+  markOffline(ans.from);
+  return { data: ans.data, meta: { ...ans.meta, offline: true, savedAt: ans.from }, status: 200, etag: null, replayed: false, idemKey: null, offline: true };
 }
 
 function toError(res, json, idemKey) {

@@ -29,3 +29,13 @@ export function watchProblems(page) {
   page.on('pageerror', (e) => problems.push(String(e)));
   return problems;
 }
+
+/** The page is under the service worker (the first load never is: no clients.claim, on purpose). */
+export async function swControlled(page) {
+  await page.waitForFunction(async () => (await navigator.serviceWorker.getRegistration())?.active?.state === 'activated', null, { timeout: 20000 });
+  for (let i = 0; i < 3; i += 1) {
+    await page.reload();
+    if (await page.waitForFunction(() => Boolean(navigator.serviceWorker.controller), null, { timeout: 5000 }).then(() => true, () => false)) return;
+  }
+  throw new Error('page never came under the service worker');
+}

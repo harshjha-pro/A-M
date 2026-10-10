@@ -1,18 +1,36 @@
 // Log in / out and the session refresh. Everything goes through api().
 import { api } from './client.js';
-import { AuthError } from './errors.js';
+import { AuthError, OfflineError, TimeoutError } from './errors.js';
 import { applySession, clearSession, askToLogin, setCsrfToken, getState } from './session.js';
+import { ensureUser, getMeta, setMeta, wipe } from '../offline/cache.js';
+import { markOffline } from '../offline/state.js';
 
-/** GET /session: who am I (also keeps the 90-day login alive). */
+/**
+ * GET /session: who am I (also keeps the 90-day login alive). With no internet the app
+ * opens as the person who last used it on this phone, showing the phone's copy (PWA §5.1);
+ * the server checks the login for real as soon as the internet is back.
+ */
 export async function loadSession() {
   try {
     const res = await api('GET', '/session');
     applySession(res.data);
+    await ensureUser(res.data.user?.id); // someone else's copy is wiped before anything is shown
+    const { csrfToken: _c, ...who } = res.data;
+    await setMeta('lastSession', { ...who, savedAt: new Date().toISOString() });
     return res.data;
   } catch (e) {
     if (e instanceof AuthError) {
       clearSession(e.details?.reason ?? null);
       return null;
+    }
+    if (e instanceof OfflineError || e instanceof TimeoutError) {
+      const saved = await getMeta('lastSession');
+      if (saved?.user) {
+        applySession({ ...saved, csrfToken: null });
+        markOffline((await getMeta('lastSyncedAt')) ?? saved.savedAt);
+        window.addEventListener('online', () => { loadSession().catch(() => {}); }, { once: true });
+        return saved;
+      }
     }
     throw e;
   }
@@ -31,11 +49,11 @@ export const setupOwner = (body) => signIn('POST', '/setup/owner', body);
 export const completeLink = (token, newPassword) => signIn('POST', '/auth/password-link/complete', { token, newPassword });
 
 export async function logout() {
-  try { await api('POST', '/auth/logout', { idempotent: false }); } finally { clearSession(); }
+  try { await api('POST', '/auth/logout', { idempotent: false }); } finally { clearSession(); await wipe(); } // nothing of theirs stays on the phone
 }
 
 export async function logoutEverywhere() {
-  try { await api('POST', '/auth/logout-all', { idempotent: false }); } finally { clearSession(); }
+  try { await api('POST', '/auth/logout-all', { idempotent: false }); } finally { clearSession(); await wipe(); }
 }
 
 export async function changePassword(currentPassword, newPassword, idemKey) {
