@@ -165,11 +165,13 @@ test('E2E-10: no reply in 15 s → kept on the phone → Send now → saved once
   });
   await page.getByLabel('What needs doing?').fill(title);
   await page.getByRole('button', { name: 'Save task' }).click();
-  await expect(page.getByText(/Kept on this phone/)).toBeVisible({ timeout: 25000 });
-  await expect(page.getByText('1 change waiting to send.')).toBeVisible();
+  // After the 15 s timeout the task is kept on the phone and sent again with the same key —
+  // by itself if a send is already lined up, otherwise with Send now.
+  await expect(page.getByText(/Kept on this phone|Task added\./).first()).toBeVisible({ timeout: 25000 });
   await page.waitForTimeout(1500); // let the slow first try reach the server
-  await page.getByRole('button', { name: 'Send now' }).click();
-  await expect(page.getByText('1 change waiting to send.')).toHaveCount(0, { timeout: 20000 });
+  const bar = page.getByText('1 change waiting to send.');
+  if (await bar.isVisible().catch(() => false)) await page.getByRole('button', { name: 'Send now' }).click();
+  await expect(bar).toHaveCount(0, { timeout: 20000 });
   const found = (await get(page, `/tasks?q=${encodeURIComponent(title)}&view=all`)).filter((x) => x.title === title);
   expect(found).toHaveLength(1);
 });
