@@ -28,7 +28,7 @@ use AM\Validation\Fields;
  */
 final class MembersController
 {
-    private const ROLE_ORDER = "FIELD(role, 'owner', 'partner', 'family', 'viewer')";
+    public const ROLE_ORDER = "FIELD(role, 'owner', 'partner', 'family', 'viewer')";
 
     /** GET /members */
     public static function list(Request $request, App $app, array $params): Response

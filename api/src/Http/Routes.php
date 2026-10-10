@@ -35,6 +35,7 @@ use AM\Modules\History\HistoryController;
 use AM\Modules\Safety\RestoreDrillDef;
 use AM\Modules\Safety\SafetyController;
 use AM\Modules\Setup\SetupController;
+use AM\Modules\Sync\SyncController;
 use AM\Modules\Trash\TrashController;
 use AM\Modules\Undo\UndoController;
 use AM\Modules\Tasks\TagDef;
@@ -188,6 +189,9 @@ final class Routes
         $r->add('PATCH', '/documents/{id}', DocumentsController::update(...));
         $r->add('GET', '/documents/{id}/file', DocumentsController::file(...), ['query' => ['download']]);
         $r->add('DELETE', '/documents/{id}', static fn (Request $q, App $a, array $p) => BaseController::delete($q, $a, $p, DocumentDef::class, DocumentsController::canWrite()));
+        // Offline cache (Session 13, API.md §9.2)
+        $r->add('GET', '/sync', SyncController::sync(...), ['query' => SyncController::QUERY]);
+
         // Full export (Session 11, API.md §9.1)
         $r->add('POST', '/exports', ExportsController::create(...), ['on_replay' => ExportsController::createReplay(...)]);
         $r->add('GET', '/exports', ExportsController::list(...));
