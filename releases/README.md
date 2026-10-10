@@ -7,3 +7,8 @@
 - `README-MASTER.txt` — what is inside and how to use it
 
 Built with `tools/make-master-zip.sh 13 <out>`. All tests green (see `TEST-REPORT.md`).
+
+Also here for Session 13:
+
+- `project-source-session13.zip` — the source code only
+- `deploy-session13.zip` — the upload packages only (`staging/`, `live/`, `RELEASE-NOTES.md`, `TEST-REPORT.md`)
