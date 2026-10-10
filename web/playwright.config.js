@@ -1,14 +1,19 @@
-// Playwright (TESTING §1.8). Session 1: smoke journeys on phone-sized Chromium.
+// Playwright (TESTING §1.8): journeys on phone-sized Chromium, against staging demo data (seed_demo.sql).
 // These are NOT Safari: iPhone behaviour is checked on a real iPhone (§1.8.3).
 // The server (php -S + tools/router.php on a staging site folder) is started by tools/test-e2e.sh.
 import { defineConfig, devices } from '@playwright/test';
 
-const BASE = process.env.AM_E2E_BASE || 'http://127.0.0.1:8083';
+// localhost (not 127.0.0.1): browsers accept the Secure __Host- login cookie on http://localhost.
+const BASE = process.env.AM_E2E_BASE || 'http://localhost:8083';
+// Let routing see requests a service worker makes (Chromium). Without it a blocked network
+// still reaches the server through the worker, and the offline checks would prove nothing.
+process.env.PW_EXPERIMENTAL_SERVICE_WORKER_NETWORK_EVENTS ??= '1';
 
 export default defineConfig({
   testDir: './e2e',
   timeout: 30_000,
   retries: 0,
+  workers: 1, // one shared demo database: journeys run one after another
   reporter: [['list']],
   use: {
     baseURL: BASE,
@@ -16,8 +21,9 @@ export default defineConfig({
     screenshot: 'only-on-failure',
   },
   projects: [
-    { name: 'android', use: { ...devices['Pixel 7'], viewport: { width: 412, height: 915 } } },
-    { name: 'small-iphone', use: { ...devices['iPhone SE'], browserName: 'chromium', defaultBrowserType: 'chromium' } },
-    { name: 'small-android', use: { ...devices['Galaxy S9+'], viewport: { width: 360, height: 740 } } },
+    // Each phone gets its own address (tools/test-e2e.sh trusts X-Forwarded-For), like real phones on different networks.
+    { name: 'android', use: { ...devices['Pixel 7'], viewport: { width: 412, height: 915 }, extraHTTPHeaders: { 'X-Forwarded-For': '198.51.100.11' } } },
+    { name: 'small-iphone', use: { ...devices['iPhone SE'], browserName: 'chromium', defaultBrowserType: 'chromium', extraHTTPHeaders: { 'X-Forwarded-For': '198.51.100.12' } } },
+    { name: 'small-android', use: { ...devices['Galaxy S9+'], viewport: { width: 360, height: 740 }, extraHTTPHeaders: { 'X-Forwarded-For': '198.51.100.13' } } },
   ],
 });

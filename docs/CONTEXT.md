@@ -74,6 +74,7 @@ Design for the 3/5 user: one main action per screen, words beside icons.
 | 37 | Each member sets reminders on/off per phone and email fallback. **No quiet hours**; reminders are scheduled for daytime (9 AM IST, to confirm). Test button sends at once. | Owner's answer; failures are visible. |
 | 38 | All phone testing on an HTTPS staging subdomain with its own database and demo data. | Install, offline and push need HTTPS; real guest data stays out of tests. |
 | 39 | Supported phones: made 2020 or later. iPhone SE (2nd gen) / iPhone 12 and newer on iOS 17+ (all can run iOS 26); Android 10+ with current Chrome. Older phones: not supported. | Owner's answer. Every supported iPhone can get reminders once updated. |
+| 40 | Screens say "Coming?" and "Remind on WhatsApp", never "RSVP" (plain words, DESIGN §8). WhatsApp Hinglish texts are Hindi in Roman letters until Open Question 7 is answered. | Session 8. Elders read Roman Hinglish on WhatsApp more often than English. |
 
 ## 5. Out of scope for v1
 
@@ -139,9 +140,11 @@ Design for the 3/5 user: one main action per screen, words beside icons.
 | Charset | `utf8mb4` / `utf8mb4_unicode_ci` everywhere (Hindi, emoji) |
 | Database design | `DATABASE.md` (tables, rules for PHP, migrations) |
 | API paths | `/api/v1/<resource>`; reply `{ok, data, meta}` or `{ok:false, error:{code, message, fields}, meta}`. Full contract: `API.md` |
-| Uploads | Outside `public_html`: `uploads/YYYY/MM/<uuid>.<ext>`; original name in DB; served by an authenticated endpoint |
+| Offline reading | IndexedDB `am-wedding` (records from `GET /sync` + saved GET replies), refreshed on open, return, back online and every 5 min. Offline screens always show "No internet · from …". Logout or a different person wipes it. Saving offline: Session 14 (outbox) |
+| App updates | Service worker `/sw.js` (Workbox, precached shell; `/api/*` never cached). New version only via "Tap to refresh" (never automatic, never over unsaved typing). **Deploy order: 1-server → 2-assets → 3-shell → `version.json` last; keep old `assets/` 14 days.** Escape hatch: `/reset.html` (Settings → This phone → Fix the app) |
+| Uploads | Outside `public_html` (`STORAGE_ROOT/uploads/YYYY/MM/<uuid>.<ext>`, deny-all `.htaccess`); original name in DB; served only by `GET /api/v1/documents/{id}/file` (`private, no-store`). Photos shrunk on the phone (1,600 px JPEG, EXIF gone); max 10 MB; PHP `upload_max_filesize` 12M / `post_max_size` 16M set in hPanel. Staging ships demo files for the demo seed (`tools/make-demo-files.py`), live never |
 | Backups | `wedding_YYYYMMDD_HHMM.sql.gz.enc` |
-| Exports | `wedding-export_YYYY-MM-DD.zip` |
+| Exports | `wedding-export_YYYY-MM-DD.zip` (parts 2…n: `_files-partN.zip` above 200 MB). Snapshot folder `STORAGE_ROOT/exports/<id>/`, ZIP built while it downloads by our own `ZipWriter` (no third-party PHP packages on the server). Link valid 24 h (session or `?t=` token). No passwords or login keys inside. Restore: `private/app/tools/restore-from-export.php` (DATA-SAFETY §2.1) |
 | Secrets | `.env` outside web root; never in Git or frontend |
 
 ## 9. Open Questions
@@ -153,6 +156,6 @@ Design for the 3/5 user: one main action per screen, words beside icons.
 10. **PWA.md Open Questions 1–3:** icon draft OK? minimum iOS 17 or latest only? reminders at 9 AM IST?
 5. **Events:** date, time and venue of each. (Roka and Mayra answered: decisions 23–24.)
 6. **Login:** password or 4–6 digit PIN for elders?
-7. **Language:** "Hinglish" = Hindi in Roman letters, or Devanagari?
+7. **Language:** "Hinglish" = Hindi in Roman letters, or Devanagari? (Until answered: Roman letters, decision 40.)
 8. **Total budget:** a figure now, or blank?
 9. **Rooms:** hotel list. (`planner@lumorrahouse.com` approved 8 Oct; member emails added by admins later.)

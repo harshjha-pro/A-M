@@ -203,13 +203,21 @@ Each layer covers what the layer above can't. If one fails, the next one still h
 
 Do it right after the restore drill (§4), same day.
 
-1. Open the app as Ayush or Mahi → **Settings → Export → Make a full export**.
-2. Wait for "Ready". Tap **Download** (part 1, then part 2 if shown). The link works for 24 hours (API §9.1).
+1. Open the app as Ayush or Mahi → **Settings → Export everything → Export everything → Export**.
+2. Wait for "Export ready". Tap **Download** (part 1, then part 2 if shown). On iPhone: Share → Save to Files. The link works for 24 hours (API §9.1).
 3. Upload the ZIP(s) to Google Drive → `A&M Wedding / exports /`. Keep the name `wedding-export_YYYY-MM-DD.zip`.
 4. Open the ZIP once on a computer and open `summary.html`. You should see the families and payments.
 5. Delete the ZIP from the phone's Downloads (it holds every guest's phone number).
 
 The export is **not encrypted**. Keep that Drive folder unshared, and keep 2FA on both Google accounts (§7).
+
+**If everything else is gone (hosting lost, backups lost):** the export alone rebuilds the app on any PHP + MySQL host.
+1. New database → import `db/migrations/*.sql` in order (phpMyAdmin → Import).
+2. Unzip every part of the export into one folder on the server.
+3. SSH: `php private/app/tools/restore-from-export.php --export=<that folder> --env=private/.env --files`
+   → it refuses a database that already has people in it; otherwise loads every row in one go and copies the photos and PDFs back (checked by SHA-256).
+4. Passwords are never in an export: each person gets a new one (the owner first, via the break-glass steps in §7.3).
+Tested every session by DS-22 (TESTING §1.4).
 
 ---
 

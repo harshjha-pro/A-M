@@ -4,6 +4,7 @@ Options -Indexes
 DirectoryIndex index.html
 AddDefaultCharset utf-8
 AddType application/manifest+json .webmanifest
+AddType application/vnd.openxmlformats-officedocument.spreadsheetml.sheet .xlsx
 
 RewriteEngine On
 
@@ -33,6 +34,12 @@ RewriteCond %{REQUEST_URI} !^/(api|assets|icons|install-guide|splash|templates|p
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteRule ^ index.html [L]
 
+# 6. Compress the app's text files (≈ 300 KB of JavaScript → ≈ 100 KB). LiteSpeed reads this too.
+#    Static files only: API replies are not compressed, because some carry the CSRF token (BREACH).
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/css text/javascript application/javascript application/manifest+json image/svg+xml
+</IfModule>
+
 <IfModule mod_headers.c>
   Header always set Strict-Transport-Security "max-age=31536000"
   Header always set X-Content-Type-Options "nosniff"
@@ -51,7 +58,7 @@ RewriteRule ^ index.html [L]
   </FilesMatch>
 
   # These decide which version runs: always ask the server
-  <FilesMatch "^(index\.html|sw\.js|manifest\.webmanifest|version\.json|reset\.html|reset\.js)$">
+  <FilesMatch "^(index\.html|sw\.js|manifest\.webmanifest|version\.json|reset\.html|reset\.js|reset\.css)$">
     Header set Cache-Control "no-cache"
   </FilesMatch>
 </IfModule>

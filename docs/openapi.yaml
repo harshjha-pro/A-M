@@ -500,6 +500,21 @@ paths:
         '200': { $ref: '#/components/responses/Deleted' }
         '409': { $ref: '#/components/responses/Conflict' }
         default: { $ref: '#/components/responses/Error' }
+  /restore-drills/{id}/restore:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    post:
+      tags: [Trash]
+      operationId: restoreRestoreDrill
+      summary: Restore a deleted drill entry (same as the shared Restore path item)
+      x-permission: Adm
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IfMatch' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      responses:
+        '200': { $ref: '#/components/responses/RestoreDrillOne' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+        default: { $ref: '#/components/responses/Error' }
 
   # ---------------------------------------------------------------- Dashboard & calendar
   /dashboard:
@@ -675,7 +690,24 @@ paths:
                           payments: { type: integer }
                           documents: { type: integer }
         default: { $ref: '#/components/responses/Error' }
-  /events/{id}/restore: { $ref: '#/components/pathItems/Restore' }
+  /events/{id}/restore:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    post:
+      tags: [Trash]
+      operationId: restoreEvent
+      summary: Restore a deleted event with its same-batch invitations (same as the shared Restore path item)
+      x-permission: Adm
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IfMatch' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      responses:
+        '200':
+          description: Restored event
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Ok' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        default: { $ref: '#/components/responses/Error' }
 
   # ---------------------------------------------------------------- Tasks
   /tasks:
@@ -778,7 +810,25 @@ paths:
         '200': { $ref: '#/components/responses/TaskOne' }
         '409': { $ref: '#/components/responses/Conflict' }
         default: { $ref: '#/components/responses/Error' }
-  /tasks/{id}/restore: { $ref: '#/components/pathItems/Restore' }
+  /tasks/{id}/restore:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    post:
+      tags: [Trash]
+      operationId: restoreTask
+      summary: Restore a deleted record and its same-batch children (same as the shared Restore path item)
+      x-permission: Adm
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IfMatch' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      responses:
+        '200':
+          description: Restored task with checklist, assignees and tags
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Ok' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+        default: { $ref: '#/components/responses/Error' }
   /tasks/{id}/items:
     parameters: [ { $ref: '#/components/parameters/Id' } ]
     post:
@@ -901,7 +951,25 @@ paths:
       responses:
         '200': { $ref: '#/components/responses/Deleted' }
         default: { $ref: '#/components/responses/Error' }
-  /tags/{id}/restore: { $ref: '#/components/pathItems/Restore' }
+  /tags/{id}/restore:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    post:
+      tags: [Trash]
+      operationId: restoreTag
+      summary: Restore a deleted record and its same-batch children (same as the shared Restore path item)
+      x-permission: Adm
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IfMatch' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      responses:
+        '200':
+          description: Restored tag (422 rule_blocked when a live tag has that name now)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Ok' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+        default: { $ref: '#/components/responses/Error' }
 
   # ---------------------------------------------------------------- Guests
   /households:
@@ -1081,7 +1149,20 @@ paths:
         '200': { $ref: '#/components/responses/Deleted' }
         '409': { $ref: '#/components/responses/Conflict' }
         default: { $ref: '#/components/responses/Error' }
-  /households/{id}/restore: { $ref: '#/components/pathItems/Restore' }
+  /households/{id}/restore:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    post:
+      tags: [Trash]
+      operationId: restoreHousehold
+      summary: Restore a deleted family with its same-batch invitations. A phone clash restores anyway and warns (meta.warnings).
+      x-permission: Adm
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IfMatch' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      responses:
+        '200': { $ref: '#/components/responses/HouseholdOne' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        default: { $ref: '#/components/responses/Error' }
   /households/{id}/invitations/{event_id}:
     parameters:
       - { $ref: '#/components/parameters/Id' }
@@ -1349,7 +1430,25 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '422': { $ref: '#/components/responses/Unprocessable' }
         default: { $ref: '#/components/responses/Error' }
-  /budget-categories/{id}/restore: { $ref: '#/components/pathItems/Restore' }
+  /budget-categories/{id}/restore:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    post:
+      tags: [Trash]
+      operationId: restoreBudgetCategory
+      summary: Restore a deleted category (blocked if its name is now used)
+      x-permission: Adm
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IfMatch' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      responses:
+        '200':
+          description: Restored (warnings in meta.warnings)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Ok' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+        default: { $ref: '#/components/responses/Error' }
   /vendors:
     get:
       tags: [Money]
@@ -1431,7 +1530,25 @@ paths:
         '200': { $ref: '#/components/responses/Deleted' }
         '403': { $ref: '#/components/responses/Forbidden' }
         default: { $ref: '#/components/responses/Error' }
-  /vendors/{id}/restore: { $ref: '#/components/pathItems/Restore' }
+  /vendors/{id}/restore:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    post:
+      tags: [Trash]
+      operationId: restoreVendor
+      summary: Restore a deleted vendor
+      x-permission: Adm
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IfMatch' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      responses:
+        '200':
+          description: Restored (warnings in meta.warnings)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Ok' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+        default: { $ref: '#/components/responses/Error' }
   /payments:
     get:
       tags: [Money]
@@ -1574,7 +1691,25 @@ paths:
         '409': { $ref: '#/components/responses/Conflict' }
         '422': { $ref: '#/components/responses/Unprocessable' }
         default: { $ref: '#/components/responses/Error' }
-  /payments/{id}/restore: { $ref: '#/components/pathItems/Restore' }
+  /payments/{id}/restore:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    post:
+      tags: [Trash]
+      operationId: restorePayment
+      summary: Restore a deleted payment with its same-batch receipts
+      x-permission: Adm
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IfMatch' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      responses:
+        '200':
+          description: Restored (warnings in meta.warnings)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Ok' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+        default: { $ref: '#/components/responses/Error' }
 
   # ---------------------------------------------------------------- Documents
   /documents:
@@ -1689,7 +1824,24 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         default: { $ref: '#/components/responses/Error' }
-  /documents/{id}/restore: { $ref: '#/components/pathItems/Restore' }
+  /documents/{id}/restore:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    post:
+      tags: [Trash]
+      operationId: restoreDocument
+      summary: Restore a deleted document
+      x-permission: Adm
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IfMatch' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      responses:
+        '200':
+          description: Restored
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Ok' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        default: { $ref: '#/components/responses/Error' }
 
   # ---------------------------------------------------------------- History
   /{resource}/{id}/history:
@@ -1932,6 +2084,27 @@ paths:
             Content-Disposition: { schema: { type: string }, description: 'attachment; filename="wedding-export_2026-10-08.zip"' }
           content:
             application/zip: { schema: { type: string, contentMediaType: application/zip } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '410': { $ref: '#/components/responses/Gone' }
+        default: { $ref: '#/components/responses/Error' }
+
+  /exports/{id}/summary:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    get:
+      tags: [Export]
+      operationId: exportSummary
+      summary: The export's summary.html on its own, for Print → Save as PDF (FEATURES B8). Same access as the download.
+      x-permission: Adm, or holder of the export token
+      security:
+        - sessionCookie: []
+        - exportToken: []
+      responses:
+        '200':
+          description: Print-ready page (inline styles only; CSP allows no scripts)
+          content:
+            text/html: { schema: { type: string } }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
@@ -3178,6 +3351,7 @@ components:
         parts: { type: integer }
         size_bytes: { type: [integer, 'null'] }
         files_bytes: { type: [integer, 'null'] }
+        file_name: { type: [string, 'null'], description: 'wedding-export_YYYY-MM-DD.zip' }
         created_at: { $ref: '#/components/schemas/DateTime' }
         expires_at: { oneOf: [ { $ref: '#/components/schemas/DateTime' }, { type: 'null' } ] }
         download_urls: { type: array, items: { type: string } }

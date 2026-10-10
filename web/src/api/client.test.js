@@ -53,7 +53,7 @@ describe('reads', () => {
     expect(url).toBe('/api/v1/settings?payments_window_days=14&rsvp=coming%2Cwaiting');
     expect(init.method).toBe('GET');
     expect(init.credentials).toBe('same-origin');
-    expect(headers['X-Client-Version']).toBe('1.0.1');
+    expect(headers['X-Client-Version']).toBe('1.0.14');
     expect(headers['X-Device']).toMatch(/^(iPhone|Android|Computer) · (installed|browser)$/);
     expect(headers['X-CSRF-Token']).toBeUndefined();
     expect(headers['Idempotency-Key']).toBeUndefined();
@@ -118,7 +118,7 @@ describe('writes', () => {
     const { url, headers, init } = lastCall();
     expect(url).toBe('/api/v1/client-log');
     expect(headers['Idempotency-Key']).toBeUndefined();
-    expect(JSON.parse(init.body)).toMatchObject({ screen: '/guests', code: 'render_error', app_version: '1.0.1' });
+    expect(JSON.parse(init.body)).toMatchObject({ screen: '/guests', code: 'render_error', app_version: '1.0.14' });
     fetchMock.mockRejectedValue(new TypeError('offline'));
     await expect(reportProblem({ message: 'x' })).resolves.toBeUndefined();
   });

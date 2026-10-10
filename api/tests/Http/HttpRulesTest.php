@@ -149,6 +149,18 @@ final class HttpRulesTest extends TestCase
         }
     }
 
+    public function test_every_file_index_html_points_to_is_there(): void
+    {
+        $index = $this->fetch('/')['body'];
+        preg_match_all('/(?:src|href)="(\/[^"#?]+)"/', $index, $m);
+        $this->assertNotEmpty($m[1]);
+        foreach (array_unique($m[1]) as $path) {
+            $r = $this->fetch($path);
+            $this->assertSame(200, $r['status'], "$path is referenced by index.html but missing");
+            $this->assertStringNotContainsString('<div id="root">', $r['body'], "$path fell back to the app page");
+        }
+    }
+
     public function test_static_folders_never_fall_back_to_the_app(): void
     {
         $this->assertSame(404, $this->fetch('/assets/missing-abc.js')['status']);
@@ -178,6 +190,49 @@ final class HttpRulesTest extends TestCase
         $icon = $this->fetch('/icons/icon-192.png');
         $this->assertSame(200, $icon['status']);
         $this->assertStringStartsWith('image/png', $icon['headers']['content-type'] ?? '');
+
+        // The service worker and the Fix-the-app page: always fresh, served as themselves (PWA §2.5, §6.4).
+        $sw = $this->fetch('/sw.js');
+        $this->assertSame(200, $sw['status']);
+        $this->assertSame('no-cache', $sw['headers']['cache-control'] ?? null);
+        $this->assertStringContainsString('javascript', $sw['headers']['content-type'] ?? '');
+        $this->assertStringContainsString('SKIP_WAITING', $sw['body']);
+        foreach (['/reset.html' => 'text/html', '/reset.js' => 'javascript', '/reset.css' => 'text/css'] as $f => $type) {
+            $r = $this->fetch($f);
+            $this->assertSame(200, $r['status'], $f);
+            $this->assertSame('no-cache', $r['headers']['cache-control'] ?? null, $f);
+            $this->assertStringContainsString($type, $r['headers']['content-type'] ?? '', $f);
+        }
+        $this->assertStringContainsString('getRegistrations', $this->fetch('/reset.js')['body']);
+        $guide = $this->fetch('/install-guide/ios-1-share.svg');
+        $this->assertSame(200, $guide['status']);
+        $this->assertStringStartsWith('image/svg+xml', $guide['headers']['content-type'] ?? '');
+        $this->assertSame(3, count(json_decode($man['body'], true)['shortcuts'] ?? []), 'Android shortcuts');
+    }
+
+    /** .htaccess rule 6 (Session 7 Lighthouse finding): app text files are gzipped; API replies are not (BREACH). */
+    public function test_app_files_are_compressed_api_replies_are_not(): void
+    {
+        $index = $this->fetch('/')['body'];
+        preg_match('#/assets/index-[\w-]+\.js#', $index, $m);
+        $js = $this->fetch($m[0], 'GET', ['Accept-Encoding' => 'gzip']);
+        $this->assertSame('gzip', $js['headers']['content-encoding'] ?? null);
+        $this->assertStringContainsString('Accept-Encoding', $js['headers']['vary'] ?? '');
+        $plain = $this->fetch($m[0]);
+        $this->assertLessThan(strlen($plain['body']) / 2, strlen($js['body']), 'at least halves the main script');
+        $this->assertSame((string) gzdecode($js['body']), $plain['body']);
+        $this->assertSame('gzip', $this->fetch('/', 'GET', ['Accept-Encoding' => 'gzip'])['headers']['content-encoding'] ?? null);
+        $api = $this->fetch('/api/v1/health', 'GET', ['Accept-Encoding' => 'gzip']);
+        $this->assertArrayNotHasKey('content-encoding', $api['headers']);
+    }
+
+    /** FEATURES A8: the guest list template downloads as an Excel file (AC-IMP-10). */
+    public function test_guest_template_downloads_as_excel(): void
+    {
+        $r = $this->fetch('/templates/AM_Guest_List_Template.xlsx');
+        $this->assertSame(200, $r['status']);
+        $this->assertSame('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', $r['headers']['content-type'] ?? null);
+        $this->assertStringStartsWith("PK", $r['body'], 'a real .xlsx (zip) file');
     }
 
     public function test_http_redirects_to_https(): void
@@ -187,6 +242,84 @@ final class HttpRulesTest extends TestCase
         $this->assertSame('https://' . self::HOST . '/tasks?view=mine', $r['headers']['location'] ?? null);
         $api = $this->fetch('/api/v1/health', https: false);
         $this->assertSame(301, $api['status'], 'API too');
+    }
+
+    public function test_setup_login_and_session_over_real_http(): void
+    {
+        $origin = ['Origin' => 'https://' . self::HOST, 'Content-Type' => 'application/json'];
+        $token = (string) getenv('AM_HTTP_SETUP_TOKEN');
+        $phone = '+9198290' . random_int(10000, 99999);
+        $setup = $this->fetch('/api/v1/setup/owner', 'POST', $origin, json_encode([
+            'setup_token' => $token, 'name' => 'HTTP Test Owner', 'phone' => $phone, 'password' => 'lotus-4821',
+        ]));
+        if ($setup['status'] === 410) {
+            $this->markTestSkipped('owner already exists in this site database');
+        }
+        $this->assertSame(201, $setup['status'], $setup['body']);
+
+        $login = $this->fetch('/api/v1/auth/login', 'POST', $origin, json_encode(['phone' => $phone, 'password' => 'lotus-4821']));
+        $this->assertSame(200, $login['status'], $login['body']);
+        $cookie = $login['headers']['set-cookie'] ?? '';
+        foreach (['__Host-am_session=', 'Max-Age=7776000', 'Path=/', 'Secure', 'HttpOnly', 'SameSite=Lax'] as $part) {
+            $this->assertStringContainsString($part, $cookie, 'cookie survives the web server');
+        }
+        preg_match('/__Host-am_session=([^;]+)/', $cookie, $m);
+        $session = $this->fetch('/api/v1/session', 'GET', ['Cookie' => '__Host-am_session=' . $m[1]]);
+        $this->assertSame(200, $session['status'], $session['body']);
+        $this->assertSame('owner', json_decode($session['body'], true)['data']['user']['role']);
+
+        // A real multipart upload through the web server: PHP's own $_FILES path (move_uploaded_file), then the download.
+        $csrf = (string) json_decode($login['body'], true)['data']['csrf_token'];
+        $im = imagecreatetruecolor(32, 24);
+        imagefill($im, 0, 0, imagecolorallocate($im, random_int(0, 255), random_int(0, 255), random_int(0, 255))); // unique bytes per run
+        imagesetpixel($im, random_int(0, 31), random_int(0, 23), imagecolorallocate($im, random_int(0, 255), 7, 9));
+        ob_start();
+        imagejpeg($im, null, 80);
+        $jpeg = (string) ob_get_clean();
+        $b = '----amhttp' . bin2hex(random_bytes(6));
+        $body = "--$b\r\nContent-Disposition: form-data; name=\"type\"\r\n\r\nreceipt\r\n"
+            . "--$b\r\nContent-Disposition: form-data; name=\"sha256\"\r\n\r\n" . hash('sha256', $jpeg) . "\r\n"
+            . "--$b\r\nContent-Disposition: form-data; name=\"file\"; filename=\"IMG_1.jpg\"\r\nContent-Type: image/jpeg\r\n\r\n$jpeg\r\n--$b--\r\n";
+        $auth = ['Cookie' => '__Host-am_session=' . $m[1], 'Origin' => 'https://' . self::HOST, 'X-CSRF-Token' => $csrf];
+        $up = $this->fetch('/api/v1/documents', 'POST', $auth + ['Content-Type' => "multipart/form-data; boundary=$b", 'Idempotency-Key' => '5b1f0b52-3a2d-4c1e-9f00-' . sprintf('%012d', random_int(1, 999999999))], $body);
+        $this->assertSame(201, $up['status'], $up['body']);
+        $doc = json_decode($up['body'], true)['data'];
+        $file = $this->fetch($doc['file_url'], 'GET', ['Cookie' => $auth['Cookie']]);
+        $this->assertSame(200, $file['status']);
+        $this->assertSame($jpeg, $file['body'], 'the same bytes come back');
+        $this->assertSame('private, no-store', $file['headers']['cache-control'] ?? null);
+        $this->assertSame(401, $this->fetch($doc['file_url'])['status'], 'no session → 401');
+        foreach (['/uploads/2026/10/' . $doc['file']['id'] . '.jpg', '/private/storage/uploads/', '/storage/uploads/'] as $guess) { // SEC-05
+            $this->assertContains($this->fetch($guess)['status'], [403, 404], $guess);
+        }
+
+        // A full export streamed through the web server (no compression or buffering may break the ZIP), token only.
+        $ex = $this->fetch('/api/v1/exports', 'POST', $auth + ['Content-Type' => 'application/json', 'Idempotency-Key' => '5b1f0b52-3a2d-4c1e-9f00-' . sprintf('%012d', random_int(1, 999999999))], '{"kind":"full"}');
+        $this->assertSame(201, $ex['status'], $ex['body']);
+        $zipRes = $this->fetch(json_decode($ex['body'], true)['data']['download_urls'][0]);
+        $this->assertSame(200, $zipRes['status']);
+        $this->assertSame('application/zip', $zipRes['headers']['content-type'] ?? null);
+        $this->assertArrayNotHasKey('content-encoding', $zipRes['headers'], 'the ZIP is not gzipped again');
+        $zipFile = tempnam(sys_get_temp_dir(), 'amzip');
+        file_put_contents($zipFile, $zipRes['body']);
+        $z = new \ZipArchive();
+        $this->assertTrue($z->open($zipFile, \ZipArchive::CHECKCONS) === true, 'the streamed ZIP is whole');
+        $this->assertNotFalse($z->locateName('summary.html'));
+        $found = false;
+        for ($i = 0; $i < $z->numFiles; $i++) {
+            $found = $found || $z->getFromIndex($i) === $jpeg;
+        }
+        $this->assertTrue($found, 'the uploaded photo is in the export, byte for byte');
+        $z->close();
+        unlink($zipFile);
+        foreach (['/private/storage/exports/', '/storage/exports/'] as $guess) { // SEC-05
+            $this->assertContains($this->fetch($guess)['status'], [403, 404], $guess);
+        }
+
+        $evil = $this->fetch('/api/v1/auth/login', 'POST', ['Origin' => 'https://evil.example', 'Content-Type' => 'application/json'],
+            json_encode(['phone' => $phone, 'password' => 'lotus-4821']));
+        $this->assertSame(403, $evil['status'], 'Origin check through the web server');
+        $this->assertSame(401, $this->fetch('/api/v1/session')['status']);
     }
 
     public function test_other_hostnames_get_404(): void

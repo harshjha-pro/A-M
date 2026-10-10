@@ -88,6 +88,7 @@ $types = [
     'html' => 'text/html; charset=utf-8', 'js' => 'text/javascript; charset=utf-8', 'css' => 'text/css; charset=utf-8',
     'json' => 'application/json', 'webmanifest' => 'application/manifest+json', 'png' => 'image/png',
     'svg' => 'image/svg+xml', 'woff2' => 'font/woff2', 'woff' => 'font/woff', 'ico' => 'image/x-icon',
+    'xlsx' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
 ];
 $ext = strtolower(pathinfo($file, PATHINFO_EXTENSION));
 header('Content-Type: ' . ($types[$ext] ?? 'application/octet-stream'));
@@ -96,10 +97,17 @@ if (in_array($ext, ['html', 'js'], true)) {
     header('Permissions-Policy: camera=(self), microphone=(), geolocation=(), payment=(), usb=()');
     header('Cross-Origin-Opener-Policy: same-origin');
 }
-if (preg_match('/^(index\.html|sw\.js|manifest\.webmanifest|version\.json|reset\.html|reset\.js)$/', $name)) {
+if (preg_match('/^(index\.html|sw\.js|manifest\.webmanifest|version\.json|reset\.html|reset\.js|reset\.css)$/', $name)) {
     header('Cache-Control: no-cache');
 } elseif (str_starts_with($path, '/assets/')) {
     header('Cache-Control: public, max-age=31536000, immutable');
+}
+// Same as .htaccess rule 6: gzip the app's text files (not the API) when the browser accepts it.
+if (in_array($ext, ['html', 'js', 'css', 'webmanifest', 'svg'], true) && str_contains($_SERVER['HTTP_ACCEPT_ENCODING'] ?? '', 'gzip')) {
+    header('Vary: Accept-Encoding');
+    header('Content-Encoding: gzip');
+    echo gzencode((string) file_get_contents($file), 6);
+    return true;
 }
 readfile($file);
 return true;

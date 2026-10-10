@@ -64,3 +64,32 @@ export function formatHhmm(hhmm) {
 export function todayIst(now = new Date()) {
   return isoDate.format(now);
 }
+
+/** The phone's own time zone is India? Then times need no "IST" label (FEATURES B4). */
+export function phoneIsInIndia() {
+  const z = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  return z === ZONE || z === 'Asia/Calcutta';
+}
+
+/** "6:00 PM" or, on a phone set to another zone, "6:00 PM IST" (AC-EVT-02). */
+export function timeLabel(hhmm) {
+  return formatHhmm(hhmm) + (phoneIsInIndia() ? '' : ' IST');
+}
+
+/** A moment → { date: "2027-02-14", time: "18:00" } in India. */
+export function istParts(value) {
+  const d = toDate(value);
+  const t = pick(new Intl.DateTimeFormat('en-GB', { timeZone: ZONE, hour: '2-digit', minute: '2-digit', hour12: false }), d);
+  return { date: isoDate.format(d), time: `${t.hour === '24' ? '00' : t.hour}:${t.minute}` };
+}
+
+/** IST date + "HH:MM" → ISO with the India offset, for the API ("2027-02-14T18:00:00+05:30"). */
+export function istIso(ymd, hhmm = '00:00') {
+  return `${ymd}T${hhmm}:00+05:30`;
+}
+
+/** "Feb 2027" for a "YYYY-MM" month. */
+export function formatMonth(ym) {
+  const [y, m] = ym.split('-').map(Number);
+  return new Intl.DateTimeFormat('en-IN', { timeZone: 'UTC', month: 'long', year: 'numeric' }).format(new Date(Date.UTC(y, m - 1, 1, 12)));
+}

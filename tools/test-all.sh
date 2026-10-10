@@ -18,11 +18,13 @@ step vitest    bash -c 'cd web && npx vitest run'
 step build     bash -c 'cd web && npm run build:staging && npm run build:live'
 step http      tools/test-http.sh
 step e2e       tools/test-e2e.sh
+step lighthouse tools/lighthouse.sh
 
 php_line=$(grep -E '^(OK|Tests:)' "$LOGS/phpunit.log" | tail -1)
 vitest_line=$(grep -E 'Tests +[0-9]' "$LOGS/vitest.log" | tail -1 | sed 's/\x1b\[[0-9;]*m//g' | xargs)
 http_lines=$(grep -E '^== .*: (PASS|FAIL)' "$LOGS/http.log" | sed 's/^== //')
 http_counts=$(grep -E '^(OK|Tests:)' "$LOGS/http.log" | tr '\n' ' ')
+lh_lines=$(grep -E '^(login|home|guests): ' "$LOGS/lighthouse.log" | tr '\n' ' ')
 e2e_line=$(grep -E '[0-9]+ (passed|failed)' "$LOGS/e2e.log" | sed 's/\x1b\[[0-9;]*m//g' | xargs)
 js_gz=$(grep -E 'assets/index-.*\.js' "$LOGS/build.log" | tail -1 | sed -E 's/.*gzip: *([0-9.]+ kB).*/\1/')
 css_gz=$(grep -E 'assets/index-.*\.css' "$LOGS/build.log" | tail -1 | sed -E 's/.*gzip: *([0-9.]+ kB).*/\1/')
@@ -45,6 +47,7 @@ web_server=$(apache2 -v 2>/dev/null | head -1 | sed 's/Server version: //' || ec
   echo "| Build (staging + live) | JS ${js_gz} gz · CSS ${css_gz} gz |"
   echo "| HTTP rules (real requests) | $(echo "$http_lines" | tr '\n' ';' | sed 's/;$//; s/;/ · /g') — $http_counts |"
   echo "| Playwright smoke (android, small-iphone, small-android; Chromium, not Safari) | $e2e_line |"
+  echo "| Lighthouse mobile, simulated slow 4G (budget: Perf ≥ 90, A11y ≥ 95, BP ≥ 95) | $lh_lines |"
   echo
   echo "Database checks: 001 → 002 → 003 apply with finished_at set; second run of each stops at its guard with data unchanged (DS-28); seed_demo.sql loads (61 families, Devanagari intact) and its second run stops at user id 1."
   echo

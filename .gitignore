@@ -39,3 +39,6 @@ Thumbs.db
 # Test output
 test-results/
 playwright-report/
+
+# Release ZIPs are kept on purpose
+!releases/*.zip

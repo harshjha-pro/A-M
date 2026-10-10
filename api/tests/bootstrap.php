@@ -7,3 +7,4 @@ require dirname(__DIR__) . '/vendor/autoload.php';
 
 date_default_timezone_set('UTC');
 \Tests\Support\TestDb::rebuild();
+\Tests\Support\TestDb::snapshot();

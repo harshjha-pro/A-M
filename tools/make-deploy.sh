@@ -6,7 +6,8 @@
 #     staging/ live/            each: 1-server.zip, 2-assets.zip, 3-shell.zip, version.json
 # Every inner ZIP holds paths starting at the site folder (private/…, public_html/…),
 # so you always extract it in the site folder.
-# Usage: tools/make-deploy.sh 01 <out-dir>
+# Usage: tools/make-deploy.sh 02 <out-dir> [migration files to ship, e.g. db/migrations/004_x.sql]
+# (Session 01 shipped 001–003 + the staging seed; later sessions ship only new files.)
 set -euo pipefail
 cd "$(dirname "$0")/.."
 ROOT="$(pwd)"
@@ -28,17 +29,27 @@ for FLAVOUR in staging live; do
     cd "$SITE"
     # Never ship a .env, keys or test files, whatever happens upstream.
     find . \( -name '.env' -o -name '*.key' -o -name 'config.php' \) -delete
-    zip -qrX "$DEST/1-server.zip" private/app private/logs private/storage public_html/api/index.php
+    zip -qrX "$DEST/1-server.zip" private/app private/logs private/storage private/cron $( [ -d private/backup ] && echo private/backup ) public_html/api/index.php
     zip -qrX "$DEST/2-assets.zip" public_html/assets -x 'public_html/assets/.htaccess'
-    zip -qrX "$DEST/3-shell.zip" public_html/index.html public_html/manifest.webmanifest public_html/.htaccess \
-      public_html/ios-class.js public_html/icons public_html/assets/.htaccess
+    # Shell = every file and folder at the top of public_html except assets/ (2-assets),
+    # api/ (1-server) and version.json (uploaded last, on its own) — so nothing new is ever forgotten.
+    SHELL_ITEMS=$(cd public_html && find . -mindepth 1 -maxdepth 1 ! -name assets ! -name api ! -name version.json | sed 's#^\./#public_html/#' | sort)
+    zip -qrX "$DEST/3-shell.zip" $SHELL_ITEMS public_html/assets/.htaccess
     cp public_html/version.json "$DEST/version.json"
   )
 done
 
-# SQL for this session (first deploy: the three migrations + staging-only demo data)
-cp db/migrations/001_init.sql db/migrations/002_open_answers.sql db/migrations/003_api_support.sql "$STAGE/migrations/"
-cp db/dev/seed_demo.sql "$STAGE/migrations/STAGING-ONLY_seed_demo.sql"
+# SQL for this session: only the files named on the command line.
+shift 2
+if [ "$#" -eq 0 ]; then
+  printf 'No database changes in this session. Nothing to run in phpMyAdmin.\n' > "$STAGE/migrations/NONE.txt"
+fi
+for f in "$@"; do
+  case "$f" in
+    db/dev/*) cp "$f" "$STAGE/migrations/STAGING-ONLY_$(basename "$f")" ;;
+    *) cp "$f" "$STAGE/migrations/" ;;
+  esac
+done
 
 cp RELEASE-NOTES.md "$STAGE/RELEASE-NOTES.md"
 [ -f TEST-REPORT.md ] && cp TEST-REPORT.md "$STAGE/TEST-REPORT.md"

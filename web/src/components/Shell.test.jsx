@@ -4,15 +4,18 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, RouterProvider } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { axe } from 'vitest-axe';
+import { axe } from '../test/axe.js';
 import AppShell from './AppShell.jsx';
 import Screen from './Screen.jsx';
 import More from '../screens/more/More.jsx';
-import Tasks from '../screens/tasks/Tasks.jsx';
-import Guests from '../screens/guests/Guests.jsx';
 import Calendar from '../screens/calendar/Calendar.jsx';
 import Money from '../screens/money/Money.jsx';
 import ErrorBoundary from './ErrorBoundary.jsx';
+import { signInAs, signOut } from '../test/helpers.js';
+import { beforeEach, afterEach } from 'vitest';
+
+beforeEach(() => signInAs('papa'));
+afterEach(() => signOut());
 
 function renderAt(path) {
   const router = createMemoryRouter([
@@ -21,8 +24,8 @@ function renderAt(path) {
       children: [
         { path: '/', element: <Screen title="Home"><p>home</p></Screen> },
         { path: '/calendar', element: <Calendar /> },
-        { path: '/tasks', element: <Tasks /> },
-        { path: '/guests', element: <Guests /> },
+        { path: '/tasks', element: <Screen title="Tasks"><p>tasks</p></Screen> }, // the real list has its own tests
+        { path: '/guests', element: <Screen title="Guests"><p>guests</p></Screen> }, // the real list has its own tests
         { path: '/more', element: <More /> },
         { path: '/money', element: <Money /> },
       ],
@@ -62,7 +65,7 @@ describe('bottom nav', () => {
     renderAt('/');
     await user.click(screen.getByRole('link', { name: 'Guests' }));
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Guests');
-    expect(screen.getByText('No families yet. Add one, or import your list.')).toBeInTheDocument();
+    expect(screen.getByText('guests')).toBeInTheDocument();
   });
 });
 

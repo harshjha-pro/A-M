@@ -1006,6 +1006,7 @@ Works on iPhone Safari 15+ (installed and in the browser) and Android Chrome. No
 |GET|`/exports`|Recent exports (last 10) and last successful one|Adm|—|`200 \[Export]`|403|
 |GET|`/exports/{id}`|One export|Adm|—|`200 Export`|403, 404|
 |GET|`/exports/{id}/download`|**Streams the ZIP**|Adm session, **or** the export's `t` token|`?part=1` (default 1), `?t=<token>`|`200 application/zip` stream|401, 403, 404, 410 `export\_expired`|
+|GET|`/exports/{id}/summary`|`summary.html` on its own, for **Print summary** → Save as PDF (Session 11)|Same as download|`?t=<token>`|`200 text/html` (CSP: inline styles only, no scripts)|401, 403, 404, 410|
 
 **Step 1 — snapshot (`POST /exports`).**
 
@@ -1018,7 +1019,7 @@ Works on iPhone Safari 15+ (installed and in the browser) and Android Chrome. No
 
 **Step 2 — download (`GET /exports/{id}/download`).**
 
-* The ZIP is **built while streaming** (ZipStream-PHP, MIT): data files compressed, photos and PDFs stored as is (already compressed). No second copy of every file on disk, so storage use doesn't double.
+* The ZIP is **built while streaming** (our own small writer, `Modules/Exports/ZipWriter.php`, decision Session 11: the server ships no third-party PHP packages): data files compressed, photos and PDFs stored as is (already compressed). No second copy of every file on disk, so storage use doesn't double.
 * `Content-Type: application/zip`, `Content-Disposition: attachment; filename="wedding-export\_2026-10-08.zip"` (part 2: `wedding-export\_2026-10-08\_files-part2.zip`), `Cache-Control: private, no-store`, chunked transfer.
 * Documents inside: `documents/<id>\_<safe-title>.<ext>`, mapped in `csv/documents.csv`, including files of deleted documents (FEATURES B8).
 * Valid **24 hours** after creation. Then `410 export\_expired` and the snapshot folder is deleted by cron; the `exports` row stays (status `expired`).

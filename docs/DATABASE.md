@@ -346,7 +346,7 @@ The schema gives the guarantees. These rules make sure the code doesn't undo the
 | 7 | **Undo:** for each audit row in the batch, revert to `before_json` only if the row's `version` still equals `entity_version`. Report the skipped ones. Mark the batch `undone_at` with `WHERE undone_at IS NULL` (a second tap does nothing). |
 | 8 | **Child lists** (assignees, tags, checklist) are saved through the parent. Always bump the **parent's** version first, with the version check. |
 | 9 | **Lock the parent** when inserting a child that a parent delete would hide: `SELECT … LOCK IN SHARE MODE` on the category, family, event, task or payment. The delete side uses `SELECT … FOR UPDATE`. (Fix R3, tested.) |
-| 10 | **Bulk actions** send `as_of` (when the list was loaded). Rows with `updated_at >= as_of` are skipped and named. (Fix R4.) |
+| 10 | **Bulk actions** send `as_of` (when the list was loaded). Rows with `updated_at > as_of` are skipped and named (strictly after: `as_of` is the list's `server_time`, taken after its rows were read, and times are whole seconds). (Fix R4.) |
 | 11 | **Bookkeeping writes** (`last_reminder_opened_at`, `sessions.last_used_at`) don't bump `version` and set `updated_at = updated_at` so they don't look like edits. (Fix R2.) |
 | 12 | **Never `DELETE`** except expired rows in `sessions`, `login_attempts`, `idempotency_keys` and `rate_limits`. Export ZIPs are deleted from disk after 24 h; their rows stay. |
 | 13 | **Uploads:** write the file to disk first, then insert `files` + `documents` in one transaction. On a duplicate `sha256`, check the stored file still exists with the same size; if not, rewrite the bytes to its path. |

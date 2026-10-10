@@ -682,7 +682,7 @@ Calendar items follow their own module's visibility rules.
 | address | text(300) | No | — | — | — |
 | adults | int | Yes | 2 | 0–50 | 3 |
 | children | int | Yes | 0 | 0–50; adults + children ≥ 1 | 1 |
-| food | enum veg/jain/nonveg/mixed | Yes | veg | — | mixed |
+| food | enum veg/jain/mixed (the column also allows nonveg; the app never offers it, CONTEXT decision 25) | Yes | veg | — | mixed |
 | jain_count | int | No | 0 | Shown only if Mixed; ≤ adults + children. If food = Jain, it equals the total. | 2 |
 | is_vip | bool | No | false | Label: "Important" | true |
 | notes | longtext | No | — | ≤ 5,000 | — |
