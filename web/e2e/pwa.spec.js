@@ -137,3 +137,16 @@ test('E2E-13: Fix the app — removes the service worker and app caches, keeps t
   const cachesLeft = await page.evaluate(async () => (await caches.keys()).length);
   expect(cachesLeft).toBeLessThanOrEqual(1);
 });
+
+test('iPhone: the Add to Home Screen guide opens by itself once after the first login in Safari', async ({ page }, info) => {
+  test.skip(info.project.name !== 'small-iphone', 'iPhone only');
+  await login(page, 'papa', undefined, { iosGuide: true });
+  const guide = page.getByRole('dialog', { name: 'Add to Home Screen' });
+  await expect(guide).toBeVisible();
+  await expect(guide.getByText('Step 1 of 4')).toBeVisible();
+  await guide.getByRole('button', { name: 'Close' }).click();
+  await expect(guide).toHaveCount(0);
+  await page.reload();
+  await expect(page.getByRole('heading', { level: 1, name: 'Home' })).toBeVisible();
+  await expect(page.getByRole('dialog', { name: 'Add to Home Screen' })).toHaveCount(0); // once only
+});

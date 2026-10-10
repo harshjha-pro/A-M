@@ -21,9 +21,13 @@ export function subscribeSw(fn) {
   return () => subs.delete(fn);
 }
 
-/** Called once from main.jsx (production builds only). */
+/** Called once from main.jsx (production builds only). Waits for the page's load event,
+ *  so downloading the app files never competes with the first screen. */
 export async function registerServiceWorker() {
   if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return null;
+  if (document.readyState !== 'complete') {
+    await new Promise((resolve) => window.addEventListener('load', resolve, { once: true }));
+  }
   set({ supported: true });
   wb = new Workbox('/sw.js', { scope: '/' });
   wb.addEventListener('waiting', () => set({ needRefresh: true, installing: false }));

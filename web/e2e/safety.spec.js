@@ -5,8 +5,11 @@ import { login, watchProblems } from './helpers.js';
 
 test('E2E-06: different fields merge by themselves; the same field opens the conflict screen', async ({ browser }, info) => {
   const tag = info.project.name;
-  const a = await browser.newContext({ ...info.project.use });
-  const m = await browser.newContext({ ...info.project.use });
+  // Two real phones: each its own network address (the not-logged-in limit is per address).
+  const ip = (n) => ({ ...info.project.use, extraHTTPHeaders: { 'X-Forwarded-For': `198.51.100.${n}` } });
+  const base = { android: 60, 'small-iphone': 70, 'small-android': 80 }[info.project.name] ?? 90;
+  const a = await browser.newContext(ip(base + 1));
+  const m = await browser.newContext(ip(base + 2));
   const ayush = await a.newPage();
   const mahi = await m.newPage();
   const problems = [...watchProblems(ayush)];

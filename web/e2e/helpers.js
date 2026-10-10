@@ -8,7 +8,10 @@ export const DEMO = {
 };
 export const PASSWORD = 'demo-1234';
 
-export async function login(page, who, password = PASSWORD) {
+export async function login(page, who, password = PASSWORD, { iosGuide = false } = {}) {
+  // The one-time iPhone guide (small-iphone profile) would cover every journey: mark it seen,
+  // except in the test that checks it opens by itself.
+  if (!iosGuide) await page.addInitScript(() => { try { localStorage.setItem('am.iosGuideSeen', 'e2e'); } catch { /* none */ } });
   await page.goto('/login');
   await page.getByLabel('Phone number').fill(DEMO[who].phone);
   await page.getByLabel('Password', { exact: true }).fill(password);

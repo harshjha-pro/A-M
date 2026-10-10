@@ -17,12 +17,12 @@ export default function AppShell() {
   useEffect(() => { askToKeepData(); }, []);
   return (
     <div className="min-h-dvh bg-bg">
-      <AndroidInstallBanner />
       <OldPhoneNotice />
-      <div className="pb-[calc(6rem+env(safe-area-inset-bottom)+var(--am-update-h,0px))]">
+      <div className="pb-[calc(6rem+env(safe-area-inset-bottom)+var(--am-update-h,0px)+var(--am-install-h,0px))]">
         <Outlet />
       </div>
       <UndoSnackbar />
+      <AndroidInstallBanner />
       <BottomNav />
       {iosGuide && <IosInstallGuide onClose={() => setIosGuide(false)} />}
     </div>

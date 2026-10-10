@@ -17,6 +17,18 @@ Release: install, service worker, offline reading, the outbox and updates are **
 | P7 | Inline scripts | DESIGN §2.7: "a 3-line script" adds the `ios` class. API §10.3 CSP: `script-src 'self'`. | The CSP blocks inline scripts. The `ios` class script is a file (`/ios-class.js`). vite-plugin-pwa's inline register is switched off. |
 | P8 | App icon | DESIGN §2.6: "Your logo", placeholder "A&M" maroon on ivory. | **Answered: Apple style, no logo.** Ivory "A&M" on a maroon gradient, marigold "&". Files made (§2.2). DESIGN §2.6 to follow. |
 
+## Built in Session 12 (9 Oct 2026) — what differs from the text below
+
+| Topic | As built | Why |
+|---|---|---|
+| Install Guide pictures | Drawn SVG illustrations (`public/install-guide/*.svg`), not screenshots | Real iOS screenshots need a real iPhone; the drawings show the same buttons, circled. Replace with screenshots any time (same file names, `.png`). |
+| Splash images (§2.4) | Dropped | Allowed by §2.4 ("if this takes more than an hour, drop it"); the shell opens from cache in well under a second. |
+| Shortcuts | 3: Add task (`/tasks/new`), Add family (`/guests/new`), My tasks (`/tasks?view=mine`) | `/add/*` routes don't exist; Wedding Day arrives with R2b. |
+| Registration | Our own `src/pwa/swClient.js` on `workbox-window` (not `virtual:pwa-register`) | Testable without the Vite virtual module; same behaviour (`registerType: 'prompt'`). |
+| Update prompt | Also makes room at the bottom of the page while shown (`--am-update-h`) | E2E-12 found the prompt covered a form's Save/Cancel — the very buttons it asks you to use. |
+| Outbox wait before refresh (§6.3) | Not yet | The outbox arrives in Session 14; the prompt will wait for it then. |
+| `reset.css` | Added (plain styles for `reset.html`); never precached, `no-cache` | CSP forbids inline styles. |
+
 ## Answers applied (8 Oct 2026)
 
 | # | Question | Answer | Applied in |
