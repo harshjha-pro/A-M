@@ -13,7 +13,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { routes } from '../routes.jsx';
 import { fakeApi, ok, signInAs, signOut, PEOPLE } from '../test/helpers.js';
 import { _resetForTests } from './db.js';
-import { runSync } from './sync.js';
+import { runSync, startSyncLoop, canWait, MIN_GAP_MS } from './sync.js';
 import { getRecords, getMeta, setMeta, ensureUser, putRecords } from './cache.js';
 import { markOnline } from './state.js';
 import { api } from '../api/client.js';
@@ -120,6 +120,19 @@ describe('Sync fills the phone', () => {
     expect(await getRecords('payments')).toEqual([]); // money access ended: nothing of it stays
     expect(await getRecords('households')).toHaveLength(1);
   });
+
+  test('opening the app again within a minute does not sync again; a new person or an empty copy always does', async () => {
+    fakeApi({ 'GET /sync': () => syncPage({ households: [family()] }) });
+    expect(await canWait(PEOPLE.ayush.id)).toBe(false); // nothing on the phone yet
+    const stop = startSyncLoop(PEOPLE.ayush.id);
+    await waitFor(async () => expect(await getRecords('households')).toHaveLength(1), { timeout: 4000 });
+    stop();
+    const calls = () => globalThis.fetch.mock.calls.filter((c) => String(c[0]).includes('/sync')).length;
+    expect(calls()).toBe(1);
+    expect(await canWait(PEOPLE.ayush.id)).toBe(true); // a page reload now waits
+    expect(await canWait(PEOPLE.ayush.id, Date.now() + MIN_GAP_MS)).toBe(false); // a minute later it syncs
+    expect(await canWait(PEOPLE.papa.id)).toBe(false); // someone else on this phone
+  }, 8000);
 });
 
 describe('Reading without internet', () => {

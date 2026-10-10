@@ -5,6 +5,24 @@ import { api } from '../api/client.js';
 import { getMeta, setMeta, putRecords, deleteRecords, clearRecords, pruneRecords, ensureUser, currentGeneration } from './cache.js';
 
 export const EVERY_MS = 5 * 60 * 1000;
+export const MIN_GAP_MS = 60 * 1000;   // at most one sync a minute (the server allows 30 per 5 min)
+const FIRST_DELAY_MS = 2000;          // the first screen draws first
+const LAST_KEY = 'am.syncStartedAt.';
+
+/** When this phone last started a sync for this person — kept across page loads (never throws). */
+function lastStart(userId) {
+  try { return Number(window.localStorage.getItem(LAST_KEY + userId)) || 0; } catch { return 0; }
+}
+function noteStart(userId) {
+  try { window.localStorage.setItem(LAST_KEY + userId, String(Date.now())); } catch { /* none */ }
+}
+
+/** True when a sync can wait: this person's copy is on the phone and one started under a minute ago. */
+export async function canWait(userId, now = Date.now()) {
+  if (now - lastStart(userId) >= MIN_GAP_MS) return false;
+  const [owner, synced] = await Promise.all([getMeta('userId'), getMeta('lastSyncedAt')]);
+  return owner === userId && Boolean(synced);
+}
 const PLURAL = { task: 'tasks', household: 'households', event: 'events', vendor: 'vendors', payment: 'payments', document: 'documents', tag: 'tags', budget_category: 'budgetCategories' };
 let running = null;
 const subs = new Set();
@@ -95,16 +113,29 @@ export function lastSync() {
   return lastResult;
 }
 
-/** Starts the triggers once (AppShell, after login). Returns a stop function. */
+/**
+ * Starts the triggers once (AppShell, after login). Returns a stop function.
+ * Opening the app or returning to it syncs at most once a minute; the internet coming back
+ * always syncs. The first one waits until the page has loaded, so it never slows the first screen.
+ */
 export function startSyncLoop(userId) {
-  const go = () => { runSync(userId); };
-  go();
+  const go = async (force = false) => {
+    if (!force && await canWait(userId)) return;
+    noteStart(userId);
+    runSync(userId);
+  };
+  let first = null;
+  const begin = () => { first = setTimeout(() => go(), FIRST_DELAY_MS); };
+  if (document.readyState === 'complete') begin(); else window.addEventListener('load', begin, { once: true });
+  const onOnline = () => go(true);
   const onVisible = () => { if (document.visibilityState === 'visible') go(); };
-  window.addEventListener('online', go);
+  window.addEventListener('online', onOnline);
   document.addEventListener('visibilitychange', onVisible);
   const timer = setInterval(() => { if (document.visibilityState === 'visible') go(); }, EVERY_MS);
   return () => {
-    window.removeEventListener('online', go);
+    clearTimeout(first);
+    window.removeEventListener('load', begin);
+    window.removeEventListener('online', onOnline);
     document.removeEventListener('visibilitychange', onVisible);
     clearInterval(timer);
   };
