@@ -76,7 +76,7 @@ export default function MarkPaidSheet({ payment, part = false, onClose, onDone }
             )}
           </div>
         )}
-        <Button onClick={save} loading={busy}>{t('money.savePaid')}</Button>
+        <Button needsInternet onClick={save} loading={busy}>{t('money.savePaid')}</Button>
       </div>
     </Sheet>
   );

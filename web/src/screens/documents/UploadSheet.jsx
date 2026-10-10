@@ -116,8 +116,8 @@ export default function UploadSheet({ link = {}, linkLabel, defaultType = 'other
       <div className="flex flex-col gap-4">
         {!online && <Notice kind="warning">{t('documents.offline')}</Notice>}
         <div className="grid grid-cols-1 gap-3 min-[400px]:grid-cols-2">
-          <Button variant="secondary" onClick={() => camera.current?.click()} disabled={busy}><Camera aria-hidden="true" size={20} />{t('documents.takePhoto')}</Button>
-          <Button variant="secondary" onClick={() => chooser.current?.click()} disabled={busy}><FileUp aria-hidden="true" size={20} />{t('documents.chooseFile')}</Button>
+          <Button needsInternet variant="secondary" onClick={() => camera.current?.click()} disabled={busy}><Camera aria-hidden="true" size={20} />{t('documents.takePhoto')}</Button>
+          <Button needsInternet variant="secondary" onClick={() => chooser.current?.click()} disabled={busy}><FileUp aria-hidden="true" size={20} />{t('documents.chooseFile')}</Button>
         </div>
         <input ref={camera} type="file" accept="image/*" capture="environment" className="sr-only" tabIndex={-1} aria-label={t('documents.takePhoto')}
           onChange={(e) => { pick(e.target.files); e.target.value = ''; }} />

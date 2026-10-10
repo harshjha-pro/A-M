@@ -93,9 +93,9 @@ function CategorySheet({ cat, cats, isAdmin, onClose, onDone }) {
       <div className="flex flex-col gap-4">
         <TextField label={t('money.categoryName')} value={name} onChange={setName} error={errors.name} maxLength={60} />
         <MoneyField label={t('money.plannedAmount')} value={planned} onChange={setPlanned} error={errors.planned ?? errors.plannedPaise} required={false} />
-        <Button onClick={save} loading={busy}>{t('money.saveCategory')}</Button>
+        <Button needsInternet onClick={save} loading={busy}>{t('money.saveCategory')}</Button>
         {cat?.isFallback && <p className="text-sm text-text-muted">{t('money.fallbackNote')}</p>}
-        {cat && !cat.isFallback && isAdmin && !moving && <Button variant="danger" onClick={remove} disabled={busy}>{t('money.deleteCategory')}</Button>}
+        {cat && !cat.isFallback && isAdmin && !moving && <Button needsInternet variant="danger" onClick={remove} disabled={busy}>{t('money.deleteCategory')}</Button>}
         {moving && (
           <div role="alert" className="flex flex-col gap-3 rounded-md bg-warning-soft p-3">
             <p className="font-bold">{t('money.moveTitle', { n: moving })}</p>
@@ -106,7 +106,7 @@ function CategorySheet({ cat, cats, isAdmin, onClose, onDone }) {
                 {cats.filter((c) => c.id !== cat.id && !c.deleted).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
             </label>
-            <Button variant="danger" onClick={remove} disabled={!target || busy}>{t('money.moveAndDelete')}</Button>
+            <Button needsInternet variant="danger" onClick={remove} disabled={!target || busy}>{t('money.moveAndDelete')}</Button>
           </div>
         )}
       </div>

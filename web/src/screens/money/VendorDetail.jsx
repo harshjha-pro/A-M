@@ -69,7 +69,7 @@ export default function VendorDetail() {
       <div className="flex flex-col gap-3">
         <Link to={`/history/vendors/${id}`} className="tap inline-flex items-center justify-center gap-2 font-bold text-primary"><History aria-hidden="true" size={20} />{t('money.history')}</Link>
         {permissions?.edit && <Button variant="secondary" onClick={() => navigate(`/vendors/${id}/edit`)}><Pencil aria-hidden="true" size={20} />{t('money.edit')}</Button>}
-        {permissions?.admin && <Button variant="danger" onClick={remove}><Trash2 aria-hidden="true" size={20} />{t('money.deleteVendor')}</Button>}
+        {permissions?.admin && <Button needsInternet variant="danger" onClick={remove}><Trash2 aria-hidden="true" size={20} />{t('money.deleteVendor')}</Button>}
       </div>
     </Screen>
   );

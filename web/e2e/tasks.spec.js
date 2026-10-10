@@ -41,7 +41,7 @@ test('E2E-05: delete a task → Undo → back with its checklist', async ({ page
   await expect(page.getByLabel('Sherwani', { exact: true })).toBeVisible();
 });
 
-test('E2E-09: the reply to "add task" is lost; Try again makes one task', async ({ page }, info) => {
+test('E2E-09: the reply to "add task" is lost; it waits on the phone and Send now makes one task', async ({ page }, info) => {
   const title = `Lost reply task ${info.project.name} ${Date.now()}`;
   await login(page, 'ayush');
   await page.goto('/tasks/new');
@@ -57,9 +57,11 @@ test('E2E-09: the reply to "add task" is lost; Try again makes one task', async 
   });
   await page.getByLabel('What needs doing?').fill(title);
   await page.getByRole('button', { name: 'Save task' }).click();
-  await expect(page.getByText("Couldn't save. Your changes are kept on this phone.")).toBeVisible();
-  await page.getByRole('button', { name: 'Save task' }).click();
-  await expect(page.getByText('Task added.')).toBeVisible();
+  // Session 14: the lost reply leaves the task in the outbox; it is sent again with the same key.
+  await expect(page.getByText(/Kept on this phone/)).toBeVisible();
+  await page.getByRole('button', { name: 'Send now' }).click();
+  await expect(page.getByText('1 change waiting to send.')).toHaveCount(0);
+  await page.goto('/tasks?view=all');
   await page.getByLabel('Search tasks').fill(title);
   await expect(page.getByRole('listitem').filter({ hasText: title })).toHaveCount(1);
 });

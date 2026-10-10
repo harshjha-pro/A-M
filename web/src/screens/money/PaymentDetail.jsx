@@ -103,15 +103,15 @@ export default function PaymentDetail() {
       )}
       {p.status === 'due' && (
         <div className="grid grid-cols-1 gap-3 min-[400px]:grid-cols-2">
-          <Button onClick={() => setSheet('paid')}><CircleCheck aria-hidden="true" size={20} />{t('money.markPaid')}</Button>
-          <Button variant="secondary" onClick={() => setSheet('part')}><SplitSquareHorizontal aria-hidden="true" size={20} />{t('money.payPart')}</Button>
+          <Button needsInternet onClick={() => setSheet('paid')}><CircleCheck aria-hidden="true" size={20} />{t('money.markPaid')}</Button>
+          <Button needsInternet variant="secondary" onClick={() => setSheet('part')}><SplitSquareHorizontal aria-hidden="true" size={20} />{t('money.payPart')}</Button>
         </div>
       )}
       <DocumentsSection link={{ payment: id }} linkLabel={p.title} defaultType="receipt" title={t('money.receiptsTitle')} addLabel={t('money.addReceipt')} />
       <div className="flex flex-col gap-3">
         <Link to={`/history/payments/${id}`} className="tap inline-flex items-center justify-center gap-2 font-bold text-primary"><History aria-hidden="true" size={20} />{t('money.history')}</Link>
         <Button variant="secondary" onClick={() => navigate(`/money/payments/${id}/edit`)}><Pencil aria-hidden="true" size={20} />{t('money.edit')}</Button>
-        <Button variant="danger" onClick={remove}><Trash2 aria-hidden="true" size={20} />{t('money.delete')}</Button>
+        <Button needsInternet variant="danger" onClick={remove}><Trash2 aria-hidden="true" size={20} />{t('money.delete')}</Button>
       </div>
       {sheet && <MarkPaidSheet payment={p} part={sheet === 'part'} onClose={() => setSheet(null)} onDone={refresh} />}
     </Screen>

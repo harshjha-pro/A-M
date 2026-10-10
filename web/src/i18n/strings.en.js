@@ -740,6 +740,7 @@ export const strings = {
     bannerNoData: 'No internet',
     notCached: 'Open this once with internet to see it offline.',
     needsInternet: 'Needs internet. Search by name and the main chips work offline.',
+    needsInternetShort: 'Needs internet',
     data: 'Saved on this phone',
     dataLine: '{families} families · {tasks} tasks · {events} events · {vendors} vendors · {documents} documents',
     lastSync: 'Last updated',

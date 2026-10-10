@@ -160,7 +160,7 @@ export default function FamilyDetail() {
           </article>
         ))}
         {canEdit && notInvited.map((e) => (
-          <Button key={e.id} variant="secondary" onClick={() => invite(e)}><Plus aria-hidden="true" size={20} />{t('guests.invite', { event: e.name })}</Button>
+          <Button needsInternet key={e.id} variant="secondary" onClick={() => invite(e)}><Plus aria-hidden="true" size={20} />{t('guests.invite', { event: e.name })}</Button>
         ))}
       </section>
 
@@ -169,7 +169,7 @@ export default function FamilyDetail() {
         {canEdit ? (
           <>
             <Button variant="secondary" onClick={() => navigate(`/guests/${id}/edit`)}><Pencil aria-hidden="true" size={20} />{t('guests.edit')}</Button>
-            <Button variant="danger" onClick={remove}><Trash2 aria-hidden="true" size={20} />{t('guests.delete')}</Button>
+            <Button needsInternet variant="danger" onClick={remove}><Trash2 aria-hidden="true" size={20} />{t('guests.delete')}</Button>
           </>
         ) : <p className="text-center text-text-muted">{t('guests.readOnly')}</p>}
       </div>

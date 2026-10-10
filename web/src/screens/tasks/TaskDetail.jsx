@@ -170,7 +170,7 @@ export default function TaskDetail() {
       <div className="flex flex-col gap-3">
         <Link to={`/history/tasks/${id}`} className="tap inline-flex items-center justify-center gap-2 font-bold text-primary"><History aria-hidden="true" size={20} />{t('tasks.history')}</Link>
         {canEdit && <Button variant="secondary" onClick={() => navigate(`/tasks/${id}/edit`)}><Pencil aria-hidden="true" size={20} />{t('tasks.edit')}</Button>}
-        {canEdit && <Button variant="danger" onClick={remove} disabled={busy}><Trash2 aria-hidden="true" size={20} />{t('tasks.delete')}</Button>}
+        {canEdit && <Button needsInternet variant="danger" onClick={remove} disabled={busy}><Trash2 aria-hidden="true" size={20} />{t('tasks.delete')}</Button>}
       </div>
 
       {moving && <PostponeSheet task={task} saving={busy} onPick={move} onClose={() => setMoving(false)} />}
