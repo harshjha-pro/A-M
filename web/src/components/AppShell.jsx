@@ -14,7 +14,7 @@ import OldPhoneNotice from '../pwa/OldPhoneNotice.jsx';
 import IosInstallGuide, { shouldAutoOpenIosGuide } from '../pwa/IosInstallGuide.jsx';
 import { askToKeepData } from '../pwa/persist.js';
 import OfflineBanner from '../offline/OfflineBanner.jsx';
-import { startSyncLoop } from '../offline/sync.js';
+import { startSyncLoop } from '../offline/startSync.js';
 import OutboxBar from '../offline/OutboxBar.jsx';
 import { startOutboxLoop } from '../offline/save.js';
 import { useSession } from '../api/session.js';

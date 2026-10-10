@@ -70,6 +70,7 @@ describe('Tick with no internet', () => {
 
     reachable = true;
     setOnline(true);
+    await flushOutbox({ force: true }); // what the "online" event does once the loop has started (3 s after load)
     await waitFor(async () => expect(await allEntries()).toEqual([]));
     await waitFor(() => expect(screen.queryByText('1 change waiting to send.')).toBeNull());
     const posts = f.mock.calls.filter(([u, i]) => i?.method === 'POST' && String(u).includes('/done'));

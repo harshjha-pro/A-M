@@ -84,14 +84,21 @@ export function summarise(s, userId) {
   };
 }
 
+let memo = { s: null, user: null, out: null };
+const subscribe = (fn) => { subs.add(fn); return () => subs.delete(fn); };
+const readState = () => state;
+
+/** One summary per change, shared by every 🕒 mark on the screen. */
 export function useOutbox() {
-  const s = useSyncExternalStore((fn) => { subs.add(fn); return () => subs.delete(fn); }, () => state, () => state);
-  return summarise(s, getState().user?.id ?? null);
+  const s = useSyncExternalStore(subscribe, readState, readState);
+  const user = getState().user?.id ?? null;
+  if (memo.s !== s || memo.user !== user) memo = { s, user, out: summarise(s, user) };
+  return memo.out;
 }
 
 /** Is this record (or something inside it, like an invitation) waiting to be sent? 🕒 on rows and screens. */
 export function useWaiting(entity) {
   const { mine } = useOutbox();
-  return Boolean(entity) && mine.some((e) => e.entity === entity || e.entity.startsWith(`${entity}/`));
+  return Boolean(entity) && mine.length > 0 && mine.some((e) => e.entity === entity || e.entity.startsWith(`${entity}/`));
 }
 

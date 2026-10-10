@@ -1,7 +1,6 @@
 // answer.js — a GET with no internet: the phone's copy, never a pretend success.
 // Order: the saved rows from /sync (searchable, PWA §5.1) or the saved reply of this exact
 // screen, whichever is newer; nothing saved → "Open this once with internet to see it offline."
-import { localAnswer } from './local.js';
 import { readReply, replyKey, getMeta, saveReply, putRecords } from './cache.js';
 
 /** Replies never kept (secrets, live-only, or the sync itself). */
@@ -29,7 +28,8 @@ export async function offlineAnswer(path, query, user) {
   let local = null;
   let localError = null;
   try {
-    local = synced ? await localAnswer(path, query, user) : null;
+    // local.js only loads when the phone is actually offline (keeps the first screen light)
+    local = synced ? await (await import('./local.js')).localAnswer(path, query, user) : null;
   } catch (e) {
     localError = e;
   }
