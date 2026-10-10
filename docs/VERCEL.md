@@ -8,7 +8,7 @@ Hostinger deploy ZIPs.
 | Part | On Vercel |
 |---|---|
 | Screens (React build) | `web/dist-staging`, built by Vercel from Git (`vercel.json`) |
-| PHP API | One function `api/vercel.php` on the community runtime `vercel-php@0.7.4` (PHP 8.3), region `bom1` (Mumbai). `/api/v1/*` is routed to it, so the app and its API share one address (cookies and CSRF work as on Hostinger). |
+| PHP API | `api/php-bridge.js`: a plain Node.js function that starts PHP 8.3 (prebuilt, `@libphp/amazon-linux-2-v83`, root `package.json`) as a local server with `api/vercel.php` as router, region `bom1` (Mumbai). The community runtime `vercel-php` fails on Vercel since Aug 2026 (vercel-community/php#650). `/api/v1/*` is routed to it, so the app and its API share one address (cookies and CSRF work as on Hostinger). |
 | Database | **Your MySQL on Hostinger**, reached over the internet (Remote MySQL) |
 
 ## Limits — why this is for testing only
