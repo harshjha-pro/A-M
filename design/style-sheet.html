@@ -1,0 +1,81 @@
+<!doctype html><html><head><meta charset="utf-8"><title>A&M Wedding — style sheet</title><style>
+@font-face{font-family:Atk;src:url(fonts/atkinson-hyperlegible-latin-400-normal.woff2) format("woff2");font-weight:400}
+@font-face{font-family:Atk;src:url(fonts/atkinson-hyperlegible-latin-700-normal.woff2) format("woff2");font-weight:700}
+body{margin:0;font-family:Atk,"Noto Sans Devanagari",system-ui,sans-serif;font-size:17px;display:flex}
+.panel{width:760px;padding:40px;box-sizing:border-box} h2{font-size:30px;margin:0 0 8px} h3{margin:28px 0 12px;font-size:19px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px} .sw{display:flex;gap:10px;align-items:center;font-size:14px} .chip{width:44px;height:44px;border-radius:12px;border:1px solid}
+code{font-size:13px} .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:10px 0}
+button{font:inherit;font-size:17px;min-height:48px;padding:0 20px;border-radius:12px} .pill{min-height:48px;display:inline-flex;align-items:center;padding:0 14px;border-radius:999px}
+.tag{padding:6px 12px;border-radius:999px;font-size:16px} .card{border-radius:12px;padding:14px 16px;margin:10px 0} .bar{padding:10px 16px;border-radius:8px;margin:8px 0}
+.fab{width:64px;height:64px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:34px} .field{flex:1;min-height:48px;display:flex;align-items:center;padding:0 14px;border-radius:12px}
+</style></head><body><section class="panel" style="background:#FBF7F0;color:#2A1F1A">
+<h2>Light</h2>
+<h3>Colours</h3><div class="grid"><div class="sw"><div class="chip" style="background:#FBF7F0;border-color:#E2D6C4"></div><div><b>Background</b><br><code>#FBF7F0</code></div></div><div class="sw"><div class="chip" style="background:#FFFFFF;border-color:#E2D6C4"></div><div><b>Surface / cards</b><br><code>#FFFFFF</code></div></div><div class="sw"><div class="chip" style="background:#F3ECE1;border-color:#E2D6C4"></div><div><b>Surface 2</b><br><code>#F3ECE1</code></div></div><div class="sw"><div class="chip" style="background:#2A1F1A;border-color:#E2D6C4"></div><div><b>Text</b><br><code>#2A1F1A</code></div></div><div class="sw"><div class="chip" style="background:#5E5048;border-color:#E2D6C4"></div><div><b>Text muted</b><br><code>#5E5048</code></div></div><div class="sw"><div class="chip" style="background:#E2D6C4;border-color:#E2D6C4"></div><div><b>Border</b><br><code>#E2D6C4</code></div></div><div class="sw"><div class="chip" style="background:#8C7A68;border-color:#E2D6C4"></div><div><b>Border strong</b><br><code>#8C7A68</code></div></div><div class="sw"><div class="chip" style="background:#8A1C2B;border-color:#E2D6C4"></div><div><b>Primary (maroon)</b><br><code>#8A1C2B</code></div></div><div class="sw"><div class="chip" style="background:#FFFFFF;border-color:#E2D6C4"></div><div><b>On primary</b><br><code>#FFFFFF</code></div></div><div class="sw"><div class="chip" style="background:#F7E4E6;border-color:#E2D6C4"></div><div><b>Primary soft</b><br><code>#F7E4E6</code></div></div><div class="sw"><div class="chip" style="background:#E8A317;border-color:#E2D6C4"></div><div><b>Accent (marigold)</b><br><code>#E8A317</code></div></div><div class="sw"><div class="chip" style="background:#2F6B3A;border-color:#E2D6C4"></div><div><b>Success</b><br><code>#2F6B3A</code></div></div><div class="sw"><div class="chip" style="background:#E3F0E3;border-color:#E2D6C4"></div><div><b>Success soft</b><br><code>#E3F0E3</code></div></div><div class="sw"><div class="chip" style="background:#8A5300;border-color:#E2D6C4"></div><div><b>Warning</b><br><code>#8A5300</code></div></div><div class="sw"><div class="chip" style="background:#FFF0D4;border-color:#E2D6C4"></div><div><b>Warning soft</b><br><code>#FFF0D4</code></div></div><div class="sw"><div class="chip" style="background:#B3261E;border-color:#E2D6C4"></div><div><b>Danger</b><br><code>#B3261E</code></div></div><div class="sw"><div class="chip" style="background:#FBE4E2;border-color:#E2D6C4"></div><div><b>Danger soft</b><br><code>#FBE4E2</code></div></div><div class="sw"><div class="chip" style="background:#1F5A8A;border-color:#E2D6C4"></div><div><b>Info</b><br><code>#1F5A8A</code></div></div><div class="sw"><div class="chip" style="background:#E2EEF8;border-color:#E2D6C4"></div><div><b>Info soft</b><br><code>#E2EEF8</code></div></div><div class="sw"><div class="chip" style="background:#1A4F8B;border-color:#E2D6C4"></div><div><b>Focus ring</b><br><code>#1A4F8B</code></div></div></div>
+<h3>Type — Atkinson Hyperlegible (Hindi: Noto Sans Devanagari), base 17 px</h3>
+<div style="font-size:38px;font-weight:700;line-height:1.15">125 days to the wedding <span style="font-size:14px;color:#5E5048;font-weight:400">3xl 38 · bold</span></div>
+<div style="font-size:30px;font-weight:700">Guests <span style="font-size:14px;color:#5E5048;font-weight:400">2xl 30 · screen title</span></div>
+<div style="font-size:23px;font-weight:700">Invitations <span style="font-size:14px;color:#5E5048;font-weight:400">xl 23 · section</span></div>
+<div style="font-size:19px;font-weight:700">Ramesh Sharma &amp; family <span style="font-size:14px;color:#5E5048;font-weight:400">lg 19 · row title</span></div>
+<div style="font-size:17px">Body text: 3 people · Groom · Shastri Nagar <span style="font-size:14px;color:#5E5048">base 17</span></div>
+<div style="font-size:16px;color:#5E5048">Muted text — Updated 10:42 AM <span style="font-size:14px">sm 16</span></div>
+<div style="font-size:17px">हिंदी: कमला देवी पोरवाल (Dadi)</div>
+<h3>Components</h3>
+<div class="row">
+ <button style="background:#8A1C2B;color:#FFFFFF;border:0">Save family</button>
+ <button style="background:#FFFFFF;color:#2A1F1A;border:1.5px solid #8C7A68">Cancel</button>
+ <button style="background:#FFFFFF;color:#B3261E;border:1.5px solid #B3261E">Delete</button>
+ <button style="background:transparent;color:#8A1C2B;border:0;text-decoration:underline">See history</button>
+</div>
+<div class="row">
+ <span class="pill" style="border:1.5px solid #8A1C2B;background:#F7E4E6;color:#8A1C2B;font-weight:700">✓ Coming</span>
+ <span class="pill" style="border:1.5px solid #8C7A68;background:#FFFFFF">Waiting</span>
+ <span class="pill" style="border:1.5px solid #8C7A68;background:#FFFFFF">Not coming</span>
+ <span class="tag" style="background:#F7E4E6;color:#8A1C2B;font-weight:700">Bride's side</span>
+ <span class="tag" style="background:#FBE4E2;color:#B3261E;font-weight:700">Overdue</span>
+</div>
+<div class="card" style="background:#FFFFFF;box-shadow:0 1px 2px rgb(42 31 26/.06), 0 2px 8px rgb(42 31 26/.06)">
+ <div style="font-weight:700;font-size:19px">Book tent wala</div>
+ <div style="color:#5E5048;font-size:16px"><span style="color:#B3261E;font-weight:700">⚠ Overdue</span> · Mon, 5 Oct 2026 · Papa · <span style="color:#8A5300;font-weight:700">🕒 Waiting to send</span></div>
+</div>
+<div class="bar" style="background:#FFF0D4"><b>📶 No internet · from Sat 10 Oct 2026, 9:40 PM</b></div>
+<div class="bar" style="background:#FFF0D4;display:flex;justify-content:space-between;align-items:center"><b>🕒 3 changes waiting to send.</b><span style="background:#FFFFFF;color:#8A1C2B;font-weight:700;padding:10px 16px;border-radius:12px">Send now</span></div>
+<div class="bar" style="background:#FBE4E2"><b>⚠ 1 change needs your choice.</b></div>
+<div class="row" style="margin-top:12px"><div class="fab" style="background:#8A1C2B;color:#FFFFFF;box-shadow:0 6px 16px rgb(138 28 43/.30)">+</div>
+<div class="field" style="border:1.5px solid #8C7A68;background:#FFFFFF;color:#5E5048">Search name, phone, group or area</div></div>
+<h3>Shape</h3><div style="font-size:16px">Radius 8 / 12 / 16 / 24 px · tap targets ≥ 48 px · 16 px side padding · cards: white + soft shadow (light), flat (dark)</div>
+</section><section class="panel" style="background:#17120F;color:#F5EEE4">
+<h2>Dark</h2>
+<h3>Colours</h3><div class="grid"><div class="sw"><div class="chip" style="background:#17120F;border-color:#3D332C"></div><div><b>Background</b><br><code>#17120F</code></div></div><div class="sw"><div class="chip" style="background:#211A16;border-color:#3D332C"></div><div><b>Surface / cards</b><br><code>#211A16</code></div></div><div class="sw"><div class="chip" style="background:#2B231E;border-color:#3D332C"></div><div><b>Surface 2</b><br><code>#2B231E</code></div></div><div class="sw"><div class="chip" style="background:#F5EEE4;border-color:#3D332C"></div><div><b>Text</b><br><code>#F5EEE4</code></div></div><div class="sw"><div class="chip" style="background:#C9BBAA;border-color:#3D332C"></div><div><b>Text muted</b><br><code>#C9BBAA</code></div></div><div class="sw"><div class="chip" style="background:#3D332C;border-color:#3D332C"></div><div><b>Border</b><br><code>#3D332C</code></div></div><div class="sw"><div class="chip" style="background:#8A7A6A;border-color:#3D332C"></div><div><b>Border strong</b><br><code>#8A7A6A</code></div></div><div class="sw"><div class="chip" style="background:#F2A7AF;border-color:#3D332C"></div><div><b>Primary (maroon)</b><br><code>#F2A7AF</code></div></div><div class="sw"><div class="chip" style="background:#3A0B12;border-color:#3D332C"></div><div><b>On primary</b><br><code>#3A0B12</code></div></div><div class="sw"><div class="chip" style="background:#3D1D22;border-color:#3D332C"></div><div><b>Primary soft</b><br><code>#3D1D22</code></div></div><div class="sw"><div class="chip" style="background:#F2B84B;border-color:#3D332C"></div><div><b>Accent (marigold)</b><br><code>#F2B84B</code></div></div><div class="sw"><div class="chip" style="background:#86C991;border-color:#3D332C"></div><div><b>Success</b><br><code>#86C991</code></div></div><div class="sw"><div class="chip" style="background:#1D3322;border-color:#3D332C"></div><div><b>Success soft</b><br><code>#1D3322</code></div></div><div class="sw"><div class="chip" style="background:#FFC266;border-color:#3D332C"></div><div><b>Warning</b><br><code>#FFC266</code></div></div><div class="sw"><div class="chip" style="background:#3A2C12;border-color:#3D332C"></div><div><b>Warning soft</b><br><code>#3A2C12</code></div></div><div class="sw"><div class="chip" style="background:#FF8A80;border-color:#3D332C"></div><div><b>Danger</b><br><code>#FF8A80</code></div></div><div class="sw"><div class="chip" style="background:#3D1B19;border-color:#3D332C"></div><div><b>Danger soft</b><br><code>#3D1B19</code></div></div><div class="sw"><div class="chip" style="background:#93C5F0;border-color:#3D332C"></div><div><b>Info</b><br><code>#93C5F0</code></div></div><div class="sw"><div class="chip" style="background:#16293A;border-color:#3D332C"></div><div><b>Info soft</b><br><code>#16293A</code></div></div><div class="sw"><div class="chip" style="background:#93C5F0;border-color:#3D332C"></div><div><b>Focus ring</b><br><code>#93C5F0</code></div></div></div>
+<h3>Type — Atkinson Hyperlegible (Hindi: Noto Sans Devanagari), base 17 px</h3>
+<div style="font-size:38px;font-weight:700;line-height:1.15">125 days to the wedding <span style="font-size:14px;color:#C9BBAA;font-weight:400">3xl 38 · bold</span></div>
+<div style="font-size:30px;font-weight:700">Guests <span style="font-size:14px;color:#C9BBAA;font-weight:400">2xl 30 · screen title</span></div>
+<div style="font-size:23px;font-weight:700">Invitations <span style="font-size:14px;color:#C9BBAA;font-weight:400">xl 23 · section</span></div>
+<div style="font-size:19px;font-weight:700">Ramesh Sharma &amp; family <span style="font-size:14px;color:#C9BBAA;font-weight:400">lg 19 · row title</span></div>
+<div style="font-size:17px">Body text: 3 people · Groom · Shastri Nagar <span style="font-size:14px;color:#C9BBAA">base 17</span></div>
+<div style="font-size:16px;color:#C9BBAA">Muted text — Updated 10:42 AM <span style="font-size:14px">sm 16</span></div>
+<div style="font-size:17px">हिंदी: कमला देवी पोरवाल (Dadi)</div>
+<h3>Components</h3>
+<div class="row">
+ <button style="background:#F2A7AF;color:#3A0B12;border:0">Save family</button>
+ <button style="background:#211A16;color:#F5EEE4;border:1.5px solid #8A7A6A">Cancel</button>
+ <button style="background:#211A16;color:#FF8A80;border:1.5px solid #FF8A80">Delete</button>
+ <button style="background:transparent;color:#F2A7AF;border:0;text-decoration:underline">See history</button>
+</div>
+<div class="row">
+ <span class="pill" style="border:1.5px solid #F2A7AF;background:#3D1D22;color:#F2A7AF;font-weight:700">✓ Coming</span>
+ <span class="pill" style="border:1.5px solid #8A7A6A;background:#211A16">Waiting</span>
+ <span class="pill" style="border:1.5px solid #8A7A6A;background:#211A16">Not coming</span>
+ <span class="tag" style="background:#3D1D22;color:#F2A7AF;font-weight:700">Bride's side</span>
+ <span class="tag" style="background:#3D1B19;color:#FF8A80;font-weight:700">Overdue</span>
+</div>
+<div class="card" style="background:#211A16;box-shadow:none">
+ <div style="font-weight:700;font-size:19px">Book tent wala</div>
+ <div style="color:#C9BBAA;font-size:16px"><span style="color:#FF8A80;font-weight:700">⚠ Overdue</span> · Mon, 5 Oct 2026 · Papa · <span style="color:#FFC266;font-weight:700">🕒 Waiting to send</span></div>
+</div>
+<div class="bar" style="background:#3A2C12"><b>📶 No internet · from Sat 10 Oct 2026, 9:40 PM</b></div>
+<div class="bar" style="background:#3A2C12;display:flex;justify-content:space-between;align-items:center"><b>🕒 3 changes waiting to send.</b><span style="background:#211A16;color:#F2A7AF;font-weight:700;padding:10px 16px;border-radius:12px">Send now</span></div>
+<div class="bar" style="background:#3D1B19"><b>⚠ 1 change needs your choice.</b></div>
+<div class="row" style="margin-top:12px"><div class="fab" style="background:#F2A7AF;color:#3A0B12;box-shadow:none">+</div>
+<div class="field" style="border:1.5px solid #8A7A6A;background:#211A16;color:#C9BBAA">Search name, phone, group or area</div></div>
+<h3>Shape</h3><div style="font-size:16px">Radius 8 / 12 / 16 / 24 px · tap targets ≥ 48 px · 16 px side padding · cards: white + soft shadow (light), flat (dark)</div>
+</section></body></html>
