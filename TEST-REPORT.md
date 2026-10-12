@@ -1,18 +1,18 @@
-# Test report — Session 14 — PWA offline saving (outbox)
+# Test report — Home & Calendar redesign — version 1.0.16
 
-Date: 2026-10-10T19:19Z · App version: 1.0.15 · DB: **MySQL 8.0.46-0ubuntu0.24.04.4** (sandbox, same major as Hostinger) · PHP 8.3.6 · Node v22.22.0 · Web server for .htaccess tests: Apache/2.4.58 (Ubuntu)
+Date: 2026-10-12T12:50Z · App version: 1.0.16 · DB: **MySQL 8.0.46-0ubuntu0.24.04.4** (sandbox, same major as Hostinger) · PHP 8.3.6 · Node v22.22.0 · Web server for .htaccess tests: Apache/2.4.58 (Ubuntu)
 
 Overall: **GREEN — all suites passed**
 
 | Suite | Result |
 |---|---|
-| PHPUnit (unit, db, endpoints, security, static, coverage) | OK (737 tests, 7980 assertions) |
-| Endpoint coverage | 110/110 operations built and tested (the rest arrive session by session) |
-| Vitest (formats, API client, shell, routes, axe) | Tests 253 passed (253) |
-| Build (staging + live) | JS 120.82 kB gz · CSS 6.08 kB gz |
+| PHPUnit (unit, db, endpoints, security, static, coverage) | OK (767 tests, 8295 assertions) |
+| Endpoint coverage | 116/116 operations built and tested (the rest arrive session by session) |
+| Vitest (formats, API client, shell, routes, axe) | Tests 263 passed (263) |
+| Build (staging + live) | JS 121.44 kB gz · CSS 6.96 kB gz |
 | HTTP rules (real requests) | Apache 2.4.58 + real .htaccess: PASS · php -S + tools/router.php: PASS — OK (13 tests, 267 assertions) OK (13 tests, 263 assertions)  |
-| Playwright smoke (android, small-iphone, small-android; Chromium, not Safari) | 134 passed (8.8m) |
-| Lighthouse mobile, simulated slow 4G (budget: Perf ≥ 90, A11y ≥ 95, BP ≥ 95) | login: Performance 96 · Accessibility 100 · Best Practices 96 · LCP 2.46 s · TBT 0 ms · CLS 0.000 home: Performance 90 · Accessibility 100 · Best Practices 100 · LCP 3.33 s · TBT 97 ms · CLS 0.057 guests: Performance 92 · Accessibility 100 · Best Practices 100 · LCP 2.94 s · TBT 159 ms · CLS 0.018  |
+| Playwright smoke (android, small-iphone, small-android; Chromium, not Safari) | 140 passed (7.4m) |
+| Lighthouse mobile, simulated slow 4G (budget: Perf ≥ 90, A11y ≥ 95, BP ≥ 95) | login: Performance 99 · Accessibility 100 · Best Practices 96 · LCP 1.86 s · TBT 0 ms · CLS 0.000 home: Performance 93 · Accessibility 100 · Best Practices 100 · LCP 2.88 s · TBT 103 ms · CLS 0.051 guests: Performance 94 · Accessibility 100 · Best Practices 100 · LCP 2.87 s · TBT 13 ms · CLS 0.018  |
 
 Database checks: 001 → 002 → 003 apply with finished_at set; second run of each stops at its guard with data unchanged (DS-28); seed_demo.sql loads (61 families, Devanagari intact) and its second run stops at user id 1.
 

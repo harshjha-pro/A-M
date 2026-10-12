@@ -18,3 +18,8 @@ Session 14 (version 1.0.15, offline saving):
 - `AM-Wedding-master-v1.0.15.zip` — everything in one file (source + deploy)
 - `deploy-session14.zip` — the Hostinger upload packages (staging/ and live/)
 - The source-only ZIP is not stored here: it is this repository.
+
+Version 1.0.16 (Home & Calendar redesign, "Session 14a"):
+
+- `deploy-session14a.zip` — the Hostinger upload packages (staging/ and live/) **plus `migrations/004_home_photos.sql`** (run it first)
+- The master ZIP (77 MB, because it carries the whole git history) is not stored here, to keep the repository small; it is sent in the chat. The source is this repository.
