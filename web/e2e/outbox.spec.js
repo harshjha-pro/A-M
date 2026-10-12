@@ -56,10 +56,11 @@ test('E2E-07: offline → 2 ticks, a family edit, 3 Coming? → close → reopen
     // No internet (routing: see offline.spec.js for why not setOffline).
     await context.route('**/*', (route) => route.abort('internetdisconnected'));
     await page.goto('/tasks?view=mine');
-    for (const tk of tasks) {
+    for (const [i, tk] of tasks.entries()) {
       await page.getByLabel('Search tasks').fill(tk.title);
       await page.getByRole('button', { name: `Mark done: ${tk.title}` }).click();
-      await expect(page.getByText(/Kept on this phone/).first()).toBeVisible();
+      // Wait for this tick to be on the phone (the toast from the first tick may still show).
+      await expect(page.getByText(i === 0 ? '1 change waiting to send.' : `${i + 1} changes waiting to send.`)).toBeVisible();
     }
     await page.goto(`/guests/${fam.id}/edit`);
     await page.getByLabel('Notes').fill(`Edited offline ${tag}`);
