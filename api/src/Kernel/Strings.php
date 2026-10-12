@@ -127,6 +127,9 @@ final class Strings
         'document_duplicate'       => "This file is already saved as '{title}'.",
         'not_your_upload'          => 'Only the person who uploaded it, or Ayush and Mahi, can change it.',
         'storage_unavailable'      => "Files can't be saved right now. Please try again later.",
+        'photo_slot_full'          => 'Up to {max} {what}. Remove one first.',
+        'photo_too_big'            => 'This photo is too big ({size}). Max 3 MB.',
+        'photo_only_images'        => 'Only photos (JPEG, PNG, WebP) can be used here.',
         'tag_name_taken'           => 'A tag called {name} already exists. Rename that one first.',
     ];
 

@@ -30,6 +30,8 @@ use AM\Modules\Money\PaymentDef;
 use AM\Modules\Money\PaymentsController;
 use AM\Modules\Money\VendorDef;
 use AM\Modules\Money\VendorsController;
+use AM\Modules\HomePhotos\HomePhotoDef;
+use AM\Modules\HomePhotos\HomePhotosController;
 use AM\Modules\Settings\SettingsController;
 use AM\Modules\History\HistoryController;
 use AM\Modules\Safety\RestoreDrillDef;
@@ -199,6 +201,14 @@ final class Routes
         $r->add('GET', '/exports/{id}/download', ExportsController::download(...), ['anon' => true, 'query' => ['part', 't']]);
         $r->add('GET', '/exports/{id}/summary', ExportsController::summary(...), ['anon' => true, 'query' => ['t']]);
         $r->add('POST', '/documents/{id}/restore', static fn (Request $q, App $a, array $p) => BaseController::restore($q, $a, $p, DocumentDef::class));
+
+        // Home photos (1.0.16): stored in the database, admins add and remove.
+        $r->add('GET', '/home-photos', HomePhotosController::list(...));
+        $r->add('POST', '/home-photos', HomePhotosController::upload(...), ['max_body' => 4 * 1024 * 1024]);
+        $r->add('GET', '/home-photos/{id}/image', HomePhotosController::image(...), ['query' => ['v']]);
+        $r->add('PATCH', '/home-photos/{id}', static fn (Request $q, App $a, array $p) => BaseController::update($q, $a, $p, HomePhotoDef::class, HomePhotoDef::canWrite()));
+        $r->add('DELETE', '/home-photos/{id}', static fn (Request $q, App $a, array $p) => BaseController::delete($q, $a, $p, HomePhotoDef::class, HomePhotoDef::canWrite()));
+        $r->add('POST', '/home-photos/{id}/restore', static fn (Request $q, App $a, array $p) => BaseController::restore($q, $a, $p, HomePhotoDef::class));
 
         // Home (Session 7)
         $r->add('GET', '/dashboard', DashboardController::show(...), ['query' => ['payments_window_days']]);

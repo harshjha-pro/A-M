@@ -13,7 +13,8 @@ final class TaskItemsTagsTest extends ApiTestCase
 {
     private function task(ApiClient $c, array $body = []): array
     {
-        return $c->postJson('/tasks', $body + ['title' => 'Shopping list', 'allow_duplicate' => true])->assertStatus(201)->json('data');
+        // 1.0.16: only Ayush and Mahi add tasks; the person in the test then works on it.
+        return $this->loginAs('ayush')->postJson('/tasks', $body + ['title' => 'Shopping list', 'allow_duplicate' => true])->assertStatus(201)->json('data');
     }
 
     private function tagId(string $name): string

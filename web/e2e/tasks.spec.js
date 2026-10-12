@@ -6,7 +6,7 @@ import { login, watchProblems } from './helpers.js';
 test('E2E-01: Home → + → Task → type → Save; assigned to me', async ({ page }, info) => {
   const problems = watchProblems(page);
   const title = `Call tent wala ${info.project.name} ${Date.now()}`;
-  await login(page, 'papa');
+  await login(page, 'mahi'); // 1.0.16: only Ayush and Mahi add tasks
   await page.getByRole('button', { name: 'Add' }).click();                     // tap 1
   await page.getByRole('button', { name: 'Task' }).click();                    // tap 2
   await page.getByLabel('What needs doing?').fill(title);
@@ -15,8 +15,25 @@ test('E2E-01: Home → + → Task → type → Save; assigned to me', async ({ p
   await expect(page).toHaveURL(/\/tasks$/);
   const row = page.getByRole('listitem').filter({ hasText: title });
   await expect(row).toBeVisible();
-  await expect(row).toContainText('Rajendra Porwal (Papa)');
+  await expect(row).toContainText('Mahi Jagetiya');
   expect(problems).toEqual([]);
+});
+
+test('1.0.16: Papa (Family) can tick and edit tasks but not add them: no Task in the + sheet, no + on Tasks', async ({ page }) => {
+  await login(page, 'papa');
+  await page.getByRole('button', { name: 'Add' }).click();
+  await expect(page.getByRole('dialog').getByRole('button', { name: 'Family' })).toBeVisible();
+  await expect(page.getByRole('dialog').getByRole('button', { name: 'Task' })).toHaveCount(0);
+  await page.keyboard.press('Escape');
+  await page.goto('/tasks');
+  await expect(page.getByRole('heading', { level: 1, name: 'Tasks' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Add task' })).toHaveCount(0);
+  const res = await page.evaluate(async () => {
+    const s = await (await fetch('/api/v1/session')).json();
+    const r = await fetch('/api/v1/tasks', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': s.data.csrf_token, 'Idempotency-Key': crypto.randomUUID() }, body: '{"title":"Not allowed"}' });
+    return r.status;
+  });
+  expect(res).toBe(403);
 });
 
 test('E2E-05: delete a task → Undo → back with its checklist', async ({ page }, info) => {

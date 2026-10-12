@@ -16,7 +16,8 @@ const papa = { id: PEOPLE.papa.id, name: 'Papa', phone: '+919829000103', role: '
 function api(extra = {}) {
   return fakeApi({
     'GET /health': () => new Response('{"status":"ok"}', { status: 200 }),
-    'GET /dashboard': () => ok({ countdown: { days_to_wedding: 129, wedding_day: null, wedding_days: 3, next_event: null }, my_tasks: { items: [], total: 0, upcoming: false }, overdue: { total: 0 }, headcount: [] }),
+    'GET /home-photos': () => ok([]),
+    'GET /dashboard': () => ok({ countdown: { days_to_wedding: 129, wedding_day: null, wedding_days: 3, wedding_start_date: '2027-02-14', wedding_starts_at: '2027-02-13T18:30:00Z', next_event: null }, upcoming_events: [], my_tasks: { items: [], total: 0, upcoming: false }, overdue: { total: 0 }, headcount: [] }),
     'GET /session': () => ok({ user: papa, permissions: { ...permissionsFor(PEOPLE.papa), events_write: false }, csrf_token: 'csrf-x', settings_brief: null }),
     'GET /settings': () => ok(settings),
     'GET /members': () => ok([{ id: PEOPLE.papa.id, name: 'Papa', phone: '+919829000103', role: 'family', left: false }]),
@@ -90,7 +91,7 @@ test('Home greets the person and shows the server check', async () => {
   renderAt('/');
   expect(await screen.findByText('Namaste, Papa')).toBeInTheDocument();
   expect(await screen.findByText(/^Connected · Updated/)).toBeInTheDocument();
-  expect(screen.getByText('129 days to the wedding')).toBeInTheDocument();
+  expect(screen.getByRole('timer', { name: /to the wedding/ })).toBeInTheDocument();
 });
 
 test('Home says so when the server is down', async () => {

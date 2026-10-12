@@ -25,7 +25,7 @@ We are building a private, installable web app (PWA) to plan one wedding: Ayush 
 | User type | Who | Can do | Phone | Language | Comfort |
 |---|---|---|---|---|---|
 | Admin | Ayush, Mahi | Everything, incl. users, budget, trash, export | TBD | English | 5/5 (assumed) |
-| Family editor | Parents, siblings, relatives doing work | Add and edit tasks, events, guests, documents | Android + iPhone mix (count TBD) | English + Hinglish | 3/5 |
+| Family editor | Parents, siblings, relatives doing work | Edit and tick tasks (adding tasks and events: admins only, decision 41); add and edit guests, documents | Android + iPhone mix (count TBD) | English + Hinglish | 3/5 |
 | Family viewer | Elders who only check plans | Read only | TBD | Hinglish | ≤ 3/5 |
 | Guests | ~1,800 invitees | No login. Get wa.me messages only | — | — | — |
 
@@ -75,6 +75,9 @@ Design for the 3/5 user: one main action per screen, words beside icons.
 | 38 | All phone testing on an HTTPS staging subdomain with its own database and demo data. | Install, offline and push need HTTPS; real guest data stays out of tests. |
 | 39 | Supported phones: made 2020 or later. iPhone SE (2nd gen) / iPhone 12 and newer on iOS 17+ (all can run iOS 26); Android 10+ with current Chrome. Older phones: not supported. | Owner's answer. Every supported iPhone can get reminders once updated. |
 | 40 | Screens say "Coming?" and "Remind on WhatsApp", never "RSVP" (plain words, DESIGN §8). WhatsApp Hinglish texts are Hindi in Roman letters until Open Question 7 is answered. | Session 8. Elders read Roman Hinglish on WhatsApp more often than English. |
+| 41 | **Only Ayush and Mahi add tasks and events** (server 403 + no + for others). Family still edits and ticks tasks, and adds families, payments ($) and documents. | Owner's answer, 12 Oct 2026 (version 1.0.16). |
+| 42 | **Home layout (1.0.16):** cover slideshow (≤ 8 photos) with the monogram top-right, couple photos (≤ 4), Months : Days : Hours countdown to midnight IST on the first day, upcoming events, My tasks, Everyone's overdue, Recent activity (admins; Show more → scrolling list). Budget, payments, headcount and safety are no longer on Home. Photos are added in Settings › Home photos by Ayush and Mahi and **stored in the database** (`photo_blobs`), placeholders until then. | Owner's answers, 12 Oct 2026. In the database so they survive Vercel and go into backups and exports. |
+| 43 | **Calendar defaults (1.0.16):** Month view (Agenda on tap), Events + Tasks on, no Payments chip, Only mine on (tap for everyone's). The + (admins) offers Add event / Add task. | Owner's answer, 12 Oct 2026. |
 
 ## 5. Out of scope for v1
 
@@ -143,6 +146,7 @@ Design for the 3/5 user: one main action per screen, words beside icons.
 | Offline reading | IndexedDB `am-wedding` (records from `GET /sync` + saved GET replies), refreshed on open, return, back online and every 5 min. Offline screens always show "No internet · from …". Logout or a different person wipes it. |
 | Offline saving | Outbox in IndexedDB (Session 14): tick/add/edit tasks, checklist items, add/edit families, Coming? wait on the phone and are sent once (same Idempotency-Key); everything else greyed out "Needs internet". Conflicts and duplicates found later → Settings › Changes on this phone. Logout warns before losing unsent changes; another person's unsent changes stay but are never sent with a different login. |
 | App updates | Service worker `/sw.js` (Workbox, precached shell; `/api/*` never cached). New version only via "Tap to refresh" (never automatic, never over unsaved typing). **Deploy order: 1-server → 2-assets → 3-shell → `version.json` last; keep old `assets/` 14 days.** Escape hatch: `/reset.html` (Settings → This phone → Fix the app) |
+| Home photos | `POST /api/v1/home-photos` (admins; JPEG/PNG/WebP ≤ 3 MB, shrunk on the phone; a monogram PNG ≤ 1 MB keeps its see-through background). Bytes in `photo_blobs` (immutable, never in `audit_log`); `GET /home-photos/{id}/image?v=<hash>` is `private, no-store` from the API and kept by the service worker (cache `home-photos`, CacheFirst — the one API read cached on the phone). |
 | Uploads | Outside `public_html` (`STORAGE_ROOT/uploads/YYYY/MM/<uuid>.<ext>`, deny-all `.htaccess`); original name in DB; served only by `GET /api/v1/documents/{id}/file` (`private, no-store`). Photos shrunk on the phone (1,600 px JPEG, EXIF gone); max 10 MB; PHP `upload_max_filesize` 12M / `post_max_size` 16M set in hPanel. Staging ships demo files for the demo seed (`tools/make-demo-files.py`), live never |
 | Backups | `wedding_YYYYMMDD_HHMM.sql.gz.enc` |
 | Exports | `wedding-export_YYYY-MM-DD.zip` (parts 2…n: `_files-partN.zip` above 200 MB). Snapshot folder `STORAGE_ROOT/exports/<id>/`, ZIP built while it downloads by our own `ZipWriter` (no third-party PHP packages on the server). Link valid 24 h (session or `?t=` token). No passwords or login keys inside. Restore: `private/app/tools/restore-from-export.php` (DATA-SAFETY §2.1) |

@@ -42,6 +42,11 @@ final class DashboardController
         $money = Permissions::canSeeMoney($viewer);
 
         $out = ['countdown' => self::countdown($app, $db, $refs, $viewer, $today)];
+        $limit = self::MAX_ITEMS;
+        $out['upcoming_events'] = array_map(
+            static fn (array $e) => EventDef::present($app, $db, $refs, $e, $viewer),
+            $db->all("SELECT * FROM events WHERE deleted_at IS NULL AND start_at >= ? ORDER BY start_at, sort_order LIMIT $limit", [$app->clock->dbNow()]),
+        );
         if ($editor) {
             $out['my_tasks'] = self::myTasks($app, $db, $refs, (int) $viewer['id'], $today, $now);
             $out['overdue'] = ['total' => (int) $db->value(
@@ -71,7 +76,7 @@ final class DashboardController
         return Response::ok($out);
     }
 
-    /** "129 days to the wedding"; "Day 1 of 3" during it; nothing after it. Plus the next event. */
+    /** "129 days to the wedding" (and the moment it starts, for Months : Days : Hours); "Day 1 of 3" during it; nothing after it. Plus the next event. */
     private static function countdown(App $app, Db $db, Refs $refs, array $viewer, string $today): array
     {
         $s = $db->one('SELECT wedding_start_date, wedding_end_date FROM settings WHERE id = 1');
@@ -93,6 +98,8 @@ final class DashboardController
             'wedding_day' => $day,
             'wedding_days' => $total,
             'wedding_start_date' => $s['wedding_start_date'] ?? null,
+            // Home's Months : Days : Hours counts to midnight IST at the start of the first day.
+            'wedding_starts_at' => $s === null ? null : (new DateTimeImmutable($s['wedding_start_date'] . ' 00:00:00', new \DateTimeZone('Asia/Kolkata')))->setTimezone(new \DateTimeZone('UTC'))->format('Y-m-d\TH:i:s\Z'),
             'next_event' => $next === null ? null : EventDef::present($app, $db, $refs, $next, $viewer),
         ];
     }

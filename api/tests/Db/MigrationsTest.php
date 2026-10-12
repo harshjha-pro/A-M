@@ -27,12 +27,12 @@ final class MigrationsTest extends TestCase
     {
         $pdo = TestDb::connect(self::SCRATCH);
         $rows = $pdo->query('SELECT version, name, finished_at FROM schema_migrations ORDER BY version')->fetchAll();
-        $this->assertSame([1, 2, 3], array_map(static fn ($r) => (int) $r['version'], $rows));
+        $this->assertSame([1, 2, 3, 4], array_map(static fn ($r) => (int) $r['version'], $rows));
         foreach ($rows as $r) {
             $this->assertNotNull($r['finished_at'], "{$r['name']} has finished_at NULL (stopped part-way)");
         }
         $tables = (int) $pdo->query("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = '" . self::SCRATCH . "'")->fetchColumn();
-        $this->assertSame(30, $tables, 'DATABASE.md §1: 30 tables after 003');
+        $this->assertSame(32, $tables, 'DATABASE.md §1: 32 tables after 004 (photo_blobs, home_photos)');
     }
 
     public function test_reference_data_after_002(): void

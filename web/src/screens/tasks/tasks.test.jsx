@@ -87,7 +87,7 @@ describe('Task list', () => {
 
 describe('Add a task', () => {
   test('AC-TASK-01: + → type → Save sends only the title, once', async () => {
-    signInAs('papa');
+    signInAs('mahi');
     const user = userEvent.setup();
     const calls = fakeApi({
       'GET /tasks': () => listReply([]), 'GET /tags': () => ok([]), 'GET /members': () => ok(members),
@@ -103,8 +103,22 @@ describe('Add a task', () => {
     expect(JSON.parse(posts[0][1].body)).toEqual({ title: 'Call tent wala' });
   });
 
-  test('empty title is caught on the phone; a similar task offers Open / Add anyway', async () => {
+  test('1.0.16: Family sees no + on Tasks, and /tasks/new says only Ayush and Mahi add tasks', async () => {
     signInAs('papa');
+    const calls = fakeApi({ 'GET /tasks': () => listReply([]), 'GET /tags': () => ok([]), 'GET /members': () => ok(members) });
+    renderAt('/tasks');
+    await screen.findByRole('heading', { level: 1, name: 'Tasks' });
+    await vi.waitFor(() => expect(calls).toHaveBeenCalled());
+    expect(screen.queryByRole('button', { name: 'Add task' })).toBeNull();
+    signOut();
+    signInAs('papa');
+    renderAt('/tasks/new');
+    expect(await screen.findByText('Only Ayush and Mahi can add tasks. You can still edit and tick tasks.')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Save task' })).toBeNull();
+  });
+
+  test('empty title is caught on the phone; a similar task offers Open / Add anyway', async () => {
+    signInAs('ayush');
     const user = userEvent.setup();
     let n = 0;
     const calls = fakeApi({

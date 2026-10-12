@@ -607,9 +607,9 @@ All paths are under `/api/v1`. To keep the tables short:
 |-|-|-|-|-|-|
 |Members|List names + phones|Edit own name, own password|—|Add, edit, deactivate, reset|Can't be demoted or deactivated|
 |Settings|Read facts|—|See total budget|Edit facts, Safety, Activity, Imports, Trash, Export|—|
-|Dashboard / Calendar|Countdown, headcount, events, tasks|My tasks, overdue|Payments, budget, payment items|Safety, recent activity|—|
+|Dashboard / Calendar|Countdown, upcoming events, headcount, events, tasks; Home photos|My tasks, overdue|Payments, budget, payment items|Safety, recent activity; add / reorder / remove Home photos|—|
 |Events|Read|—|—|Create, edit, delete|—|
-|Tasks|Read|Create, edit, tick any task; delete own tasks (created by or assigned to them)|—|Delete any task; rename / delete tags|—|
+|Tasks|Read|Edit, tick any task; delete own tasks (created by or assigned to them). Creating: Adm only since 1.0.16|—|Create; delete any task; rename / delete tags|—|
 |Guests|Read (incl. phones)|Create, edit, RSVP, delete one family; bulk invite / uninvite / RSVP / side|—|Import, bulk delete, export CSV|—|
 |Vendors|Read contacts|Create, edit (no amount unless $)|Agreed amount, balances|Delete|—|
 |Payments, categories|—|—|Full (Family+$ can't delete categories)|Delete categories|—|
@@ -798,6 +798,21 @@ Details of upload and download are in §8.
 |POST|`/documents/{id}/restore`|Restore|Adm|If-Match|`200 Document`|403, 404|
 
 Visibility (FEATURES B7): private → Adm only; linked to a payment → $ only; else everyone. A document a user may not see returns `403` (AC-DOC-02/03).
+
+### 6.9a Home photos (version 1.0.16)
+
+Cover slideshow (up to 8), couple photos (up to 4), monogram (1). The bytes are stored in the database (`photo_blobs`, DATABASE §6 `004`).
+
+|Method|Path|Purpose|Who|Request|Response|Errors|
+|-|-|-|-|-|-|-|
+|GET|`/home-photos`|Every live photo, by place then order; `meta.max` = limits|All|—|`200 \[HomePhoto]`|—|
+|POST|`/home-photos`|Add one photo|Adm|`multipart/form-data`: `file` (JPEG/PNG/WebP ≤ 3 MB), `slot`, `sha256`|`201 HomePhoto`|403, 413, 415, 422 (`slot` full, `checksum\_mismatch`)|
+|PATCH|`/home-photos/{id}`|Change `sort\_order` only|Adm|If-Match|`200 HomePhoto`|403, 409, 422|
+|GET|`/home-photos/{id}/image`|The bytes (`?v=` hash in the URL; `private, no-store`, kept by the service worker)|All (deleted: Adm)|`?v=`|`200` image, `304` on If-None-Match|401, 404|
+|DELETE|`/home-photos/{id}`|Soft delete (bytes stay for Undo)|Adm|If-Match|`200 {}` + `meta.undo`|403, 409|
+|POST|`/home-photos/{id}/restore`|Restore|Adm|If-Match|`200 HomePhoto`|403, 422 (place full)|
+
+`GET /dashboard` (1.0.16) also returns `upcoming_events` (next 5 dated events, everyone) and `countdown.wedding_starts_at` (midnight IST on the first day). `POST /tasks` is **Adm only** since 1.0.16 (CONTEXT decision 41).
 
 ### 6.10 History and activity
 

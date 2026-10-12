@@ -517,6 +517,112 @@ paths:
         default: { $ref: '#/components/responses/Error' }
 
   # ---------------------------------------------------------------- Dashboard & calendar
+  /home-photos:
+    get:
+      tags: [Dashboard]
+      operationId: listHomePhotos
+      summary: Home photos (cover slideshow, couple photos, monogram), by place then order. meta.max gives each place's limit.
+      x-permission: All
+      responses:
+        '200':
+          description: Photos
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Ok'
+                  - properties: { data: { type: array, items: { $ref: '#/components/schemas/HomePhoto' } } }
+        default: { $ref: '#/components/responses/Error' }
+    post:
+      tags: [Dashboard]
+      operationId: uploadHomePhoto
+      summary: Add one photo (max 3 MB; JPEG, PNG, WebP). Stored in the database. Up to 8 cover, 4 couple, 1 monogram (422 when full).
+      x-permission: Adm
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IdempotencyKey' } ]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema: { $ref: '#/components/schemas/HomePhotoUpload' }
+            encoding:
+              file: { contentType: 'image/jpeg, image/png, image/webp' }
+      responses:
+        '201': { $ref: '#/components/responses/HomePhotoOne' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '415': { $ref: '#/components/responses/UnsupportedMediaType' }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+        default: { $ref: '#/components/responses/Error' }
+  /home-photos/{id}:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    patch:
+      tags: [Dashboard]
+      operationId: updateHomePhoto
+      summary: Change the order. The image and its place never change.
+      x-permission: Adm
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IfMatch' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties: { sort_order: { type: integer, minimum: 0, maximum: 1000 } }
+      responses:
+        '200': { $ref: '#/components/responses/HomePhotoOne' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        default: { $ref: '#/components/responses/Error' }
+    delete:
+      tags: [Dashboard]
+      operationId: deleteHomePhoto
+      summary: Soft delete (Undo for 10 minutes). The bytes stay.
+      x-permission: Adm
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IfMatch' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      responses:
+        '200': { $ref: '#/components/responses/Deleted' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        default: { $ref: '#/components/responses/Error' }
+  /home-photos/{id}/image:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    get:
+      tags: [Dashboard]
+      operationId: getHomePhotoImage
+      summary: The image bytes. The URL carries ?v=<hash>, so the service worker can keep a copy.
+      x-permission: All (deleted ones Adm)
+      parameters:
+        - { name: v, in: query, schema: { type: string }, description: First 16 hex characters of the image's SHA-256 }
+      responses:
+        '200':
+          description: Image bytes
+          headers:
+            ETag: { schema: { type: string }, description: SHA-256 of the image }
+            Cache-Control: { schema: { type: string, const: 'private, no-store' } }
+          content:
+            image/jpeg: { schema: { type: string, contentMediaType: image/jpeg } }
+            image/png: { schema: { type: string, contentMediaType: image/png } }
+            image/webp: { schema: { type: string, contentMediaType: image/webp } }
+        '304': { description: Not modified (If-None-Match) }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        default: { $ref: '#/components/responses/Error' }
+  /home-photos/{id}/restore:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    post:
+      tags: [Trash]
+      operationId: restoreHomePhoto
+      summary: Restore a deleted Home photo (422 when its place is full)
+      x-permission: Adm
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IfMatch' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      responses:
+        '200': { $ref: '#/components/responses/HomePhotoOne' }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+        default: { $ref: '#/components/responses/Error' }
   /dashboard:
     get:
       tags: [Dashboard]
@@ -2427,6 +2533,15 @@ components:
             allOf:
               - $ref: '#/components/schemas/Ok'
               - properties: { data: { $ref: '#/components/schemas/Payment' } }
+    HomePhotoOne:
+      description: Home photo
+      headers: { ETag: { $ref: '#/components/headers/ETag' } }
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/Ok'
+              - properties: { data: { $ref: '#/components/schemas/HomePhoto' } }
     DocumentOne:
       description: Document
       headers: { ETag: { $ref: '#/components/headers/ETag' } }
@@ -2737,7 +2852,9 @@ components:
           properties:
             days_to_wedding: { type: [integer, 'null'] }
             wedding_day: { type: [integer, 'null'], description: '1..3 during the wedding' }
+            wedding_starts_at: { type: [string, 'null'], format: date-time, description: 'Midnight IST on the first day (Home: Months : Days : Hours)' }
             next_event: { oneOf: [ { $ref: '#/components/schemas/Event' }, { type: 'null' } ] }
+        upcoming_events: { type: array, maxItems: 5, items: { $ref: '#/components/schemas/Event' }, description: 'Next dated events, soonest first (everyone)' }
         my_tasks: { type: object, properties: { items: { type: array, items: { $ref: '#/components/schemas/Task' } }, total: { type: integer } } }
         overdue: { type: object, properties: { total: { type: integer } } }
         payments_due:
@@ -3216,6 +3333,29 @@ components:
             receipt_count: { type: integer }
 
     # ---- documents
+    HomePhotoUpload:
+      type: object
+      required: [file, sha256, slot]
+      properties:
+        file: { type: string, contentMediaType: application/octet-stream, description: Max 3 MB }
+        sha256: { type: string, pattern: '^[0-9a-f]{64}$' }
+        slot: { type: string, enum: [cover, couple, monogram] }
+    HomePhoto:
+      type: object
+      required: [id, version, slot, sort_order, url]
+      properties:
+        id: { $ref: '#/components/schemas/Ulid' }
+        version: { type: integer }
+        slot: { type: string, enum: [cover, couple, monogram] }
+        sort_order: { type: integer }
+        mime_type: { type: string }
+        size_bytes: { type: integer }
+        width_px: { type: integer }
+        height_px: { type: integer }
+        url: { type: string, example: '/api/v1/home-photos/01JB.../image?v=3f2a9c0d1b4e5f60' }
+        created_at: { type: string, format: date-time }
+        created_by: { $ref: '#/components/schemas/Ref' }
+        updated_at: { type: string, format: date-time }
     DocumentUpload:
       type: object
       required: [file, sha256, type]

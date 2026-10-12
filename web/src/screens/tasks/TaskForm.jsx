@@ -40,7 +40,7 @@ function toForm(task, meId) {
 
 export default function TaskForm() {
   const { id } = useParams();
-  const { user } = useSession();
+  const { user, permissions } = useSession();
   const navigate = useNavigate();
   const qc = useQueryClient();
   const q = useQuery({ queryKey: ['task', id], queryFn: () => api('GET', `/tasks/${id}`).then((r) => r.data), enabled: Boolean(id) });
@@ -99,6 +99,7 @@ export default function TaskForm() {
   });
 
   const title = id ? t('tasks.editTask') : t('tasks.addTask');
+  if (!id && permissions && !permissions.admin) return <Screen title={title} back="/tasks"><Notice>{t('tasks.onlyAdminsAdd')}</Notice></Screen>;
   if (id && q.isError) return <Screen title={title} back="/tasks"><Notice kind="danger">{q.error.message || t('errors.loadFailed')}</Notice></Screen>;
   if (!f.editing) return <Screen title={title} back="/tasks"><p aria-busy="true">…</p></Screen>;
 

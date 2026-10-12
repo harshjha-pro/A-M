@@ -64,6 +64,7 @@ export const routes = [
           { path: '/settings/phone', element: page(() => import('./screens/settings/ThisPhone.jsx')) },
           { path: '/settings/waiting', element: page(() => import('./screens/settings/Waiting.jsx')) },
           { path: '/settings/export', element: page(() => import('./screens/settings/Export.jsx')) },
+          { path: '/settings/home-photos', element: page(() => import('./screens/settings/HomePhotos.jsx')) },
           { path: '/settings/imports', element: page(() => import('./screens/settings/Imports.jsx')) },
           { path: '/history/:resource/:id', element: page(() => import('./screens/safety/HistoryScreen.jsx')) },
           { path: '/settings/account', element: page(() => import('./screens/settings/MyAccount.jsx')) },

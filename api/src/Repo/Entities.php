@@ -7,6 +7,7 @@ use AM\Modules\Events\EventDef;
 use AM\Modules\Events\InvitationDef;
 use AM\Modules\Documents\DocumentDef;
 use AM\Modules\Guests\HouseholdDef;
+use AM\Modules\HomePhotos\HomePhotoDef;
 use AM\Modules\Guests\ImportDef;
 use AM\Modules\Members\UserDef;
 use AM\Modules\Money\BudgetCategoryDef;
@@ -41,6 +42,7 @@ final class Entities
         'vendor' => VendorDef::class,
         'payment' => PaymentDef::class,
         'document' => DocumentDef::class,
+        'home_photo' => HomePhotoDef::class,
     ];
 
     /** URL segment for /{resource}/{id}/history => definition */
@@ -55,6 +57,7 @@ final class Entities
         'vendors' => VendorDef::class,
         'payments' => PaymentDef::class,
         'documents' => DocumentDef::class,
+        'home-photos' => HomePhotoDef::class,
     ];
 
     /** The value that names a row (public id or checklist key); null for link rows. */

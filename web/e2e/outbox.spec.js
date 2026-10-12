@@ -179,7 +179,7 @@ test('E2E-10: no reply in 15 s → kept on the phone → Send now → saved once
 test('E2E-11: the login ends mid-form → login sheet → the form is kept → saved once', async ({ browser, page }, info) => {
   test.setTimeout(60000);
   const title = `Relogin task ${info.project.name} ${Date.now()}`;
-  await login(page, 'papa');
+  await login(page, 'mahi'); // 1.0.16: only Ayush and Mahi add tasks
   await page.goto('/tasks/new');
   await page.getByLabel('What needs doing?').fill(title);
 
@@ -187,7 +187,7 @@ test('E2E-11: the login ends mid-form → login sheet → the form is kept → s
   const other = await phone(browser, info, 2);
   const p2 = await other.newPage();
   try {
-    await login(p2, 'papa');
+    await login(p2, 'mahi');
     await p2.goto('/settings/account');
     await p2.getByRole('button', { name: 'Log out everywhere' }).click();
     await p2.getByRole('alertdialog').getByRole('button', { name: /Log out everywhere/ }).click();

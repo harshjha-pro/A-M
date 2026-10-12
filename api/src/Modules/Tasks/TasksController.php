@@ -154,7 +154,7 @@ final class TasksController
     public static function create(Request $request, App $app, array $params): Response
     {
         $viewer = $request->attr('user');
-        Permissions::requireEditor($viewer);
+        Permissions::requireAdmin($viewer); // 1.0.16: only Ayush and Mahi add tasks (owner's rule); everyone with edit rights still edits and ticks them
         $db = $app->db();
         $f = Fields::from($request->attr('json'));
         $in = TaskWriter::read($app, $db, $f, true, null);
