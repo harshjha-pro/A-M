@@ -1,7 +1,7 @@
 // Calendar (FEATURES B4; defaults changed in 1.0.16, owner's request): Month view first,
 // with up to 3 dots per day and "+n"; Agenda from today, grouped by IST day, "Date not
 // set" events on top, 60 days at a time with Show past / Show later. Filters Events and
-// Tasks (both on) and Only mine (on; tap for everyone's). The + (Ayush and Mahi) offers
+// Tasks (both on); Only mine / All (Only mine first). The + (Ayush and Mahi) offers
 // Add event or Add task.
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -30,7 +30,7 @@ function useCalendar(from, to, types, mine, undated) {
   });
 }
 
-function Toggles({ types, setTypes, mine, setMine }) {
+function Toggles({ types, setTypes }) {
   const all = ['event', 'task'];
   const toggle = (k) => setTypes(types.includes(k) ? types.filter((x) => x !== k) : [...types, k]);
   return (
@@ -41,10 +41,6 @@ function Toggles({ types, setTypes, mine, setMine }) {
           {types.includes(k) && <span aria-hidden="true">✓</span>}{t(`calendar.${k}s`)}
         </button>
       ))}
-      <button type="button" aria-pressed={mine} onClick={() => setMine(!mine)}
-        className={`tap inline-flex items-center gap-1 rounded-sm border-[1.5px] px-3 ${mine ? 'border-primary bg-primary-soft font-bold text-primary' : 'border-border-strong bg-surface'}`}>
-        {mine && <span aria-hidden="true">✓</span>}{t('calendar.onlyMine')}
-      </button>
     </div>
   );
 }
@@ -165,7 +161,8 @@ export default function Calendar() {
   return (
     <Screen title={t('calendar.title')}>
       <ChipFilter label={t('calendar.view')} options={[{ value: 'month', label: t('calendar.month') }, { value: 'agenda', label: t('calendar.agenda') }]} value={view} onChange={setView} />
-      <Toggles types={types} setTypes={setTypes} mine={mine} setMine={setMine} />
+      <Toggles types={types} setTypes={setTypes} />
+      <ChipFilter label={t('calendar.whose')} options={[{ value: 'mine', label: t('calendar.onlyMine') }, { value: 'all', label: t('calendar.all') }]} value={mine ? 'mine' : 'all'} onChange={(v) => setMine(v === 'mine')} />
       {view === 'agenda' ? <Agenda types={types} mine={mine} /> : <Month types={types} mine={mine} />}
       {permissions?.admin && <AddButton label={t('calendar.add')} onClick={() => setAdding(true)} />}
       {adding && <AddSheet onClose={() => setAdding(false)} />}

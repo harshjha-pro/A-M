@@ -62,7 +62,7 @@ describe('Agenda', () => {
     expect(first).toContain('mine=true');
   });
 
-  test('1.0.16 defaults: Month view, Events and Tasks on, no Payments chip, Only mine on; tap it for everyone\'s', async () => {
+  test('1.0.16 defaults: Month view, Events and Tasks on, no Payments chip, Only mine chosen; All shows everyone\'s', async () => {
     signInAs('papa'); // money user: still no Payments chip
     const user = userEvent.setup();
     const calls = fakeApi({ 'GET /calendar': () => ok({ days: [], undated: [] }) });
@@ -72,12 +72,13 @@ describe('Agenda', () => {
     expect(screen.getByRole('button', { name: /Events/ })).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByRole('button', { name: /Tasks/ })).toHaveAttribute('aria-pressed', 'true');
     expect(screen.queryByRole('button', { name: /Payments/ })).toBeNull();
-    expect(screen.getByRole('button', { name: /Only mine/ })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('radio', { name: 'Only mine' })).toBeChecked();
+    expect(screen.getByRole('radio', { name: 'All' })).not.toBeChecked();
     expect(calls.mock.calls[0][0]).toContain('types=event%2Ctask&');
     expect(calls.mock.calls[0][0]).toContain('mine=true');
     expect(screen.queryByRole('button', { name: 'Add to calendar' })).toBeNull(); // Family: no +
     const before = calls.mock.calls.length;
-    await user.click(screen.getByRole('button', { name: /Only mine/ }));
+    await user.click(screen.getByRole('radio', { name: 'All' }));
     await vi.waitFor(() => expect(calls.mock.calls.length).toBeGreaterThan(before));
     expect(calls.mock.calls.at(-1)[0]).not.toContain('mine=');
   });

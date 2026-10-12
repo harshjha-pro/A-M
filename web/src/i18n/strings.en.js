@@ -89,6 +89,8 @@ export const strings = {
     tasks: 'Tasks',
     payments: 'Payments',
     onlyMine: 'Only mine',
+    all: 'All',
+    whose: 'Whose',
     dateNotSet: 'Date not set',
     showPast: 'Show past',
     showLater: 'Show later',

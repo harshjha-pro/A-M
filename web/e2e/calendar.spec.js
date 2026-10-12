@@ -5,12 +5,12 @@ import { login, watchProblems } from './helpers.js';
 const MEHNDI = '01M4DK5T3E6QZBMNQ0V7KQWW23';
 const TRIAL = '01M1DHZQ8GTXAWSA70A2MPRBGF'; // "Bridal makeup trial", 5 Dec 2026 (demo data)
 
-test('E1: Month view first (1.0.16) lists a tapped day; Agenda by day with IST times; Only mine → everyone', async ({ page }) => {
+test('E1: Month view first (1.0.16) lists a tapped day; Agenda by day with IST times; Only mine → All', async ({ page }) => {
   const problems = watchProblems(page);
   await login(page, 'papa');
   await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Calendar' }).click();
   await expect(page.getByRole('radio', { name: 'Month' })).toBeChecked();
-  await expect(page.getByRole('button', { name: /Only mine/ })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('radio', { name: 'Only mine' })).toBeChecked();
   await expect(page.getByRole('button', { name: /Payments/ })).toHaveCount(0);
   await expect(page.getByRole('heading', { name: 'October 2026' })).toBeVisible();
   await page.getByRole('button', { name: 'Next month' }).click();
@@ -20,8 +20,8 @@ test('E1: Month view first (1.0.16) lists a tapped day; Agenda by day with IST t
   const day = page.getByRole('region', { name: 'Sun, 22 Nov 2026' });
   await expect(day.getByText('Engagement')).toBeVisible();
   await expect(day.getByText(/6:00 PM/)).toBeVisible();
-  await page.getByRole('button', { name: /Only mine/ }).click();
-  await expect(page.getByRole('button', { name: /Only mine/ })).toHaveAttribute('aria-pressed', 'false');
+  await page.getByRole('radio', { name: 'All' }).click();
+  await expect(page.getByRole('radio', { name: 'All' })).toBeChecked();
   expect(problems).toEqual([]);
 });
 
