@@ -580,4 +580,15 @@ FROM (SELECT '01JD0M10000000000000000001' AS public_id, '01JD0MC0000000000000000
       UNION ALL SELECT '01JD0M10000000000000000003', '01JD0MC0000000000000000002', 'Moong dal halwa', 'normal', 1, 'Served warm', 10) v
 JOIN menu_categories c ON c.public_id = v.cat;
 
+-- Contacts, Guest details, Event timeline (migration 008, version 1.0.20): two contacts, Mehndi guest notes,
+-- and the Reception timeline starting at 7:30 pm (the steps themselves come from 008).
+INSERT INTO workspace_contacts (public_id, workspace_id, vendor_id, role, sort_order, created_by, updated_by)
+SELECT '01JE0CT0000000000000000001', w.id, (SELECT id FROM vendors WHERE name = 'Rekha Mehndi Art' ORDER BY id LIMIT 1), 'Bride''s mehndi', 10, 2, 2
+FROM workspaces w WHERE w.public_id = '01JC0WS0000000000000000002';
+INSERT INTO workspace_contacts (public_id, workspace_id, vendor_id, role, sort_order, created_by, updated_by)
+SELECT '01JE0CT0000000000000000002', w.id, (SELECT id FROM vendors WHERE name = 'Click Studio Bhilwara' ORDER BY id LIMIT 1), 'Photos and video', 10, 1, 1
+FROM workspaces w WHERE w.public_id = '01JC0WS0000000000000000006';
+UPDATE workspaces SET guest_notes = 'Nani ji and Dadi ji: front row, near the fan.\nPickup from Bhilwara station at 4 pm (Shree Ganesh Travels).' WHERE public_id = '01JC0WS0000000000000000002';
+UPDATE timeline_steps SET start_time = '19:30:00' WHERE public_id = '01JE0TS0000000000000000021';
+
 -- End of DEV ONLY demo data.

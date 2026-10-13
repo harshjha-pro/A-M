@@ -866,6 +866,23 @@ Ayush and Mahi only. `GET /workspaces/{id}` also returns `theme_name`, `theme_co
 
 `POST /attachments`, `POST /attachments/{id}/links` and `POST /tasks` also accept `menu_item_id` ("Reception › Menu › Paneer tikka"; task `target {type: menu_item, id, name, outfit_id: null, workspace_id}`). Notes are not for dishes (a dish has its own `note`).
 
+### 6.9e Contacts, Guest details, Event timeline (version 1.0.20, Workspace step D)
+
+Ayush and Mahi only. `GET /workspaces/{id}` also returns `guest_notes` and `planning`:
+`{contacts [{id, version, role, vendor {id, name, category, category_label, contact_person, phone, alt_phone}}], also_used [{vendor, where [..]}], guests {event, families_invited, families_coming, families_not_coming, families_waiting, people_coming, adults_coming, children_coming, jain_coming, people_waiting, people_up_to} | null, timeline {total_min, steps [{id, version, purpose, start_time, duration_min, note, attachments, tasks, starts, estimated, ends}]}}`.
+
+|Method|Path|Purpose|
+|-|-|-|
+|POST|`/workspaces/{id}/contacts`|`{vendor_id, role?}`; 422 if the vendor is already a contact here; reply = `planning`|
+|PATCH / DELETE / POST restore|`/workspace-contacts/{id}`|Role / unlink with Undo (the vendor stays) / restore|
+|PATCH|`/workspaces/{id}`|+ `guest_notes`|
+|POST|`/workspaces/{id}/timeline`|`{purpose, duration_min (1–1440), start_time? "HH:MM", note?}`; reply = `planning`|
+|POST|`/workspaces/{id}/timeline/suggested`|Suggested steps for the workspace's name (or general ones) into an empty timeline; 409 when it has steps|
+|POST|`/timeline-steps/{id}/move`|`{direction: up | down}` — swaps with the neighbour (orders renumbered 10, 20, …)|
+|PATCH / DELETE / POST restore|`/timeline-steps/{id}`|Edit / delete with its attachment links (Undo) / restore|
+
+A step with no `start_time` starts when the one before ends (`estimated: true`); times past midnight wrap. `POST /attachments`, `POST /attachments/{id}/links` and `POST /tasks` accept `timeline_step_id` ("Reception › Event timeline › Couple entry"). `GET /vendors/{id}` (admins) adds `workspaces [{id, name, role}]`.
+
 ### 6.10 History and activity
 
 |Method|Path|Purpose|Who|Request|Response|Errors|

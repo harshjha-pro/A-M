@@ -55,7 +55,8 @@ export default function TaskForm() {
   const presetSection = search.get('section');
   // 1.0.18: + Add task on an outfit, an accessory or a timeline step; back = where to return
   const presetTarget = search.get('outfit') ? { outfitId: search.get('outfit') } : search.get('accessory') ? { accessoryId: search.get('accessory') }
-    : search.get('outfitStep') ? { outfitStepId: search.get('outfitStep') } : search.get('menuItem') ? { menuItemId: search.get('menuItem') } : null; // 1.0.19: a dish
+    : search.get('outfitStep') ? { outfitStepId: search.get('outfitStep') } : search.get('menuItem') ? { menuItemId: search.get('menuItem') } // 1.0.19: a dish
+    : search.get('timelineStep') ? { timelineStepId: search.get('timelineStep') } : null; // 1.0.20: an event step
   const backTo = search.get('back');
   const record = id ? q.data : EMPTY;
   const events = useQuery({ queryKey: ['events'], queryFn: () => api('GET', '/events').then((r) => r.data), staleTime: 60_000 });

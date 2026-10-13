@@ -367,8 +367,9 @@ The schema gives the guarantees. These rules make sure the code doesn't undo the
   005_workspaces_vault.sql ← Workspaces + Attachment Vault (version 1.0.17)
   006_outfits.sql       ← Workspace step B: outfits (version 1.0.18)
   007_decor_menu.sql    ← Workspace step C: family outfits, decoration, menu (version 1.0.19)
-  008_r2a_card_tracking.sql   (R2a, example below; was planned as 004)
-  009_…
+  008_contacts_timeline.sql ← Workspace step D: contacts, guest details, event timeline (version 1.0.20)
+  009_r2a_card_tracking.sql   (R2a, example below; was planned as 004)
+  010_…
 /db/dev/
   seed_demo.sql         ← DEV ONLY. Not a migration. Never on the live DB.
 ```
@@ -424,7 +425,7 @@ Order to run: `001_init.sql` → `002_open_answers.sql` → `003_api_support.sql
 
 41 tables after 006. Deleting an outfit soft-deletes its steps, accessories, notes and links in one batch (one Undo); its tasks stay. Deleting a workspace now also takes its outfits.
 
-### `007_decor_menu.sql` (version 1.0.19, this delivery)
+### `007_decor_menu.sql` (version 1.0.19)
 
 | Step | Change | If it stops |
 |---|---|---|
@@ -436,6 +437,19 @@ Order to run: `001_init.sql` → `002_open_answers.sql` → `003_api_support.sql
 | 6 | `tasks.target_type` comment now lists `menu_item` (no data change) | Re-run it, then the last line. |
 
 43 tables after 007. Deleting a menu category soft-deletes its dishes and their attachment links in one batch (one Undo); tasks stay. Deleting a workspace also takes its menu. Copying a menu writes every add into one change batch, so one Undo takes the copy back.
+
+### `008_contacts_timeline.sql` (version 1.0.20, this delivery)
+
+| Step | Change | If it stops |
+|---|---|---|
+| 1 | `workspace_contacts` (workspace, vendor, role NULL, order; versioned, soft delete). PHP refuses a second live row for the same vendor in one workspace. | Nothing else has changed. Finish by hand or restore the export. |
+| 2 | `workspaces` + `guest_notes` TEXT NULL | Re-run the `ALTER`. |
+| 3 | `timeline_steps` (workspace, purpose, `start_time` TIME NULL, `duration_min` 1–1440, note, order; versioned, soft delete) | Re-run from step 3. |
+| 4 | `attachment_links` + `timeline_step_id` | Re-run the `ALTER`. |
+| 5 | `tasks.target_type` comment lists `timeline_step` (no data change) | Re-run it. |
+| 6 | Suggested steps for the 7 default workspaces (only those still there) | Re-run the `INSERT … SELECT`, then the last line. |
+
+45 tables after 008. Deleting a workspace also takes its contacts and timeline steps; deleting a step takes its attachment links (one Undo); tasks stay. Removing a contact never touches the vendor.
 
 ### `005_workspaces_vault.sql` (version 1.0.17)
 
@@ -465,12 +479,12 @@ Backups already dump BLOBs safely (`mysqldump --hex-blob`). The export writes th
 
 Order to run: `001` → `002` → `003` → `004` → (dev only) `seed_demo.sql`. Or import `sql/master.sql` into a new, empty database (all four in one file).
 
-### Example: `008_r2a_card_tracking.sql` (R2a; tested on both engines; renumbered from 004, 005, 006, 007)
+### Example: `009_r2a_card_tracking.sql` (R2a; tested on both engines; renumbered from 004, 005, 006, 007, 008)
 
 ```sql
 SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci;
 SET time_zone = '+00:00';
-INSERT INTO schema_migrations (version, name, applied_by) VALUES (8, '008_r2a_card_tracking', 'phpMyAdmin');
+INSERT INTO schema_migrations (version, name, applied_by) VALUES (9, '009_r2a_card_tracking', 'phpMyAdmin');
 
 ALTER TABLE households
   ADD COLUMN card_given_on     DATE NULL AFTER notes,
@@ -666,7 +680,8 @@ Sandbox, 8 Oct 2026, on **MySQL 8.0.46** (your Hostinger engine) and **MariaDB 1
 | `005_workspaces_vault` after `004` (13 Oct, MySQL 8) | No errors. 37 tables; 7 workspaces linked to their events; documents in the Vault. Upload in pieces, checksum, byte ranges, unique ID, links, Undo, export → restore (PHPUnit `WorkspacesVaultTest`, `ExportsTest`, `DailyJobTest`). |
 | `006_outfits` after `005` (13 Oct, MySQL 8) | No errors. 41 tables. Outfit with default timeline, steps with dates, accessories, notes, Vault targets, task targets, delete + Undo of the whole outfit (PHPUnit `OutfitsTest`). |
 | `007_decor_menu` after `006` (13 Oct, MySQL 8) | No errors. 43 tables. Family outfits, decor items with their timeline and vendor, theme, caterer, menu categories / dishes (Normal / Jain), dish attachments and tasks, copy menu + one Undo (PHPUnit `DecorMenuTest`). |
-| Card-tracking example (now `008`) | Applied; guard works; R1 queries unchanged |
+| `008_contacts_timeline` after `007` (13 Oct, MySQL 8) | No errors. 45 tables. Suggested steps on the 7 workspaces; second run stops at the guard. Contacts, also used here, headcount, guest notes, timeline with estimated times, move, suggested steps, step attachments and tasks (PHPUnit `PlanningTest`). |
+| Card-tracking example (now `009`) | Applied; guard works; R1 queries unchanged |
 | `004_home_photos` after `003` (12 Oct, MySQL 8) | No errors. 32 tables. Upload, Undo, restore-limit and export → restore round trip byte for byte (PHPUnit `HomePhotosTest`, `ExportsTest` DS-22). Second run stops at the guard. |
 
 ---

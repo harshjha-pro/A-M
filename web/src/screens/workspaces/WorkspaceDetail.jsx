@@ -1,4 +1,5 @@
-// One workspace (1.0.17, step A; outfits 1.0.18; family outfits, decoration and menu 1.0.19): tasks strip at the top (tap a task; + Add task links it
+// One workspace (1.0.17, step A; outfits 1.0.18; family outfits, decoration and menu 1.0.19;
+// contacts, guest details and event timeline 1.0.20): tasks strip at the top (tap a task; + Add task links it
 // here), the Files section (attachments used here; add one), and the sections that come in
 // the next updates. Edit name / calendar event; delete with Undo (tasks stay).
 import { useState } from 'react';
@@ -21,9 +22,9 @@ import WorkspaceSheet from './WorkspaceSheet.jsx';
 import OutfitSection, { FamilySection } from '../outfits/OutfitSection.jsx';
 import DecorSection from './DecorSection.jsx';
 import MenuSection from './MenuSection.jsx';
+import { ContactsSection, GuestsSection, TimelineSection } from './PlanningSections.jsx';
 import { t } from '../../i18n/strings.en.js';
 
-const LATER = ['contacts', 'guests', 'timeline'];
 
 function TaskStrip({ ws }) {
   return (
@@ -109,12 +110,9 @@ export default function WorkspaceDetail() {
       <DecorSection ws={ws} title={SECTIONS.decor} />
       <MenuSection ws={ws} title={SECTIONS.menu} />
       <FilesSection ws={ws} />
-      {LATER.map((k) => (
-        <section key={k} id={k} className="flex flex-col gap-1 rounded-md border-[1.5px] border-dashed border-border p-4">
-          <h2 className="text-lg font-bold">{SECTIONS[k]}</h2>
-          <p className="text-sm text-text-muted">{t('workspace.comingNext')}</p>
-        </section>
-      ))}
+      <ContactsSection ws={ws} title={SECTIONS.contacts} />
+      <GuestsSection key={ws.version} ws={ws} title={SECTIONS.guests} />
+      <TimelineSection ws={ws} title={SECTIONS.timeline} />
       <Button variant="danger" needsInternet onClick={() => setConfirm(true)}><Trash2 aria-hidden="true" size={20} />{t('workspace.delete')}</Button>
       {editing && <WorkspaceSheet workspace={ws} onClose={() => setEditing(false)} />}
       {confirm && <ConfirmDialog title={t('workspace.delete')} body={t('workspace.deleteBody')} confirmLabel={t('workspace.delete')} danger onConfirm={remove} onCancel={() => setConfirm(false)} />}

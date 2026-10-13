@@ -50,6 +50,14 @@ export default function VendorDetail() {
           <a key={p} href={`tel:${p}`} className="tap inline-flex items-center gap-2 font-bold text-primary"><Phone aria-hidden="true" size={20} />{t('money.call', { phone: formatPhone(p) })}</a>
         ))}
         {v.notes && <p className="whitespace-pre-line break-words text-text-muted">{v.notes}</p>}
+        {v.workspaces?.length > 0 && ( // 1.0.20: contact in these workspaces (Ayush and Mahi)
+          <div className="flex flex-col gap-1 border-t border-border pt-3">
+            <h2 className="font-bold">{t('money.inWorkspaces')}</h2>
+            <ul className="flex flex-wrap gap-2">
+              {v.workspaces.map((w) => <li key={w.id}><Link to={`/workspaces/${w.id}#contacts`} className="tap inline-flex items-center rounded-full bg-surface-2 px-3 font-bold text-primary">{w.name}{w.role ? ` · ${w.role}` : ''}</Link></li>)}
+            </ul>
+          </div>
+        )}
         {b && (
           <div className="flex flex-col gap-1 border-t border-border pt-3">
             {b.agreedPaise !== null && <p>{t('money.balance', { agreed: formatInr(b.agreedPaise), paid: formatInr(b.paidPaise), due: formatInr(b.duePaise) })}</p>}

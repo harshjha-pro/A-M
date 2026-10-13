@@ -5,8 +5,8 @@ Import **one** of these into a **new, empty** MySQL/MariaDB database
 
 | File | Inside | Use when |
 |---|---|---|
-| `master_with_demo.sql` | All 43 tables + demo data (61 families, tasks, events, payments, 8 demo logins, password `demo-1234`) | Trying the app (e.g. on Vercel) |
-| `master.sql` | All 43 tables, empty | Real use — then create the owner with `SETUP_TOKEN` |
+| `master_with_demo.sql` | All 45 tables + demo data (61 families, tasks, events, payments, 8 demo logins, password `demo-1234`) | Trying the app (e.g. on Vercel) |
+| `master.sql` | All 45 tables, empty | Real use — then create the owner with `SETUP_TOKEN` |
 
 Demo logins: Ayush 98290 00001 · Mahi 98290 00002 · Papa 98290 00004 · Kavita 98290 00005.
 
@@ -16,4 +16,4 @@ These files are generated — don't edit them. The sources are `db/migrations/*.
 rebuild with `tools/make-master-sql.sh` after adding a migration.
 
 **Already imported an older master file (an older version)?** Don't import the master again —
-import only the migrations you have not run yet: `004_home_photos.sql` (1.0.16), `005_workspaces_vault.sql` (1.0.17), `006_outfits.sql` (1.0.18) and/or `007_decor_menu.sql` (1.0.19), in that order.
+import only the migrations you have not run yet: `004_home_photos.sql` (1.0.16), `005_workspaces_vault.sql` (1.0.17), `006_outfits.sql` (1.0.18), `007_decor_menu.sql` (1.0.19) and/or `008_contacts_timeline.sql` (1.0.20), in that order.

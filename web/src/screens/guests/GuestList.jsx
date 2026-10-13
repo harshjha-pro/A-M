@@ -3,7 +3,7 @@
 // user), 50 at a time with more loading as you scroll. + adds a family.
 // Select mode: tick families (or all filtered) → one bulk action with one Undo.
 import { useEffect, useRef, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { Search, SlidersHorizontal, Star, Users, PhoneOff, Copy, MessageCircle, CheckSquare, FileDown, Upload } from 'lucide-react';
 import Screen from '../../components/Screen.jsx';
@@ -62,7 +62,13 @@ export function FamilyRow({ family, eventId, selecting, checked, onToggle }) {
 export default function GuestList() {
   const { user, permissions } = useSession();
   const navigate = useNavigate();
-  const [filters, setFilters] = useState(() => loadFilters(user?.id ?? 'anon'));
+  const location = useLocation();
+  // 1.0.20: "Open in Guests" from a workspace comes with ?event=… (that event's list).
+  const [filters, setFilters] = useState(() => {
+    const saved = loadFilters(user?.id ?? 'anon');
+    const ev = new URLSearchParams(location.search).get('event');
+    return ev ? { ...saved, event: ev } : saved;
+  });
   const [search, setSearch] = useState('');
   const [q, setQ] = useState('');
   const [sheet, setSheet] = useState(false);
