@@ -23,3 +23,7 @@ Version 1.0.16 (Home & Calendar redesign, "Session 14a"):
 
 - `deploy-session14a.zip` — the Hostinger upload packages (staging/ and live/) **plus `migrations/004_home_photos.sql`** (run it first)
 - The master ZIP (77 MB, because it carries the whole git history) is not stored here, to keep the repository small (too big for chat too). Build it any time with `tools/make-deploy.sh 14a out && tools/make-master-zip.sh 14a out`. The source is this repository.
+
+Version 1.0.17 (Workspace step A + Attachment Vault, "Session 14b"):
+
+- `deploy-session14b.zip` — Hostinger upload packages **plus `migrations/005_workspaces_vault.sql`** (run it first; run 004 first if you never did)
