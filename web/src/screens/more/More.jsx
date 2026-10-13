@@ -1,11 +1,13 @@
 // More (DESIGN §4.2): Money (only for people who may see money), Vendors (contacts for all), Documents, Settings, Install Guide.
 import { Link } from 'react-router-dom';
-import { IndianRupee, FileText, Settings, Smartphone, ChevronRight, Store } from 'lucide-react';
+import { IndianRupee, FileText, Settings, Smartphone, ChevronRight, Store, Users, Archive } from 'lucide-react';
 import Screen from '../../components/Screen.jsx';
 import { t } from '../../i18n/strings.en.js';
 import { useSession } from '../../api/session.js';
 
 const ROWS = [
+  { to: '/guests', label: 'more.guests', Icon: Users, admin: true }, // 1.0.17: Workspace took its tab
+  { to: '/vault', label: 'more.vault', Icon: Archive, admin: true },
   { to: '/money', label: 'more.money', Icon: IndianRupee, money: true },
   { to: '/vendors', label: 'more.vendors', Icon: Store },
   { to: '/documents', label: 'more.documents', Icon: FileText },
@@ -15,7 +17,7 @@ const ROWS = [
 
 export default function More() {
   const { permissions } = useSession();
-  const rows = ROWS.filter((r) => !r.money || permissions?.money);
+  const rows = ROWS.filter((r) => (!r.money || permissions?.money) && (!r.admin || permissions?.admin));
   return (
     <Screen title={t('more.title')}>
       <ul className="overflow-hidden rounded-md bg-surface shadow-card">

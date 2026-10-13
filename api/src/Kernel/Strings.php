@@ -130,6 +130,14 @@ final class Strings
         'photo_slot_full'          => 'Up to {max} {what}. Remove one first.',
         'photo_too_big'            => 'This photo is too big ({size}). Max 3 MB.',
         'photo_only_images'        => 'Only photos (JPEG, PNG, WebP) can be used here.',
+        'workspace_name_taken'     => 'A workspace called {name} already exists.',
+        'workspace_event_taken'    => 'This event already has a workspace: {name}.',
+        'field_bad_url'            => 'Paste a full link starting with https://',
+        'attachment_code_format'   => 'Use 3 to 30 letters, numbers, - or _ (no spaces).',
+        'attachment_code_taken'    => "ID {code} is already used by '{title}' ({where}).",
+        'attachment_needs_file'    => 'Add the file first.',
+        'attachment_doc_in_documents' => 'This is a document. Change or delete it in Documents.',
+        'upload_not_complete'      => "The file didn't arrive whole. Please try again.",
         'tag_name_taken'           => 'A tag called {name} already exists. Rename that one first.',
     ];
 

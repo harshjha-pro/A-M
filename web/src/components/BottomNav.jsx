@@ -1,8 +1,10 @@
-// Bottom nav (DESIGN §4.2): Home · Calendar · Tasks · Guests · More.
+// Bottom nav (DESIGN §4.2): Home · Calendar · Tasks · Guests · More. For Ayush and Mahi
+// (1.0.17) Workspace takes Guests' place; Guests moves into More.
 // Labels always visible; active item = soft pill + bold + aria-current
 // (never colour alone). Tapping the active item scrolls to the top.
 import { NavLink, useLocation } from 'react-router-dom';
-import { House, CalendarDays, ListChecks, Users, Menu } from 'lucide-react';
+import { House, CalendarDays, ListChecks, Users, Menu, LayoutGrid } from 'lucide-react';
+import { useSession } from '../api/session.js';
 import { t } from '../i18n/strings.en.js';
 
 export const NAV_ITEMS = [
@@ -12,13 +14,19 @@ export const NAV_ITEMS = [
   { to: '/guests', label: 'nav.guests', Icon: Users },
   { to: '/more', label: 'nav.more', Icon: Menu },
 ];
+const WORKSPACE = { to: '/workspaces', label: 'nav.workspace', Icon: LayoutGrid };
+
+export function navItems(admin) {
+  return admin ? NAV_ITEMS.map((i) => (i.to === '/guests' ? WORKSPACE : i)) : NAV_ITEMS;
+}
 
 export default function BottomNav() {
   const { pathname } = useLocation();
+  const { permissions } = useSession();
   return (
     <nav aria-label={t('nav.label')} className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-surface pb-safe">
       <ul className="mx-auto grid max-w-xl grid-cols-5">
-        {NAV_ITEMS.map(({ to, label, Icon, end }) => (
+        {navItems(Boolean(permissions?.admin)).map(({ to, label, Icon, end }) => (
           <li key={to}>
             <NavLink
               to={to}

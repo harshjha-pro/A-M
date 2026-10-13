@@ -28,7 +28,9 @@ final class StaticRulesTest extends TestCase
 
     public function test_ds19_no_hard_delete_except_ephemeral_tables(): void
     {
-        $allowed = ['sessions', 'rate_limits', 'idempotency_keys', 'login_attempts'];
+        // vault_files / vault_file_chunks: only unfinished uploads and the pieces of a file that failed
+        // its checksum (1.0.17). A finished file is never deleted (attachments are soft-deleted).
+        $allowed = ['sessions', 'rate_limits', 'idempotency_keys', 'login_attempts', 'vault_files', 'vault_file_chunks'];
         foreach ($this->sources() as $path => $code) {
             preg_match_all('/DELETE\s+FROM\s+`?(\w+)`?/i', $code, $m);
             foreach ($m[1] as $table) {

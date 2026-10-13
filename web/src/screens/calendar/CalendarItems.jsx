@@ -23,6 +23,7 @@ export function ItemRow({ item }) {
             <span>{item.time ? timeLabel(item.time) : item.type === 'event' ? t('calendar.allDay') : ''}</span>
             {item.overdue && <span className="inline-flex items-center gap-1 font-bold text-danger"><TriangleAlert aria-hidden="true" size={14} />{t('tasks.overdue')}</span>}
             {item.linkedEvent && <span>· {item.linkedEvent.name}{item.linkedEvent.deleted ? ' (deleted event)' : ''}</span>}
+            {item.workspace && <span className="rounded-full bg-primary-soft px-2 font-bold text-primary">{t('workspace.badge')}</span>}
           </span>
         </span>
       </Link>

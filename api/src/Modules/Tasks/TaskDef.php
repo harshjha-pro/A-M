@@ -30,6 +30,7 @@ final class TaskDef extends EntityDef
         'event' => 'Event',
         'vendor' => 'Vendor',
         'household' => 'Family',
+        'workspace' => 'Workspace',
     ];
     public const CHILDREN = [
         TaskItemDef::class => 'task_id',

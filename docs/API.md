@@ -814,6 +814,28 @@ Cover slideshow (up to 8), couple photos (up to 4), monogram (1). The bytes are 
 
 `GET /dashboard` (1.0.16) also returns `upcoming_events` (next 5 dated events, everyone) and `countdown.wedding_starts_at` (midnight IST on the first day). `POST /tasks` is **Adm only** since 1.0.16 (CONTEXT decision 41).
 
+### 6.9b Workspaces and the Attachment Vault (version 1.0.17)
+
+Ayush and Mahi only (403 for everyone else). Online only. Full shapes: `openapi.yaml` (tags Workspaces, Vault).
+
+|Method|Path|Purpose|
+|-|-|-|
+|GET / POST|`/workspaces`|List (in order) / add (name unique; one workspace per calendar event)|
+|GET / PATCH / DELETE|`/workspaces/{id}`|One with its tasks / rename, link event, reorder / soft delete with its attachment links (tasks stay)|
+|POST|`/workspaces/{id}/restore`|Restore|
+|POST|`/attachment-uploads`|Start a file of any size: `{name, mime_type, size_bytes, sha256}` → `{upload_id, chunk_size: 2097152, chunk_count, received, complete}`. Same SHA-256 + size already in the Vault → `complete: true`, nothing to send.|
+|POST|`/attachment-uploads/{id}/chunks`|multipart `seq`, `chunk` (2 MB except the last). Sending a piece twice stores it once.|
+|POST|`/attachment-uploads/{id}/finish`|Checks every piece and the whole SHA-256: 422 `upload_incomplete` (+`received`) or `checksum_mismatch` (pieces dropped; send again).|
+|GET / POST|`/attachments`|The Vault (filters `q`, `workspace`, `section`, `kind`, `favourite=1`, `vendor`, `unlinked=1`; `meta.storage`) / add from an upload, link or text, optionally used in a workspace section at once|
+|GET|`/attachments/check-code?code=&except=`|Is this ID free? (`available`, `message`)|
+|GET / PATCH / DELETE|`/attachments/{id}`|One with `used_in` / edit ID (unique, capitals ignored), title, note, link, text, favourite, vendor, task / delete everywhere (links in the same batch; a Documents record → 422, delete it in Documents)|
+|POST|`/attachments/{id}/restore`|Restore|
+|GET|`/attachments/{id}/file`|Bytes streamed piece by piece; single byte ranges (206) so videos play on iPhone; `private, no-store`|
+|POST|`/attachments/{id}/links`|Use it in one more place `{workspace_id, section}`|
+|DELETE / POST|`/attachment-links/{id}` · `/restore`|Remove from one place only (Undo) / restore|
+
+`POST /tasks` and `PATCH /tasks/{id}` accept `workspace_id` and `workspace_section` (Adm only); `GET /tasks?workspace=`; tasks carry `workspace` and `workspace_section`. Events and calendar event items carry `workspace` for admins. A new document also gets a Vault attachment.
+
 ### 6.10 History and activity
 
 |Method|Path|Purpose|Who|Request|Response|Errors|

@@ -16,6 +16,9 @@ use AM\Modules\Money\VendorDef;
 use AM\Modules\Safety\RestoreDrillDef;
 use AM\Modules\Settings\SettingsDef;
 use AM\Modules\Tasks\TagDef;
+use AM\Modules\Vault\AttachmentDef;
+use AM\Modules\Vault\AttachmentLinkDef;
+use AM\Modules\Workspaces\WorkspaceDef;
 use AM\Modules\Tasks\TaskAssigneeDef;
 use AM\Modules\Tasks\TaskDef;
 use AM\Modules\Tasks\TaskItemDef;
@@ -43,6 +46,9 @@ final class Entities
         'payment' => PaymentDef::class,
         'document' => DocumentDef::class,
         'home_photo' => HomePhotoDef::class,
+        'workspace' => WorkspaceDef::class,
+        'attachment' => AttachmentDef::class,
+        'attachment_link' => AttachmentLinkDef::class,
     ];
 
     /** URL segment for /{resource}/{id}/history => definition */
@@ -58,6 +64,8 @@ final class Entities
         'payments' => PaymentDef::class,
         'documents' => DocumentDef::class,
         'home-photos' => HomePhotoDef::class,
+        'workspaces' => WorkspaceDef::class,
+        'attachments' => AttachmentDef::class,
     ];
 
     /** The value that names a row (public id or checklist key); null for link rows. */

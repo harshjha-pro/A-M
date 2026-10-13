@@ -364,8 +364,9 @@ The schema gives the guarantees. These rules make sure the code doesn't undo the
   002_open_answers.sql  ← Mayra groom side, veg-only food, audit tamper check
   003_api_support.sql   ← rate_limits table, checklist-item keys (API.md v1.1)
   004_home_photos.sql   ← Home photos stored in the database (version 1.0.16)
-  005_r2a_card_tracking.sql   (R2a, example below; was planned as 004)
-  006_…
+  005_workspaces_vault.sql ← Workspaces + Attachment Vault (version 1.0.17)
+  006_r2a_card_tracking.sql   (R2a, example below; was planned as 004)
+  007_…
 /db/dev/
   seed_demo.sql         ← DEV ONLY. Not a migration. Never on the live DB.
 ```
@@ -408,7 +409,22 @@ The schema gives the guarantees. These rules make sure the code doesn't undo the
 
 Order to run: `001_init.sql` → `002_open_answers.sql` → `003_api_support.sql` → (dev only) `seed_demo.sql`. The seed doesn't touch `rate_limits` and gives every checklist item a key, so it can run before or after `003`.
 
-### `004_home_photos.sql` (version 1.0.16, this delivery)
+### `005_workspaces_vault.sql` (version 1.0.17, this delivery)
+
+Owner's request (13 Oct 2026): a Workspace per function, and an Attachment Vault linked to where each attachment is used.
+
+| Step | Change | If it stops |
+|---|---|---|
+| 1 | `workspaces` (name, optional `event_id` → events, order, notes; versioned, soft delete) | Nothing else has changed. Finish by hand or restore the export. |
+| 2 | `vault_files` + `vault_file_chunks`: file bytes in the database in 2 MB pieces (`MEDIUMBLOB`), so any size passes request limits (Vercel ~4.5 MB) and survives hosts without a lasting disk. A file is complete only after every piece arrived and the SHA-256 of the whole matched; never changed afterwards. Unfinished uploads are removed by the daily job after 1 day. | Re-run from step 2. |
+| 3 | `attachments`: kind (photo/video/document/link/text), **`code` = editable ID, UNIQUE across the app, capitals ignored** (`utf8mb4_unicode_ci`); deleted ones keep their code. Favourite, vendor, task. A Documents record appears here through `document_id` (its bytes stay with the document). | Re-run from step 3. |
+| 4 | `attachment_links`: where an attachment is used (workspace › section; later a thing inside the section). One attachment, many places. | Re-run from step 4. |
+| 5 | `tasks.workspace_id`, `tasks.workspace_section` (+ index, FK) | Re-run the `ALTER`, then the rest. |
+| 6 | The owner's 7 workspaces (Engagement, Mehndi, Carnival, DJ Night, Mayra, Reception, Varmala & Phere), linked to the matching default event; every existing document gets an attachment `ATT-000001…` | Re-run the two `INSERT`s, then the last line. |
+
+37 tables after 005. Export: `vault_file_chunks.data` is base64 in `json/all.json` (like Home photos); backups dump it with `--hex-blob`.
+
+### `004_home_photos.sql` (version 1.0.16)
 
 Owner's choice (12 Oct 2026): Home photos are kept **in the database**, so they survive hosts without a lasting disk (the Vercel test copy) and go into every backup and export.
 
@@ -421,12 +437,12 @@ Backups already dump BLOBs safely (`mysqldump --hex-blob`). The export writes th
 
 Order to run: `001` → `002` → `003` → `004` → (dev only) `seed_demo.sql`. Or import `sql/master.sql` into a new, empty database (all four in one file).
 
-### Example: `005_r2a_card_tracking.sql` (R2a; tested on both engines; renumbered from 004)
+### Example: `006_r2a_card_tracking.sql` (R2a; tested on both engines; renumbered from 004, then 005)
 
 ```sql
 SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci;
 SET time_zone = '+00:00';
-INSERT INTO schema_migrations (version, name, applied_by) VALUES (5, '005_r2a_card_tracking', 'phpMyAdmin');
+INSERT INTO schema_migrations (version, name, applied_by) VALUES (6, '006_r2a_card_tracking', 'phpMyAdmin');
 
 ALTER TABLE households
   ADD COLUMN card_given_on     DATE NULL AFTER notes,
@@ -442,7 +458,7 @@ ALTER TABLE audit_log
                      'merge','whatsapp_opened','backup','restore_drill',
                      'reminder_sent') NOT NULL;   -- appended at the end only
 
-UPDATE schema_migrations SET finished_at = CURRENT_TIMESTAMP WHERE version = 5;
+UPDATE schema_migrations SET finished_at = CURRENT_TIMESTAMP WHERE version = 6;
 ```
 
 All R1 dashboard queries ran unchanged after it (tested when it was numbered `003`; only the number changed).
@@ -619,7 +635,8 @@ Sandbox, 8 Oct 2026, on **MySQL 8.0.46** (your Hostinger engine) and **MariaDB 1
 | `002_open_answers` after `001` | No errors or warnings. Mayra = groom with an audit row. Second run stops at the guard. |
 | `002` with a Non-veg family already saved | Stops at step A; Mayra untouched; recovery steps work |
 | `003_api_support` after `002` (8 Oct, MySQL 8.0.46 and MariaDB 10.11.14) | No errors or warnings. 30 tables. Checklist items without a key got a UUID; `updated_at` and `version` unchanged. Second run stops at the guard. `rate_limits` upsert counts correctly. |
-| Card-tracking example (now `005`) | Applied; guard works; R1 queries unchanged |
+| `005_workspaces_vault` after `004` (13 Oct, MySQL 8) | No errors. 37 tables; 7 workspaces linked to their events; documents in the Vault. Upload in pieces, checksum, byte ranges, unique ID, links, Undo, export → restore (PHPUnit `WorkspacesVaultTest`, `ExportsTest`, `DailyJobTest`). |
+| Card-tracking example (now `006`) | Applied; guard works; R1 queries unchanged |
 | `004_home_photos` after `003` (12 Oct, MySQL 8) | No errors. 32 tables. Upload, Undo, restore-limit and export → restore round trip byte for byte (PHPUnit `HomePhotosTest`, `ExportsTest` DS-22). Second run stops at the guard. |
 
 ---

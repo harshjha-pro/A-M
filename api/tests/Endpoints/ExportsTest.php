@@ -212,7 +212,9 @@ final class ExportsTest extends ApiTestCase
             $src = $this->db();
             foreach ($counts as $t => $n) {
                 $cols = array_column($src->all("SELECT column_name AS c FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = ? AND extra NOT IN ('VIRTUAL GENERATED', 'STORED GENERATED') ORDER BY ordinal_position", [$t]), 'c');
-                $this->assertContains('id', $cols);
+                if ($t !== 'vault_file_chunks') { // keyed by (file_id, seq)
+                    $this->assertContains('id', $cols);
+                }
                 $cols = array_values(array_diff($cols, Snapshot::SECRET_COLUMNS));
                 $list = implode(', ', array_map(static fn ($c) => "`$c`", $cols));
                 $before = $src->all("SELECT $list FROM `$t`" . match ($t) {

@@ -61,6 +61,8 @@ final class TaskView
                 'event' => self::link($db, 'events', $r['event_id']),
                 'vendor' => self::link($db, 'vendors', $r['vendor_id']),
                 'household' => self::link($db, 'households', $r['household_id']),
+                'workspace' => self::link($db, 'workspaces', $r['workspace_id'] ?? null),
+                'workspace_section' => $r['workspace_section'] ?? null,
                 'assignees' => array_values(array_filter($assignees[$id] ?? [])),
                 'tags' => $tags[$id] ?? [],
                 'item_count' => $counts[$id][0] ?? 0,
@@ -100,7 +102,7 @@ final class TaskView
     /** {id, name} or {id, name, deleted: true} for a linked event, vendor or family. */
     private static function link(Db $db, string $table, mixed $id): ?array
     {
-        if ($id === null || !in_array($table, ['events', 'vendors', 'households'], true)) {
+        if ($id === null || !in_array($table, ['events', 'vendors', 'households', 'workspaces'], true)) {
             return null;
         }
         $r = $db->one("SELECT public_id, name, deleted_at FROM `$table` WHERE id = ?", [(int) $id]);

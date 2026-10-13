@@ -24,7 +24,7 @@ use DateTimeImmutable;
  */
 final class TaskWriter
 {
-    public const FIELDS = ['title', 'notes', 'status', 'priority', 'due_date', 'due_time', 'event_id', 'vendor_id', 'household_id',
+    public const FIELDS = ['title', 'notes', 'status', 'priority', 'due_date', 'due_time', 'event_id', 'vendor_id', 'household_id', 'workspace_id', 'workspace_section',
         'assignee_ids', 'tag_ids', 'new_tags', 'items', 'allow_duplicate'];
     public const MAX_LINKS = 10;
     public const MAX_ITEMS = 100;
@@ -71,10 +71,18 @@ final class TaskWriter
                 $c['due_time'] = null;
             }
         }
-        foreach (['event_id' => 'events', 'vendor_id' => 'vendors', 'household_id' => 'households'] as $k => $table) {
+        foreach (['event_id' => 'events', 'vendor_id' => 'vendors', 'household_id' => 'households', 'workspace_id' => 'workspaces'] as $k => $table) {
             if ($create || $f->has($k)) {
                 $c[$k] = self::linkId($db, $f, $k, $table);
             }
+        }
+        // 1.0.17: the section of the workspace the task came from (Bride outfit, Menu, …).
+        if ($create || $f->has('workspace_section')) {
+            $c['workspace_section'] = $f->enum('workspace_section', array_keys(\AM\Modules\Workspaces\WorkspaceDef::SECTIONS));
+        }
+        $finalWs = array_key_exists('workspace_id', $c) ? $c['workspace_id'] : ($current['workspace_id'] ?? null);
+        if ($finalWs === null && ($c['workspace_section'] ?? null) !== null) {
+            $c['workspace_section'] = null; // a section only means something inside a workspace
         }
         $assignees = $f->has('assignee_ids') ? self::members($db, $f, $app) : null;
         $tags = $f->has('tag_ids') ? self::tags($db, $f) : null;
@@ -200,12 +208,13 @@ final class TaskWriter
     /** Names for audit before/after: assignees ['Mummy', 'Papa'], tags ['Shopping'], and the linked event / vendor / family. */
     public static function names(Db $db, int $taskId): array
     {
-        $t = $db->one('SELECT event_id, vendor_id, household_id FROM tasks WHERE id = ?', [$taskId]) ?? [];
+        $t = $db->one('SELECT event_id, vendor_id, household_id, workspace_id FROM tasks WHERE id = ?', [$taskId]) ?? [];
         $name = static fn (string $table, mixed $id) => $id === null ? null : $db->value("SELECT name FROM `$table` WHERE id = ?", [(int) $id]);
         return [
             'event' => $name('events', $t['event_id'] ?? null),
             'vendor' => $name('vendors', $t['vendor_id'] ?? null),
             'household' => $name('households', $t['household_id'] ?? null),
+            'workspace' => $name('workspaces', $t['workspace_id'] ?? null),
             'assignees' => array_column($db->all('SELECT u.name FROM task_assignees a JOIN users u ON u.id = a.user_id WHERE a.task_id = ? AND a.deleted_at IS NULL ORDER BY u.name', [$taskId]), 'name'),
             'tags' => array_column($db->all('SELECT t.name FROM task_tags tt JOIN tags t ON t.id = tt.tag_id WHERE tt.task_id = ? AND tt.deleted_at IS NULL AND t.deleted_at IS NULL ORDER BY t.name', [$taskId]), 'name'),
         ];

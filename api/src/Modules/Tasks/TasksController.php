@@ -26,7 +26,7 @@ use DateTimeZone;
 final class TasksController
 {
     public const VIEWS = ['mine', 'all', 'today', 'week', 'overdue', 'no_date', 'closed'];
-    public const QUERY = ['view', 'status', 'event', 'tag', 'assignee', 'priority', 'vendor', 'household', 'q', 'sort', 'limit', 'cursor'];
+    public const QUERY = ['view', 'status', 'event', 'tag', 'assignee', 'priority', 'vendor', 'household', 'workspace', 'q', 'sort', 'limit', 'cursor'];
 
     /* ------------------------------------------------------------------ list */
 
@@ -118,7 +118,7 @@ final class TasksController
             $w[] = 't.priority = ?';
             $a[] = $q['priority'];
         }
-        foreach (['event' => ['event_id', 'events'], 'vendor' => ['vendor_id', 'vendors'], 'household' => ['household_id', 'households']] as $k => [$col, $table]) {
+        foreach (['event' => ['event_id', 'events'], 'vendor' => ['vendor_id', 'vendors'], 'household' => ['household_id', 'households'], 'workspace' => ['workspace_id', 'workspaces']] as $k => [$col, $table]) {
             if (isset($q[$k])) {
                 $w[] = "t.$col = (SELECT id FROM $table WHERE public_id = ?)";
                 $a[] = $q[$k];
@@ -200,6 +200,9 @@ final class TasksController
         Permissions::requireEditor($viewer);
         $expected = Versioned::ifMatch($request);
         $f = Fields::from($request->attr('json'));
+        if (($f->has('workspace_id') || $f->has('workspace_section')) && !Permissions::isAdmin($viewer)) {
+            throw HttpError::make(403, 'forbidden'); // workspaces are Ayush and Mahi's (1.0.17)
+        }
         if ($f->keys() === []) {
             throw HttpError::make(422, 'validation_failed', [], ['fields' => []]);
         }

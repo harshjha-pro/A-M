@@ -61,6 +61,7 @@ final class CalendarController
                     'type' => 'event', 'id' => $e['public_id'], 'title' => $e['name'], 'date' => $ist->format('Y-m-d'),
                     'time' => (int) $e['all_day'] ? null : $ist->format('H:i'), 'start_at' => Time::iso($e['start_at']), 'end_at' => Time::iso($e['end_at']),
                     'status' => null, 'overdue' => false, 'side' => $e['side'], 'linked_event' => null,
+                    'workspace' => \AM\Auth\Permissions::isAdmin($viewer) ? self::workspaceOf($db, (int) $e['id']) : null, // 1.0.17 badge
                 ];
             }
         }
@@ -119,5 +120,12 @@ final class CalendarController
             $ref['deleted'] = true;
         }
         return $ref;
+    }
+
+    /** The workspace for an event (1.0.17), for the badge on the Calendar. */
+    public static function workspaceOf(\AM\Db\Db $db, int $eventId): ?array
+    {
+        $w = $db->one('SELECT public_id, name FROM workspaces WHERE event_id = ? AND deleted_at IS NULL LIMIT 1', [$eventId]);
+        return $w === null ? null : ['id' => $w['public_id'], 'name' => $w['name']];
     }
 }

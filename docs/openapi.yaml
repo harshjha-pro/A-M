@@ -31,6 +31,8 @@ tags:
   - name: Imports
   - name: Money
   - name: Documents
+  - name: Workspaces
+  - name: Vault
   - name: History
   - name: Trash
   - name: Export
@@ -517,6 +519,305 @@ paths:
         default: { $ref: '#/components/responses/Error' }
 
   # ---------------------------------------------------------------- Dashboard & calendar
+  /workspaces:
+    get:
+      tags: [Workspaces]
+      operationId: listWorkspaces
+      summary: Every workspace, in order (Ayush and Mahi only). meta.sections lists the section keys.
+      x-permission: Adm
+      responses:
+        '200':
+          description: Workspaces
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Ok'
+                  - properties: { data: { type: array, items: { $ref: '#/components/schemas/Workspace' } } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        default: { $ref: '#/components/responses/Error' }
+    post:
+      tags: [Workspaces]
+      operationId: createWorkspace
+      summary: Add a workspace (name unique; one workspace per calendar event)
+      x-permission: Adm
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IdempotencyKey' } ]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/WorkspaceInput' } } } }
+      responses:
+        '201': { $ref: '#/components/responses/WorkspaceOne' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+        default: { $ref: '#/components/responses/Error' }
+  /workspaces/{id}:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    get:
+      tags: [Workspaces]
+      operationId: getWorkspace
+      summary: One workspace with its tasks (for the strip at the top)
+      x-permission: Adm
+      responses:
+        '200': { $ref: '#/components/responses/WorkspaceOne' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        default: { $ref: '#/components/responses/Error' }
+    patch:
+      tags: [Workspaces]
+      operationId: updateWorkspace
+      summary: Rename, link to a calendar event, reorder, notes
+      x-permission: Adm
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IfMatch' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/WorkspaceInput' } } } }
+      responses:
+        '200': { $ref: '#/components/responses/WorkspaceOne' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+        default: { $ref: '#/components/responses/Error' }
+    delete:
+      tags: [Workspaces]
+      operationId: deleteWorkspace
+      summary: Soft delete with its attachment links (Undo). Its tasks stay.
+      x-permission: Adm
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IfMatch' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      responses:
+        '200': { $ref: '#/components/responses/Deleted' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        default: { $ref: '#/components/responses/Error' }
+  /workspaces/{id}/restore:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    post:
+      tags: [Trash]
+      operationId: restoreWorkspace
+      summary: Restore a deleted workspace (422 if a live one has the same name)
+      x-permission: Adm
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IfMatch' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      responses:
+        '200': { $ref: '#/components/responses/WorkspaceOne' }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+        default: { $ref: '#/components/responses/Error' }
+  /attachment-uploads:
+    post:
+      tags: [Vault]
+      operationId: startAttachmentUpload
+      summary: Start sending a file of any size in 2 MB pieces. A file already in the Vault (same SHA-256 and size) replies complete = true.
+      x-permission: Adm
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IdempotencyKey' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, size_bytes, sha256]
+              properties:
+                name: { type: string, maxLength: 255 }
+                mime_type: { type: string }
+                size_bytes: { type: integer, minimum: 1 }
+                sha256: { type: string, pattern: '^[0-9a-f]{64}$' }
+      responses:
+        '201': { $ref: '#/components/responses/UploadOne' }
+        '200': { $ref: '#/components/responses/UploadOne' }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+        default: { $ref: '#/components/responses/Error' }
+  /attachment-uploads/{id}/chunks:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    post:
+      tags: [Vault]
+      operationId: sendAttachmentChunk
+      summary: One piece (seq from 0; 2 MB except the last). Sending a piece again stores it once.
+      x-permission: Adm
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IdempotencyKey' } ]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema: { type: object, required: [seq, chunk], properties: { seq: { type: integer }, chunk: { type: string, contentMediaType: application/octet-stream } } }
+      responses:
+        '200': { $ref: '#/components/responses/UploadOne' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+        default: { $ref: '#/components/responses/Error' }
+  /attachment-uploads/{id}/finish:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    post:
+      tags: [Vault]
+      operationId: finishAttachmentUpload
+      summary: Check every piece and the SHA-256 of the whole (422 upload_incomplete with received, or checksum_mismatch)
+      x-permission: Adm
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IdempotencyKey' } ]
+      responses:
+        '200': { $ref: '#/components/responses/UploadOne' }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+        default: { $ref: '#/components/responses/Error' }
+  /attachments:
+    get:
+      tags: [Vault]
+      operationId: listAttachments
+      summary: The Attachment Vault — every attachment with "where it's used". meta.storage = database size against the 3 GB limit.
+      x-permission: Adm
+      parameters:
+        - { $ref: '#/components/parameters/Q' }
+        - { name: workspace, in: query, schema: { $ref: '#/components/schemas/Ulid' } }
+        - { name: section, in: query, schema: { type: string } }
+        - { name: kind, in: query, schema: { type: string, enum: [photo, video, document, link, text] } }
+        - { name: favourite, in: query, schema: { type: string, enum: ['1'] } }
+        - { name: vendor, in: query, schema: { $ref: '#/components/schemas/Ulid' } }
+        - { name: unlinked, in: query, schema: { type: string, enum: ['1'] } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 200, default: 50 } }
+        - { $ref: '#/components/parameters/Cursor' }
+      responses:
+        '200':
+          description: Attachments
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/OkPage'
+                  - properties: { data: { type: array, items: { $ref: '#/components/schemas/Attachment' } } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        default: { $ref: '#/components/responses/Error' }
+    post:
+      tags: [Vault]
+      operationId: createAttachment
+      summary: Add an attachment (finished upload, link or text), optionally used in a workspace section at once. code defaults to the next ATT-000001.
+      x-permission: Adm
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IdempotencyKey' } ]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/AttachmentInput' } } } }
+      responses:
+        '201': { $ref: '#/components/responses/AttachmentOne' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+        default: { $ref: '#/components/responses/Error' }
+  /attachments/check-code:
+    get:
+      tags: [Vault]
+      operationId: checkAttachmentCode
+      summary: Is this ID free? (unique across the app, capitals ignored; deleted ones keep theirs)
+      x-permission: Adm
+      parameters:
+        - { name: code, in: query, required: true, schema: { type: string } }
+        - { name: except, in: query, schema: { $ref: '#/components/schemas/Ulid' } }
+      responses:
+        '200':
+          description: Answer
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Ok'
+                  - properties: { data: { type: object, properties: { available: { type: boolean }, message: { type: [string, 'null'] } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /attachments/{id}:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    get:
+      tags: [Vault]
+      operationId: getAttachment
+      summary: One attachment with every place it is used
+      x-permission: Adm
+      responses:
+        '200': { $ref: '#/components/responses/AttachmentOne' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        default: { $ref: '#/components/responses/Error' }
+    patch:
+      tags: [Vault]
+      operationId: updateAttachment
+      summary: Edit the ID (unique), title, note, link, text, favourite, vendor, task
+      x-permission: Adm
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IfMatch' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/AttachmentInput' } } } }
+      responses:
+        '200': { $ref: '#/components/responses/AttachmentOne' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+        default: { $ref: '#/components/responses/Error' }
+    delete:
+      tags: [Vault]
+      operationId: deleteAttachment
+      summary: Delete everywhere (its links go in the same batch; Undo). A document is deleted in Documents (422).
+      x-permission: Adm
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IfMatch' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      responses:
+        '200': { $ref: '#/components/responses/Deleted' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+        default: { $ref: '#/components/responses/Error' }
+  /attachments/{id}/restore:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    post:
+      tags: [Trash]
+      operationId: restoreAttachment
+      summary: Restore a deleted attachment (and the links deleted with it)
+      x-permission: Adm
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IfMatch' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      responses:
+        '200': { $ref: '#/components/responses/AttachmentOne' }
+        default: { $ref: '#/components/responses/Error' }
+  /attachments/{id}/file:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    get:
+      tags: [Vault]
+      operationId: getAttachmentFile
+      summary: The bytes, streamed piece by piece; single byte ranges (206) so videos play on iPhone
+      x-permission: Adm
+      parameters:
+        - { name: v, in: query, schema: { type: string } }
+        - { name: Range, in: header, schema: { type: string } }
+      responses:
+        '200': { description: File bytes, headers: { Cache-Control: { schema: { type: string, const: 'private, no-store' } } } }
+        '206': { description: Partial content }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '416': { description: Range not satisfiable }
+        default: { $ref: '#/components/responses/Error' }
+  /attachments/{id}/links:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    post:
+      tags: [Vault]
+      operationId: linkAttachment
+      summary: Use the attachment in one more place (a second link to the same place changes nothing)
+      x-permission: Adm
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IdempotencyKey' } ]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { type: object, required: [workspace_id], properties: { workspace_id: { $ref: '#/components/schemas/Ulid' }, section: { type: string } } } } }
+      responses:
+        '200': { $ref: '#/components/responses/AttachmentOne' }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+        default: { $ref: '#/components/responses/Error' }
+  /attachment-links/{id}:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    delete:
+      tags: [Vault]
+      operationId: unlinkAttachment
+      summary: Remove from one place only (the attachment stays in the Vault; Undo)
+      x-permission: Adm
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IfMatch' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      responses:
+        '200': { $ref: '#/components/responses/Deleted' }
+        default: { $ref: '#/components/responses/Error' }
+  /attachment-links/{id}/restore:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    post:
+      tags: [Trash]
+      operationId: restoreAttachmentLink
+      summary: Restore a removed link
+      x-permission: Adm
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IfMatch' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      responses:
+        '200': { description: Restored, content: { application/json: { schema: { $ref: '#/components/schemas/Ok' } } } }
+        default: { $ref: '#/components/responses/Error' }
   /home-photos:
     get:
       tags: [Dashboard]
@@ -2533,6 +2834,30 @@ components:
             allOf:
               - $ref: '#/components/schemas/Ok'
               - properties: { data: { $ref: '#/components/schemas/Payment' } }
+    WorkspaceOne:
+      description: Workspace
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/Ok'
+              - properties: { data: { $ref: '#/components/schemas/Workspace' } }
+    AttachmentOne:
+      description: Attachment
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/Ok'
+              - properties: { data: { $ref: '#/components/schemas/Attachment' } }
+    UploadOne:
+      description: Upload state
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/Ok'
+              - properties: { data: { $ref: '#/components/schemas/Upload' } }
     HomePhotoOne:
       description: Home photo
       headers: { ETag: { $ref: '#/components/headers/ETag' } }
@@ -3333,6 +3658,68 @@ components:
             receipt_count: { type: integer }
 
     # ---- documents
+    Workspace:
+      type: object
+      properties:
+        id: { $ref: '#/components/schemas/Ulid' }
+        version: { type: integer }
+        name: { type: string }
+        sort_order: { type: integer }
+        notes: { type: [string, 'null'] }
+        event: { type: [object, 'null'], properties: { id: { type: string }, name: { type: string }, start_at: { type: [string, 'null'] } } }
+        counts: { type: object, properties: { tasks_open: { type: integer }, attachments: { type: integer } } }
+        tasks: { type: array, items: { $ref: '#/components/schemas/Task' }, description: 'GET /workspaces/{id} only' }
+    WorkspaceInput:
+      type: object
+      additionalProperties: false
+      properties:
+        name: { type: string, maxLength: 80 }
+        event_id: { oneOf: [ { $ref: '#/components/schemas/Ulid' }, { type: 'null' } ] }
+        sort_order: { type: integer }
+        notes: { type: [string, 'null'], maxLength: 5000 }
+    Upload:
+      type: object
+      properties:
+        upload_id: { type: string }
+        complete: { type: boolean }
+        chunk_size: { type: integer, const: 2097152 }
+        chunk_count: { type: integer }
+        received: { type: array, items: { type: integer } }
+        mime_type: { type: string }
+        size_bytes: { type: integer }
+    Attachment:
+      type: object
+      properties:
+        id: { $ref: '#/components/schemas/Ulid' }
+        version: { type: integer }
+        code: { type: string, description: 'Editable ID, unique app-wide (capitals ignored), 3–30 of A–Z a–z 0–9 - _' }
+        kind: { type: string, enum: [photo, video, document, link, text] }
+        title: { type: string }
+        note: { type: [string, 'null'] }
+        url: { type: [string, 'null'] }
+        body: { type: [string, 'null'] }
+        is_favourite: { type: boolean }
+        vendor: { type: [object, 'null'] }
+        task: { type: [object, 'null'] }
+        file: { type: [object, 'null'] }
+        file_url: { type: [string, 'null'] }
+        document: { type: [object, 'null'] }
+        used_in: { type: array, items: { type: object, properties: { kind: { type: string }, path: { type: string }, to: { type: string }, link_id: { type: string } } } }
+    AttachmentInput:
+      type: object
+      properties:
+        kind: { type: string, enum: [photo, video, document, link, text], description: create only }
+        upload_id: { type: string, description: 'create only: a finished upload (photo, video, document)' }
+        workspace_id: { $ref: '#/components/schemas/Ulid' }
+        section: { type: string }
+        code: { type: string }
+        title: { type: string, maxLength: 160 }
+        note: { type: [string, 'null'] }
+        url: { type: [string, 'null'] }
+        body: { type: [string, 'null'] }
+        is_favourite: { type: boolean }
+        vendor_id: { oneOf: [ { $ref: '#/components/schemas/Ulid' }, { type: 'null' } ] }
+        task_id: { oneOf: [ { $ref: '#/components/schemas/Ulid' }, { type: 'null' } ] }
     HomePhotoUpload:
       type: object
       required: [file, sha256, slot]

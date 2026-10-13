@@ -17,7 +17,7 @@ final class ApiClient
     /** @var array<string,string> */
     public array $defaultHeaders = [
         'origin' => 'https://wedding.lumorrahouse.com',
-        'x-client-version' => '1.0.16',
+        'x-client-version' => '1.0.17',
         'x-device' => 'Android · browser',
     ];
 
@@ -80,13 +80,18 @@ final class ApiClient
      */
     public function upload(string $path, string $bytes, string $filename, array $fields = [], array $opts = []): TestResponse
     {
-        $fields += ['sha256' => hash('sha256', $bytes)];
+        if (!array_key_exists('sha256', $fields) || $fields['sha256'] !== null) {
+            $fields += ['sha256' => hash('sha256', $bytes)];
+        } else {
+            unset($fields['sha256']); // a part with no checksum of its own (Vault pieces)
+        }
+        $field = $opts['field'] ?? 'file';
         $b = '----amtest' . bin2hex(random_bytes(6));
         $body = '';
         foreach ($fields as $k => $v) {
             $body .= "--$b\r\nContent-Disposition: form-data; name=\"$k\"\r\n\r\n$v\r\n";
         }
-        $body .= "--$b\r\nContent-Disposition: form-data; name=\"file\"; filename=\"$filename\"\r\nContent-Type: application/octet-stream\r\n\r\n$bytes\r\n--$b--\r\n";
+        $body .= "--$b\r\nContent-Disposition: form-data; name=\"$field\"; filename=\"$filename\"\r\nContent-Type: application/octet-stream\r\n\r\n$bytes\r\n--$b--\r\n";
         return $this->request('POST', $path, $body, ['content-type' => "multipart/form-data; boundary=$b"], [], $opts);
     }
 

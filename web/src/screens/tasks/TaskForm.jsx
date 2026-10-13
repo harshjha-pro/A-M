@@ -22,10 +22,10 @@ import { useTags } from './TaskList.jsx';
 import { formatDateOnly } from '../../format/ist.js';
 import { t } from '../../i18n/strings.en.js';
 
-const FIELDS = ['title', 'notes', 'status', 'priority', 'dueDate', 'dueTime', 'assigneeIds', 'tagIds', 'newTags', 'eventId'];
+const FIELDS = ['title', 'notes', 'status', 'priority', 'dueDate', 'dueTime', 'assigneeIds', 'tagIds', 'newTags', 'eventId', 'workspaceId'];
 const LABELS = {
   title: t('tasks.titleLabel'), notes: t('tasks.notes'), status: t('tasks.statusLabel'), priority: t('tasks.priorityLabel'),
-  dueDate: t('tasks.due'), dueTime: t('tasks.time'), assigneeIds: t('tasks.assignees'), tagIds: t('tasks.tags'), newTags: t('tasks.newTag'), eventId: t('tasks.eventLabel'),
+  dueDate: t('tasks.due'), dueTime: t('tasks.time'), assigneeIds: t('tasks.assignees'), tagIds: t('tasks.tags'), newTags: t('tasks.newTag'), eventId: t('tasks.eventLabel'), workspaceId: t('nav.workspace'),
 };
 const EMPTY = { version: 0, title: '', notes: '', status: 'todo', priority: 'normal', dueDate: null, dueTime: null, assignees: null, tags: [] };
 
@@ -34,7 +34,7 @@ function toForm(task, meId) {
     title: task.title ?? '', notes: task.notes ?? '', status: task.status, priority: task.priority,
     dueDate: task.dueDate ?? '', dueTime: task.dueTime ?? '',
     assigneeIds: task.assignees ? task.assignees.map((a) => a.id) : [meId],
-    tagIds: (task.tags ?? []).map((g) => g.id), newTags: [], eventId: task.event?.id ?? '',
+    tagIds: (task.tags ?? []).map((g) => g.id), newTags: [], eventId: task.event?.id ?? '', workspaceId: task.workspace?.id ?? '',
   };
 }
 
@@ -49,9 +49,13 @@ export default function TaskForm() {
   const [dup, setDup] = useState(null);
   const [tagText, setTagText] = useState('');
   const allowDup = useRef(false);
-  const presetEvent = new URLSearchParams(useLocation().search).get('event');
+  const search = new URLSearchParams(useLocation().search);
+  const presetEvent = search.get('event');
+  const presetWorkspace = search.get('workspace'); // + Add task inside a workspace (1.0.17)
+  const presetSection = search.get('section');
   const record = id ? q.data : EMPTY;
   const events = useQuery({ queryKey: ['events'], queryFn: () => api('GET', '/events').then((r) => r.data), staleTime: 60_000 });
+  const workspaces = useQuery({ queryKey: ['workspaces'], queryFn: () => api('GET', '/workspaces').then((r) => r.data), staleTime: 60_000, enabled: Boolean(permissions?.admin) });
 
   const f = useEntityForm({
     form: 'task',
@@ -59,18 +63,19 @@ export default function TaskForm() {
     record,
     fields: FIELDS,
     fromServer: (r) => toForm(r, user?.id),
-    initial: !id && presetEvent ? { eventId: presetEvent } : null,
+    initial: !id && (presetEvent || presetWorkspace) ? { ...(presetEvent ? { eventId: presetEvent } : {}), ...(presetWorkspace ? { workspaceId: presetWorkspace } : {}) } : null,
     toBody(keys, v) {
       const body = {};
       for (const k of keys) {
         if (k === 'assigneeIds') body.assigneeIds = v.assigneeIds;
         else if (k === 'tagIds') body.tagIds = v.tagIds;
         else if (k === 'newTags') { if (v.newTags.length) body.newTags = v.newTags; }
-        else if (k === 'dueDate' || k === 'dueTime' || k === 'eventId') body[k] = v[k] || null;
+        else if (k === 'dueDate' || k === 'dueTime' || k === 'eventId' || k === 'workspaceId') body[k] = v[k] || null;
         else body[k] = v[k];
       }
       if (!id) {
         body.title = v.title;
+        if (presetSection && v.workspaceId) body.workspaceSection = presetSection;
         if (allowDup.current) body.allowDuplicate = true;
       }
       return body;
@@ -89,7 +94,7 @@ export default function TaskForm() {
       if (!saved) return;
       qc.setQueryData(['task', saved.id], saved);
       if (id) navigate(`/tasks/${id}`, { replace: true });
-      else { if (!saved.waiting) showToast(t('tasks.added')); navigate('/tasks', { replace: true }); }
+      else { if (!saved.waiting) showToast(t('tasks.added')); qc.invalidateQueries({ queryKey: ['workspace'] }); navigate(presetWorkspace ? `/workspaces/${presetWorkspace}` : '/tasks', { replace: true }); }
     },
   });
 
@@ -159,7 +164,7 @@ export default function TaskForm() {
           <MultiChips label={t('tasks.assignees')} options={activeMembers.map((m) => ({ value: m.id, label: m.id === user?.id ? `${m.name} (me)` : m.name }))}
             value={v.assigneeIds} onChange={f.set('assigneeIds')} error={errors.assigneeIds} />
         )}
-        <details className="flex flex-col gap-5 rounded-md bg-surface p-4 shadow-card" open={Boolean(id || presetEvent)}>
+        <details className="flex flex-col gap-5 rounded-md bg-surface p-4 shadow-card" open={Boolean(id || presetEvent || presetWorkspace)}>
           <summary className="tap cursor-pointer font-bold text-primary">{t('tasks.moreDetails')}</summary>
           <div className="mt-4 flex flex-col gap-5">
             {v.dueDate && <TextField type="time" label={t('tasks.time')} value={v.dueTime} onChange={f.set('dueTime')} error={errors.dueTime} />}
@@ -169,6 +174,15 @@ export default function TaskForm() {
                 <select value={v.eventId} onChange={(e) => f.set('eventId')(e.target.value)} className="tap rounded-sm border-[1.5px] border-border-strong bg-surface px-3 text-base text-text">
                   <option value="">{t('tasks.noEvent')}</option>
                   {events.data.map((ev) => <option key={ev.id} value={ev.id}>{ev.name}</option>)}
+                </select>
+              </label>
+            )}
+            {permissions?.admin && (workspaces.data ?? []).length > 0 && (
+              <label className="flex flex-col gap-1">
+                <span className="font-bold">{t('nav.workspace')}</span>
+                <select value={v.workspaceId} onChange={(e) => f.set('workspaceId')(e.target.value)} className="tap rounded-sm border-[1.5px] border-border-strong bg-surface px-3 text-base text-text">
+                  <option value="">{t('workspace.noEvent')}</option>
+                  {workspaces.data.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}
                 </select>
               </label>
             )}

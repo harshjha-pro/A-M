@@ -205,6 +205,13 @@ final class DocumentsController
                     'type' => $type, 'file_id' => $fileId, 'is_private' => (int) $private, 'notes' => $notes !== '' ? $notes : null,
                 ] + $links;
                 $r = BaseRepository::create($app, $db, $request, DocumentDef::class, $values);
+                // 1.0.17: every document also shows in the Attachment Vault, with an ID.
+                if ($db->value('SELECT 1 FROM attachments WHERE document_id = ?', [$r['row']['id']]) === null) {
+                    BaseRepository::create($app, $db, $request, \AM\Modules\Vault\AttachmentDef::class, [
+                        'code' => \AM\Modules\Vault\AttachmentDef::nextCode($db), 'kind' => 'document', 'title' => mb_substr((string) $r['row']['title'], 0, 160),
+                        'document_id' => (int) $r['row']['id'], 'vendor_id' => $r['row']['vendor_id'] !== null ? (int) $r['row']['vendor_id'] : null,
+                    ]);
+                }
                 return self::reply($app, $db, $r['row'], $viewer, 201);
             } catch (\Throwable $e) {
                 if ($newPath !== null) {
