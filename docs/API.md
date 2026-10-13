@@ -836,6 +836,20 @@ Ayush and Mahi only (403 for everyone else). Online only. Full shapes: `openapi.
 
 `POST /tasks` and `PATCH /tasks/{id}` accept `workspace_id` and `workspace_section` (Adm only); `GET /tasks?workspace=`; tasks carry `workspace` and `workspace_section`. Events and calendar event items carry `workspace` for admins. A new document also gets a Vault attachment.
 
+### 6.9c Outfits (version 1.0.18, Workspace step B)
+
+Ayush and Mahi only. `GET /workspaces/{id}` also returns `outfits` (cards).
+
+|Method|Path|Purpose|
+|-|-|-|
+|POST|`/outfits`|`{workspace_id, person, title}` → the outfit with the default timeline (Selected, Stitched, Trial done, Final approved)|
+|GET / PATCH / DELETE|`/outfits/{id}`|The outfit page (steps each with notes / attachments / tasks, `moodboard`, `accessories` each with notes / attachments / tasks, `notes`, `tasks`) / rename, reorder / delete with steps, accessories, notes and links (one Undo; tasks stay)|
+|POST|`/outfits/{id}/steps` · `/outfits/{id}/accessories`|Add a timeline step / an accessory|
+|PATCH / DELETE / POST restore|`/outfit-steps/{id}` · `/accessories/{id}` · `/notes/{id}`|Edit (`done_on` = the date a step was done; not in the future) / delete with Undo / restore|
+|POST|`/notes`|`{outfit_id | accessory_id | outfit_step_id, body}`|
+
+`POST /attachments` and `POST /attachments/{id}/links` accept `outfit_id`, `accessory_id` or `outfit_step_id` (workspace and section are set from it); "where it is used" reads "Mehndi › Bride outfit › Mehndi lehenga › Maang tikka". `POST /tasks` accepts the same three; tasks carry `target {type, id, name, outfit_id}`.
+
 ### 6.10 History and activity
 
 |Method|Path|Purpose|Who|Request|Response|Errors|

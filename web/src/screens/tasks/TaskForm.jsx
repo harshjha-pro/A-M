@@ -53,6 +53,10 @@ export default function TaskForm() {
   const presetEvent = search.get('event');
   const presetWorkspace = search.get('workspace'); // + Add task inside a workspace (1.0.17)
   const presetSection = search.get('section');
+  // 1.0.18: + Add task on an outfit, an accessory or a timeline step; back = where to return
+  const presetTarget = search.get('outfit') ? { outfitId: search.get('outfit') } : search.get('accessory') ? { accessoryId: search.get('accessory') }
+    : search.get('outfitStep') ? { outfitStepId: search.get('outfitStep') } : null;
+  const backTo = search.get('back');
   const record = id ? q.data : EMPTY;
   const events = useQuery({ queryKey: ['events'], queryFn: () => api('GET', '/events').then((r) => r.data), staleTime: 60_000 });
   const workspaces = useQuery({ queryKey: ['workspaces'], queryFn: () => api('GET', '/workspaces').then((r) => r.data), staleTime: 60_000, enabled: Boolean(permissions?.admin) });
@@ -76,6 +80,7 @@ export default function TaskForm() {
       if (!id) {
         body.title = v.title;
         if (presetSection && v.workspaceId) body.workspaceSection = presetSection;
+        if (presetTarget) Object.assign(body, presetTarget);
         if (allowDup.current) body.allowDuplicate = true;
       }
       return body;
@@ -94,7 +99,7 @@ export default function TaskForm() {
       if (!saved) return;
       qc.setQueryData(['task', saved.id], saved);
       if (id) navigate(`/tasks/${id}`, { replace: true });
-      else { if (!saved.waiting) showToast(t('tasks.added')); qc.invalidateQueries({ queryKey: ['workspace'] }); navigate(presetWorkspace ? `/workspaces/${presetWorkspace}` : '/tasks', { replace: true }); }
+      else { if (!saved.waiting) showToast(t('tasks.added')); qc.invalidateQueries({ queryKey: ['workspace'] }); qc.invalidateQueries({ queryKey: ['outfit'] }); navigate(backTo?.startsWith('/') ? backTo : presetWorkspace ? `/workspaces/${presetWorkspace}` : '/tasks', { replace: true }); }
     },
   });
 

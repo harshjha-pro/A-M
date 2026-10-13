@@ -1,8 +1,8 @@
 -- =============================================================================
--- A&M Wedding Planner — master_with_demo.sql  (version 1.0.17)
+-- A&M Wedding Planner — master_with_demo.sql  (version 1.0.18)
 -- ONE file for a NEW, EMPTY database:
 --   phpMyAdmin → select the database → Import → this file → Character set utf-8 → Go.
--- Contains, in order: migrations/001_init.sql migrations/002_open_answers.sql migrations/003_api_support.sql migrations/004_home_photos.sql migrations/005_workspaces_vault.sql dev/seed_demo.sql
+-- Contains, in order: migrations/001_init.sql migrations/002_open_answers.sql migrations/003_api_support.sql migrations/004_home_photos.sql migrations/005_workspaces_vault.sql migrations/006_outfits.sql dev/seed_demo.sql
 -- On a database that already has the tables it stops at the first line
 -- ("Table 'schema_migrations' already exists") and changes nothing.
 -- Made by tools/make-master-sql.sh — do not edit; edit the files listed above.
@@ -1376,6 +1376,177 @@ FROM documents d ORDER BY d.id;
 UPDATE schema_migrations SET finished_at = CURRENT_TIMESTAMP WHERE version = 5;
 
 
+-- ##### migrations/006_outfits.sql #####
+
+-- =============================================================================
+-- A&M Wedding Planner — migration 006_outfits.sql
+-- Workspace step B: outfits (version 1.0.18). Run AFTER 005.
+-- Target: MySQL 8.0.16+ (also runs on MariaDB 10.4+).
+--
+--   1. outfits: one row per outfit in a workspace, for the bride or groom
+--      (close / extended family, male / female, already allowed for step C).
+--   2. outfit_steps: the outfit's timeline (Selected → Stitched → Trial done →
+--      Final approved by default; steps can be added, renamed, reordered),
+--      each with the date it was done.
+--   3. accessories: things that go with an outfit (Maang tikka, Kaleere, …);
+--      also usable by a workspace section without an outfit (step C: decoration).
+--   4. notes: short notes on an outfit, an accessory or a timeline step.
+--   5. attachment_links: + outfit_id / accessory_id / outfit_step_id, so the
+--      moodboard and step / accessory attachments come from the Vault.
+--   6. tasks: + target_type / target_id (the outfit, accessory or step a task came from).
+--
+-- Card tracking (planned) moves to 007.
+-- =============================================================================
+
+-- Fails here, changing nothing, if 006 already ran.
+INSERT INTO schema_migrations (version, name, applied_by)
+VALUES (6, '006_outfits', 'phpMyAdmin');
+
+CREATE TABLE outfits (
+  id               BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  public_id        CHAR(26) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+  client_uuid      CHAR(36) CHARACTER SET ascii COLLATE ascii_general_ci NULL,
+  workspace_id     BIGINT UNSIGNED NOT NULL,
+  person           ENUM('bride','groom','close_male','close_female','extended_male','extended_female') NOT NULL,
+  title            VARCHAR(120) NOT NULL,
+  sort_order       SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+  version          INT UNSIGNED NOT NULL DEFAULT 1,
+  created_at       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  created_by       BIGINT UNSIGNED NULL,
+  updated_at       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  updated_by       BIGINT UNSIGNED NULL,
+  deleted_at       DATETIME NULL,
+  deleted_by       BIGINT UNSIGNED NULL,
+  delete_batch_id  BIGINT UNSIGNED NULL,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_outfits_public_id (public_id),
+  UNIQUE KEY uq_outfits_client_uuid (client_uuid),
+  KEY ix_outfits_place (workspace_id, person, deleted_at, sort_order),
+  CONSTRAINT fk_outfits_workspace  FOREIGN KEY (workspace_id) REFERENCES workspaces (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT fk_outfits_created_by FOREIGN KEY (created_by) REFERENCES users (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT fk_outfits_updated_by FOREIGN KEY (updated_by) REFERENCES users (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT fk_outfits_deleted_by FOREIGN KEY (deleted_by) REFERENCES users (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT fk_outfits_batch      FOREIGN KEY (delete_batch_id) REFERENCES change_batches (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT ck_outfits_version CHECK (version >= 1),
+  CONSTRAINT ck_outfits_deleted CHECK ((deleted_at IS NULL) = (delete_batch_id IS NULL))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE outfit_steps (
+  id               BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  public_id        CHAR(26) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+  client_uuid      CHAR(36) CHARACTER SET ascii COLLATE ascii_general_ci NULL,
+  outfit_id        BIGINT UNSIGNED NOT NULL,
+  name             VARCHAR(60) NOT NULL,
+  sort_order       SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+  done_on          DATE NULL COMMENT 'IST date the step was done; NULL = not yet',
+  version          INT UNSIGNED NOT NULL DEFAULT 1,
+  created_at       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  created_by       BIGINT UNSIGNED NULL,
+  updated_at       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  updated_by       BIGINT UNSIGNED NULL,
+  deleted_at       DATETIME NULL,
+  deleted_by       BIGINT UNSIGNED NULL,
+  delete_batch_id  BIGINT UNSIGNED NULL,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_outfit_steps_public_id (public_id),
+  UNIQUE KEY uq_outfit_steps_client_uuid (client_uuid),
+  KEY ix_outfit_steps_outfit (outfit_id, deleted_at, sort_order),
+  CONSTRAINT fk_outfit_steps_outfit     FOREIGN KEY (outfit_id) REFERENCES outfits (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT fk_outfit_steps_created_by FOREIGN KEY (created_by) REFERENCES users (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT fk_outfit_steps_updated_by FOREIGN KEY (updated_by) REFERENCES users (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT fk_outfit_steps_deleted_by FOREIGN KEY (deleted_by) REFERENCES users (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT fk_outfit_steps_batch      FOREIGN KEY (delete_batch_id) REFERENCES change_batches (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT ck_outfit_steps_version CHECK (version >= 1),
+  CONSTRAINT ck_outfit_steps_deleted CHECK ((deleted_at IS NULL) = (delete_batch_id IS NULL))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE accessories (
+  id               BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  public_id        CHAR(26) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+  client_uuid      CHAR(36) CHARACTER SET ascii COLLATE ascii_general_ci NULL,
+  workspace_id     BIGINT UNSIGNED NOT NULL,
+  section          VARCHAR(40) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+  outfit_id        BIGINT UNSIGNED NULL COMMENT 'NULL = belongs to the section (step C: decoration)',
+  name             VARCHAR(120) NOT NULL,
+  sort_order       SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+  version          INT UNSIGNED NOT NULL DEFAULT 1,
+  created_at       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  created_by       BIGINT UNSIGNED NULL,
+  updated_at       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  updated_by       BIGINT UNSIGNED NULL,
+  deleted_at       DATETIME NULL,
+  deleted_by       BIGINT UNSIGNED NULL,
+  delete_batch_id  BIGINT UNSIGNED NULL,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_accessories_public_id (public_id),
+  UNIQUE KEY uq_accessories_client_uuid (client_uuid),
+  KEY ix_accessories_outfit (outfit_id, deleted_at, sort_order),
+  KEY ix_accessories_place (workspace_id, section, deleted_at),
+  CONSTRAINT fk_accessories_workspace  FOREIGN KEY (workspace_id) REFERENCES workspaces (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT fk_accessories_outfit     FOREIGN KEY (outfit_id) REFERENCES outfits (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT fk_accessories_created_by FOREIGN KEY (created_by) REFERENCES users (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT fk_accessories_updated_by FOREIGN KEY (updated_by) REFERENCES users (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT fk_accessories_deleted_by FOREIGN KEY (deleted_by) REFERENCES users (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT fk_accessories_batch      FOREIGN KEY (delete_batch_id) REFERENCES change_batches (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT ck_accessories_version CHECK (version >= 1),
+  CONSTRAINT ck_accessories_deleted CHECK ((deleted_at IS NULL) = (delete_batch_id IS NULL))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE notes (
+  id               BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  public_id        CHAR(26) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+  client_uuid      CHAR(36) CHARACTER SET ascii COLLATE ascii_general_ci NULL,
+  workspace_id     BIGINT UNSIGNED NOT NULL,
+  outfit_id        BIGINT UNSIGNED NULL,
+  accessory_id     BIGINT UNSIGNED NULL,
+  outfit_step_id   BIGINT UNSIGNED NULL,
+  body             TEXT NOT NULL,
+  version          INT UNSIGNED NOT NULL DEFAULT 1,
+  created_at       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  created_by       BIGINT UNSIGNED NULL,
+  updated_at       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  updated_by       BIGINT UNSIGNED NULL,
+  deleted_at       DATETIME NULL,
+  deleted_by       BIGINT UNSIGNED NULL,
+  delete_batch_id  BIGINT UNSIGNED NULL,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_notes_public_id (public_id),
+  UNIQUE KEY uq_notes_client_uuid (client_uuid),
+  KEY ix_notes_outfit (outfit_id, deleted_at),
+  KEY ix_notes_accessory (accessory_id, deleted_at),
+  KEY ix_notes_step (outfit_step_id, deleted_at),
+  CONSTRAINT fk_notes_workspace  FOREIGN KEY (workspace_id) REFERENCES workspaces (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT fk_notes_outfit     FOREIGN KEY (outfit_id) REFERENCES outfits (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT fk_notes_accessory  FOREIGN KEY (accessory_id) REFERENCES accessories (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT fk_notes_step       FOREIGN KEY (outfit_step_id) REFERENCES outfit_steps (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT fk_notes_created_by FOREIGN KEY (created_by) REFERENCES users (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT fk_notes_updated_by FOREIGN KEY (updated_by) REFERENCES users (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT fk_notes_deleted_by FOREIGN KEY (deleted_by) REFERENCES users (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT fk_notes_batch      FOREIGN KEY (delete_batch_id) REFERENCES change_batches (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT ck_notes_version CHECK (version >= 1),
+  CONSTRAINT ck_notes_deleted CHECK ((deleted_at IS NULL) = (delete_batch_id IS NULL)),
+  CONSTRAINT ck_notes_one_place CHECK ((outfit_id IS NOT NULL) + (accessory_id IS NOT NULL) + (outfit_step_id IS NOT NULL) = 1)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+ALTER TABLE attachment_links
+  ADD COLUMN outfit_id      BIGINT UNSIGNED NULL AFTER target_id,
+  ADD COLUMN accessory_id   BIGINT UNSIGNED NULL AFTER outfit_id,
+  ADD COLUMN outfit_step_id BIGINT UNSIGNED NULL AFTER accessory_id,
+  ADD KEY ix_attachment_links_outfit (outfit_id, deleted_at),
+  ADD KEY ix_attachment_links_accessory (accessory_id, deleted_at),
+  ADD KEY ix_attachment_links_step (outfit_step_id, deleted_at),
+  ADD CONSTRAINT fk_attachment_links_outfit    FOREIGN KEY (outfit_id) REFERENCES outfits (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  ADD CONSTRAINT fk_attachment_links_accessory FOREIGN KEY (accessory_id) REFERENCES accessories (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  ADD CONSTRAINT fk_attachment_links_step      FOREIGN KEY (outfit_step_id) REFERENCES outfit_steps (id) ON DELETE RESTRICT ON UPDATE RESTRICT;
+
+ALTER TABLE tasks
+  ADD COLUMN target_type VARCHAR(20) CHARACTER SET ascii COLLATE ascii_general_ci NULL COMMENT 'outfit, accessory or outfit_step' AFTER workspace_section,
+  ADD COLUMN target_id   BIGINT UNSIGNED NULL AFTER target_type,
+  ADD KEY ix_tasks_target (target_type, target_id, deleted_at);
+
+UPDATE schema_migrations SET finished_at = CURRENT_TIMESTAMP WHERE version = 6;
+
+
 -- ##### dev/seed_demo.sql #####
 
 -- =============================================================================
@@ -1918,6 +2089,20 @@ INSERT INTO attachments (public_id, code, kind, title, url, note, is_favourite, 
 INSERT INTO attachment_links (public_id, attachment_id, workspace_id, section, created_at, created_by, updated_at, updated_by)
 SELECT '01JC0VL0000000000000000001', a.id, w.id, 'general', '2026-10-06 10:00:00', 2, '2026-10-06 10:00:00', 2
 FROM attachments a JOIN workspaces w ON w.public_id = '01JC0WS0000000000000000002' WHERE a.code = 'MEHNDI-DECOR-01';
+
+-- Outfits (migration 006, version 1.0.18): Mahi's Mehndi lehenga with the default timeline, an accessory and a note.
+INSERT INTO outfits (public_id, workspace_id, person, title, sort_order, created_at, created_by, updated_at, updated_by)
+SELECT '01JD0OF0000000000000000001', w.id, 'bride', 'Mehndi lehenga', 10, '2026-10-06 10:00:00', 2, '2026-10-06 10:00:00', 2 FROM workspaces w WHERE w.public_id = '01JC0WS0000000000000000002';
+SET @demo_outfit := (SELECT id FROM outfits WHERE public_id = '01JD0OF0000000000000000001');
+INSERT INTO outfit_steps (public_id, outfit_id, name, sort_order, done_on, created_by, updated_by) VALUES
+  ('01JD0ST0000000000000000001', @demo_outfit, 'Selected', 10, '2026-10-05', 2, 2),
+  ('01JD0ST0000000000000000002', @demo_outfit, 'Stitched', 20, NULL, 2, 2),
+  ('01JD0ST0000000000000000003', @demo_outfit, 'Trial done', 30, NULL, 2, 2),
+  ('01JD0ST0000000000000000004', @demo_outfit, 'Final approved', 40, NULL, 2, 2);
+INSERT INTO accessories (public_id, workspace_id, section, outfit_id, name, sort_order, created_by, updated_by)
+SELECT '01JD0AC0000000000000000001', workspace_id, 'bride_outfit', id, 'Maang tikka', 10, 2, 2 FROM outfits WHERE id = @demo_outfit;
+INSERT INTO notes (public_id, workspace_id, outfit_id, body, created_by, updated_by)
+SELECT '01JD0NO0000000000000000001', workspace_id, id, 'Pastel green with a light dupatta. Trial at Rekha Tailors.', 2, 2 FROM outfits WHERE id = @demo_outfit;
 
 -- End of DEV ONLY demo data.
 

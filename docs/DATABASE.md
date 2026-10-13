@@ -365,8 +365,9 @@ The schema gives the guarantees. These rules make sure the code doesn't undo the
   003_api_support.sql   ← rate_limits table, checklist-item keys (API.md v1.1)
   004_home_photos.sql   ← Home photos stored in the database (version 1.0.16)
   005_workspaces_vault.sql ← Workspaces + Attachment Vault (version 1.0.17)
-  006_r2a_card_tracking.sql   (R2a, example below; was planned as 004)
-  007_…
+  006_outfits.sql       ← Workspace step B: outfits (version 1.0.18)
+  007_r2a_card_tracking.sql   (R2a, example below; was planned as 004)
+  008_…
 /db/dev/
   seed_demo.sql         ← DEV ONLY. Not a migration. Never on the live DB.
 ```
@@ -409,7 +410,20 @@ The schema gives the guarantees. These rules make sure the code doesn't undo the
 
 Order to run: `001_init.sql` → `002_open_answers.sql` → `003_api_support.sql` → (dev only) `seed_demo.sql`. The seed doesn't touch `rate_limits` and gives every checklist item a key, so it can run before or after `003`.
 
-### `005_workspaces_vault.sql` (version 1.0.17, this delivery)
+### `006_outfits.sql` (version 1.0.18, this delivery)
+
+| Step | Change | If it stops |
+|---|---|---|
+| 1 | `outfits` (workspace, person ENUM bride / groom / close_male / close_female / extended_male / extended_female, title, order; versioned, soft delete) | Nothing else has changed. Finish by hand or restore the export. |
+| 2 | `outfit_steps` (outfit, name, order, `done_on` DATE) — the timeline; PHP adds Selected / Stitched / Trial done / Final approved to each new outfit | Re-run from step 2. |
+| 3 | `accessories` (workspace, section, outfit NULL-able for step C, name, order) | Re-run from step 3. |
+| 4 | `notes` (exactly one of outfit / accessory / step, `ck_notes_one_place`; body) | Re-run from step 4. |
+| 5 | `attachment_links` + `outfit_id`, `accessory_id`, `outfit_step_id` (a step's or accessory's file also carries its `outfit_id`, so deleting the outfit takes every link in one batch) | Re-run the `ALTER`. |
+| 6 | `tasks` + `target_type`, `target_id` (the outfit, accessory or step a task came from) | Re-run the `ALTER`, then the last line. |
+
+41 tables after 006. Deleting an outfit soft-deletes its steps, accessories, notes and links in one batch (one Undo); its tasks stay. Deleting a workspace now also takes its outfits.
+
+### `005_workspaces_vault.sql` (version 1.0.17)
 
 Owner's request (13 Oct 2026): a Workspace per function, and an Attachment Vault linked to where each attachment is used.
 
@@ -437,12 +451,12 @@ Backups already dump BLOBs safely (`mysqldump --hex-blob`). The export writes th
 
 Order to run: `001` → `002` → `003` → `004` → (dev only) `seed_demo.sql`. Or import `sql/master.sql` into a new, empty database (all four in one file).
 
-### Example: `006_r2a_card_tracking.sql` (R2a; tested on both engines; renumbered from 004, then 005)
+### Example: `007_r2a_card_tracking.sql` (R2a; tested on both engines; renumbered from 004, 005, 006)
 
 ```sql
 SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci;
 SET time_zone = '+00:00';
-INSERT INTO schema_migrations (version, name, applied_by) VALUES (6, '006_r2a_card_tracking', 'phpMyAdmin');
+INSERT INTO schema_migrations (version, name, applied_by) VALUES (7, '007_r2a_card_tracking', 'phpMyAdmin');
 
 ALTER TABLE households
   ADD COLUMN card_given_on     DATE NULL AFTER notes,
@@ -458,7 +472,7 @@ ALTER TABLE audit_log
                      'merge','whatsapp_opened','backup','restore_drill',
                      'reminder_sent') NOT NULL;   -- appended at the end only
 
-UPDATE schema_migrations SET finished_at = CURRENT_TIMESTAMP WHERE version = 6;
+UPDATE schema_migrations SET finished_at = CURRENT_TIMESTAMP WHERE version = 7;
 ```
 
 All R1 dashboard queries ran unchanged after it (tested when it was numbered `003`; only the number changed).
@@ -636,7 +650,8 @@ Sandbox, 8 Oct 2026, on **MySQL 8.0.46** (your Hostinger engine) and **MariaDB 1
 | `002` with a Non-veg family already saved | Stops at step A; Mayra untouched; recovery steps work |
 | `003_api_support` after `002` (8 Oct, MySQL 8.0.46 and MariaDB 10.11.14) | No errors or warnings. 30 tables. Checklist items without a key got a UUID; `updated_at` and `version` unchanged. Second run stops at the guard. `rate_limits` upsert counts correctly. |
 | `005_workspaces_vault` after `004` (13 Oct, MySQL 8) | No errors. 37 tables; 7 workspaces linked to their events; documents in the Vault. Upload in pieces, checksum, byte ranges, unique ID, links, Undo, export → restore (PHPUnit `WorkspacesVaultTest`, `ExportsTest`, `DailyJobTest`). |
-| Card-tracking example (now `006`) | Applied; guard works; R1 queries unchanged |
+| `006_outfits` after `005` (13 Oct, MySQL 8) | No errors. 41 tables. Outfit with default timeline, steps with dates, accessories, notes, Vault targets, task targets, delete + Undo of the whole outfit (PHPUnit `OutfitsTest`). |
+| Card-tracking example (now `007`) | Applied; guard works; R1 queries unchanged |
 | `004_home_photos` after `003` (12 Oct, MySQL 8) | No errors. 32 tables. Upload, Undo, restore-limit and export → restore round trip byte for byte (PHPUnit `HomePhotosTest`, `ExportsTest` DS-22). Second run stops at the guard. |
 
 ---

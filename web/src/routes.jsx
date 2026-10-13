@@ -67,6 +67,7 @@ export const routes = [
           { path: '/settings/home-photos', element: page(() => import('./screens/settings/HomePhotos.jsx')) },
           { path: '/workspaces', element: page(() => import('./screens/workspaces/WorkspaceList.jsx')) },
           { path: '/workspaces/:id', element: page(() => import('./screens/workspaces/WorkspaceDetail.jsx')) },
+          { path: '/outfits/:id', element: page(() => import('./screens/outfits/OutfitDetail.jsx')) },
           { path: '/vault', element: page(() => import('./screens/vault/Vault.jsx')) },
           { path: '/vault/:id', element: page(() => import('./screens/vault/AttachmentDetail.jsx')) },
           { path: '/settings/imports', element: page(() => import('./screens/settings/Imports.jsx')) },

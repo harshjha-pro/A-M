@@ -18,9 +18,10 @@ import { formatDate, formatDateOnly } from '../../format/ist.js';
 import AttachmentRow from '../vault/AttachmentRow.jsx';
 import AttachmentAddSheet from '../vault/AttachmentAddSheet.jsx';
 import WorkspaceSheet from './WorkspaceSheet.jsx';
+import OutfitSection from '../outfits/OutfitSection.jsx';
 import { t } from '../../i18n/strings.en.js';
 
-const LATER = ['bride_outfit', 'groom_outfit', 'family_outfit', 'decor', 'menu', 'contacts', 'guests', 'timeline'];
+const LATER = ['family_outfit', 'decor', 'menu', 'contacts', 'guests', 'timeline'];
 
 function TaskStrip({ ws }) {
   return (
@@ -100,6 +101,8 @@ export default function WorkspaceDetail() {
         </Link>
       )}
       <TaskStrip ws={ws} />
+      <OutfitSection ws={ws} sectionKey="bride_outfit" person="bride" title={SECTIONS.bride_outfit} />
+      <OutfitSection ws={ws} sectionKey="groom_outfit" person="groom" title={SECTIONS.groom_outfit} />
       <FilesSection ws={ws} />
       {LATER.map((k) => (
         <section key={k} id={k} className="flex flex-col gap-1 rounded-md border-[1.5px] border-dashed border-border p-4">

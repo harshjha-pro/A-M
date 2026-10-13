@@ -43,7 +43,7 @@ export function VendorSelect({ value, onChange }) {
   );
 }
 
-export default function AttachmentAddSheet({ workspaceId, section = 'general', onClose, onAdded }) {
+export default function AttachmentAddSheet({ workspaceId, section = 'general', target = null, onClose, onAdded }) {
   const qc = useQueryClient();
   const [kind, setKind] = useState('photo');
   const [file, setFile] = useState(null);
@@ -89,10 +89,12 @@ export default function AttachmentAddSheet({ workspaceId, section = 'general', o
         body: kind === 'text' ? body : undefined,
         code: code.trim() || undefined, isFavourite: fav || undefined, vendorId: vendor || undefined,
         workspaceId, section: workspaceId ? section : undefined,
+        ...(target ?? {}), // 1.0.18: an outfit's moodboard, an accessory or a timeline step
       });
       qc.invalidateQueries({ queryKey: ['attachments'] });
       qc.invalidateQueries({ queryKey: ['workspace'] });
       qc.invalidateQueries({ queryKey: ['workspaces'] });
+      qc.invalidateQueries({ queryKey: ['outfit'] });
       showToast(t('vault.saved'));
       onAdded?.(a);
       onClose();

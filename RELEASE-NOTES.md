@@ -1,53 +1,46 @@
-# Release notes — Workspace (step A) + Attachment Vault · version 1.0.17
+# Release notes — Workspace step B: outfits · version 1.0.18
 
 **Goes to:** STAGING (and the Vercel test copy) first. Live after the phone checks below pass.
-**Migrations:** **`005_workspaces_vault.sql` — run it in phpMyAdmin BEFORE uploading the server files.** (If 004 was never run, run `004_home_photos.sql` first.)
+**Migrations:** **`006_outfits.sql` — run it in phpMyAdmin BEFORE uploading the server files.** (If you skipped earlier ones, run them first in order: `004_home_photos.sql`, `005_workspaces_vault.sql`.)
 **.env / hPanel / `.htaccess`:** no change.
 
 ## Run the migration first (≈ 2 minutes)
 1. phpMyAdmin → your database → **Export** → Quick → SQL → Go (keep the file).
-2. **Import** → `migrations/005_workspaces_vault.sql` → Character set **utf-8** → **Go**.
-3. Check: `SELECT version FROM schema_migrations ORDER BY version DESC LIMIT 1;` → **5**.
-   Running it twice stops at the first line and changes nothing.
+2. **Import** → `migrations/006_outfits.sql` → Character set **utf-8** → **Go**.
+3. Check: `SELECT version FROM schema_migrations ORDER BY version DESC LIMIT 1;` → **6**.
 
-The Vercel test copy uses the same database: this one import covers it. **Until it is run, uploading a document fails** (it now also goes into the Vault) and Workspace / Vault show an error.
+The Vercel test copy uses the same database: this one import covers it. Until it is run, opening a workspace shows an error.
 
 ## Upload order (same as before)
-`1-server.zip` → `2-assets.zip` → `3-shell.zip` → **`version.json` last**. Keep old `assets/` 14 days.
+`1-server.zip` → `2-assets.zip` → `3-shell.zip` → **`version.json` last**.
 
 ## What's new (Ayush and Mahi)
-- **Workspace** replaces Guests in the bottom bar. **Guests** and the **Attachment Vault** are in **More**. Family and viewers see no change.
-- **7 workspaces ready:** Engagement, Mehndi, Carnival, DJ Night, Mayra, Reception, Varmala & Phere — linked to their calendar event where there is one. **+ Add workspace**, rename, link to an event, delete (Undo; its tasks stay).
-- **Inside a workspace:**
-  - **Tasks** strip at the top (scroll sideways; tap to open). **+ Add task** makes a task that belongs to this workspace — it also shows in Tasks, Calendar and Home.
-  - **Files:** add a photo, video, document, link or text — used here at once.
-  - The other sections (Bride outfit, Groom outfit, Family outfits, Theme & decoration, Menu, Contacts, Guest details, Event timeline) are marked "Coming in the next update".
-- **Calendar:** an event with a workspace shows a **Workspace** badge; the event page has **Open workspace**.
-- **Attachment Vault:** every attachment in the app, including your Documents.
-  - Each shows its **ID**, title, ⭐, and **where it is used** (tap to jump there).
-  - Search by ID, title or note; filter by type, ⭐ Favourites, Not linked yet, workspace.
-  - **The ID is editable and unique across the app** (letters, numbers, - and _; capitals ignored). It is checked while you type: "ID … is already used by '…' (Mehndi › Files)".
-  - **Use in a workspace** adds it to another place (same ID). **✕** removes it from one place only (Undo). **Delete everywhere** removes it from all places (Undo). Documents are changed and deleted in Documents.
-  - Shows how full the database is; warns past 2.5 GB of the 3 GB.
-- **No size limit set by the app:** big files (videos) go up in 2 MB pieces; a weak signal resends only the missing pieces; the same file twice is not sent again.
+- **Bride outfit** and **Groom outfit** sections in every workspace. **+ Add outfit** (several per person, e.g. an outfit change). Each card shows the moodboard's first photo and a progress bar of the timeline.
+- **The outfit page:**
+  - **Timeline:** Selected → Stitched → Trial done → Final approved to start. Tap a step: **Done** (today's date, change it if needed), its own **notes**, **attachments** and **tasks**; rename or delete it (Undo). **+ Add step** for your own (e.g. "Dupatta dyed").
+  - **Moodboard:** photos, videos, links, documents and text — **+ Add attachment** or **From Vault** to reuse one. Each keeps its unique ID, ⭐, vendor and task. In the Vault it shows as "Mehndi › Bride outfit › Mehndi lehenga".
+  - **Accessories:** Maang tikka, Kaleere, Juttis… — each with its own attachments, notes and tasks.
+  - **Notes** (who wrote it, when) and **Tasks** (they also show in the workspace strip, Tasks, Calendar and Home).
+  - **Rename** (✏️) and **Delete outfit** — the timeline, accessories, notes and moodboard links go with it, one **Undo** brings everything back. Its tasks stay.
+- **Fixed:** the timeline step's Done switch now moves at once (it waited for the server before).
 
 ## Phone checks on staging — Android and iPhone, from the Home Screen icon
-Logins (password `demo-1234`): Ayush 98290 00001 · Mahi 98290 00002 · Papa 98290 00004.
+Logins (password `demo-1234`): Mahi 98290 00002 · Ayush 98290 00001 · Papa 98290 00004.
 
 | # | Do | Pass when |
 |---|---|---|
-| W1 | Ayush → bottom bar | Home · Calendar · Tasks · **Workspace** · More. More has Guests and Attachment Vault |
-| W2 | Workspace | The 7 cards; Mehndi shows its date |
-| W3 | Mehndi → + Add task → type → Save | Back on Mehndi; the task is in the strip; also in Tasks |
-| W4 | Mehndi → Add attachment → Photo → Take photo | Photo appears in Files with an ATT number |
-| W5 | Add attachment → Video → choose a 1–2 minute video | "Uploading… n%", then it appears; open it in the Vault → it plays (iPhone too) |
-| W6 | Vault → open the photo → change ID to `BRIDE-TEST-01` → Save; on another attachment type `bride-test-01` | Second one says "already used by …" |
-| W7 | Vault → photo → Use in a workspace → Reception · Theme & decoration → Add here | "Where it is used" lists both; ✕ on one → Undo brings it back |
-| W8 | Calendar → Mehndi event | Workspace badge; event page → Open workspace |
-| W9 | Papa → bottom bar | Guests is still there; no Workspace; More has no Vault |
+| B1 | Workspace → Mehndi | Bride outfit shows "Mehndi lehenga" (demo) with "1 of 4 steps done" |
+| B2 | Groom outfit → Add outfit → "Sherwani" | Opens the new outfit with 4 steps |
+| B3 | Tap Stitched → Done | Today's date; card on Mehndi shows 2 of 4 |
+| B4 | Add step "Safa bandhai" → it is 5th; tap it → Delete step → Undo | Comes back |
+| B5 | Moodboard → Add attachment → Photo → Take photo | Photo in the grid with an ATT number; Vault shows "Mehndi › Groom outfit › Sherwani" |
+| B6 | Moodboard → From Vault → pick the Mehndi decor link | It appears on the moodboard (same ID) |
+| B7 | Add accessory "Safa" → open → note + attachment + Add task | All three show in the sheet; the task is in Tasks and the Mehndi strip |
+| B8 | Delete outfit → Undo | The outfit comes back with steps, accessory, notes and moodboard |
+| B9 | Papa → Workspace | Not visible (as before) |
 
 ## Live — release checklist
-1. Settings → Safety all green. 2. **Backup now** (SSH `backup.php --kind=manual_db`). 3. Save `deploy-session14b.zip` to Drive.
-4. **Run `005_workspaces_vault.sql` on live** (steps above). 5. Upload `live/` in order, `version.json` last.
-6. Health `ok`; "New version available" → This phone says 1.0.17.
-7. If anything fails: upload `deploy-session14a.zip` (`live/`). The new tables can stay; 1.0.16 doesn't read them (document upload in 1.0.16 doesn't use them either).
+1. Settings → Safety all green. 2. **Backup now**. 3. Save `deploy-session14c.zip` to Drive.
+4. **Run `006_outfits.sql` on live**. 5. Upload `live/` in order, `version.json` last.
+6. Health `ok`; "New version available" → This phone says 1.0.18.
+7. If anything fails: upload `deploy-session14b.zip` (`live/`). The new tables can stay.
