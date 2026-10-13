@@ -57,6 +57,8 @@ final class Entities
         'outfit_step' => OutfitStepDef::class,
         'accessory' => AccessoryDef::class,
         'note' => NoteDef::class,
+        'menu_category' => \AM\Modules\Menu\MenuCategoryDef::class,
+        'menu_item' => \AM\Modules\Menu\MenuItemDef::class,
     ];
 
     /** URL segment for /{resource}/{id}/history => definition */
@@ -75,6 +77,8 @@ final class Entities
         'workspaces' => WorkspaceDef::class,
         'attachments' => AttachmentDef::class,
         'outfits' => OutfitDef::class,
+        'menu-categories' => \AM\Modules\Menu\MenuCategoryDef::class,
+        'menu-items' => \AM\Modules\Menu\MenuItemDef::class,
     ];
 
     /** The value that names a row (public id or checklist key); null for link rows. */

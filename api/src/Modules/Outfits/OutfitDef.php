@@ -14,7 +14,7 @@ use AM\Safety\History;
 use AM\Validation\Fields;
 
 /**
- * An outfit in a workspace (1.0.18): bride or groom (family in step C). Its timeline steps,
+ * An outfit in a workspace (1.0.18): bride, groom or family (1.0.19); also a decor item (person 'decor'). Its timeline steps,
  * accessories, notes and attachment links go and come back with it (one Undo); tasks stay.
  */
 final class OutfitDef extends EntityDef
@@ -24,7 +24,7 @@ final class OutfitDef extends EntityDef
     public const RESOURCE = 'outfits';
     public const LABEL = 'outfit';
     public const LABEL_PLURAL = 'outfits';
-    public const FIELD_LABELS = ['title' => 'Name', 'sort_order' => 'Order'];
+    public const FIELD_LABELS = ['title' => 'Name', 'vendor_id' => 'Vendor', 'sort_order' => 'Order'];
     public const CHILDREN = [
         OutfitStepDef::class => 'outfit_id',
         AccessoryDef::class => 'outfit_id',
@@ -56,6 +56,7 @@ final class OutfitDef extends EntityDef
             'person_label' => OutfitParts::PERSONS[$row['person']] ?? $row['person'],
             'section' => OutfitParts::SECTION[$row['person']] ?? 'bride_outfit',
             'title' => $row['title'],
+            'vendor' => $refs->row('vendors', $row['vendor_id'] !== null ? (int) $row['vendor_id'] : null),
             'sort_order' => (int) $row['sort_order'],
             'steps' => array_map(static fn ($s) => OutfitStepDef::present($app, $db, $refs, $s, $viewer), $steps),
             'cover_url' => OutfitParts::cover($db, $id),
@@ -69,13 +70,16 @@ final class OutfitDef extends EntityDef
         ];
     }
 
-    /** PATCH: name and order (the person and workspace never change). */
+    /** PATCH: name, vendor and order (the person and workspace never change). */
     public static function input(App $app, Fields $f, bool $create, ?array $current): array
     {
-        $f->only(['title', 'sort_order']);
+        $f->only(['title', 'vendor_id', 'sort_order']);
         $out = [];
         if ($create || $f->has('title')) {
             $out['title'] = $f->text('title', 120, true);
+        }
+        if ($f->has('vendor_id')) {
+            $out['vendor_id'] = OutfitParts::vendorId($app->db(), $f);
         }
         if ($f->has('sort_order')) {
             $v = $f->value('sort_order');

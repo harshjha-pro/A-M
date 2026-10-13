@@ -16,8 +16,8 @@ use AM\Repo\Refs;
 use AM\Validation\Fields;
 
 /**
- * Outfits (version 1.0.18, Workspace step B). Ayush and Mahi only.
- *   POST /outfits {workspace_id, person, title}  → with the 4 default timeline steps
+ * Outfits (version 1.0.18, Workspace step B; family outfits and decor items 1.0.19). Ayush and Mahi only.
+ *   POST /outfits {workspace_id, person, title, vendor_id?}  → with the 4 default timeline steps
  *   GET  /outfits/{id}                           → everything on the outfit page
  *   POST /outfits/{id}/steps {name} · POST /outfits/{id}/accessories {name} · POST /notes {…_id, body}
  * Edits, deletes and restores go through BaseController (versions, Undo, History).
@@ -29,7 +29,7 @@ final class OutfitsController
         $viewer = $request->attr('user');
         Permissions::requireAdmin($viewer);
         $f = Fields::from($request->attr('json'));
-        $f->only(['workspace_id', 'person', 'title']);
+        $f->only(['workspace_id', 'person', 'title', 'vendor_id']);
         $db = $app->db();
         $ws = is_string($f->value('workspace_id')) ? $db->value('SELECT id FROM workspaces WHERE public_id = ? AND deleted_at IS NULL', [$f->value('workspace_id')]) : null;
         if ($ws === null) {
@@ -37,12 +37,13 @@ final class OutfitsController
         }
         $person = $f->enum('person', array_keys(OutfitParts::PERSONS), true);
         $title = $f->text('title', 120, true);
+        $vendor = OutfitParts::vendorId($db, $f);
         $f->fail();
-        return UnitOfWork::run($app, $request, function (Db $db) use ($app, $request, $viewer, $ws, $person, $title): Response {
+        return UnitOfWork::run($app, $request, function (Db $db) use ($app, $request, $viewer, $ws, $person, $title, $vendor): Response {
             $order = (int) $db->value('SELECT COALESCE(MAX(sort_order), 0) + 10 FROM outfits WHERE workspace_id = ? AND person = ? AND deleted_at IS NULL', [$ws, $person]);
-            $r = BaseRepository::create($app, $db, $request, OutfitDef::class, ['workspace_id' => (int) $ws, 'person' => $person, 'title' => $title, 'sort_order' => $order]);
+            $r = BaseRepository::create($app, $db, $request, OutfitDef::class, ['workspace_id' => (int) $ws, 'person' => $person, 'title' => $title, 'vendor_id' => $vendor, 'sort_order' => $order]);
             if ($r['created']) {
-                foreach (OutfitParts::DEFAULT_STEPS as $i => $name) {
+                foreach (OutfitParts::defaultSteps($person) as $i => $name) {
                     self::withoutKey($request, fn () => BaseRepository::create($app, $db, $request, OutfitStepDef::class, ['outfit_id' => (int) $r['row']['id'], 'name' => $name, 'sort_order' => ($i + 1) * 10]));
                 }
             }
@@ -120,7 +121,7 @@ final class OutfitsController
         $f = Fields::from($request->attr('json'));
         $values = NoteDef::input($app, $f, true, null);
         $db = $app->db();
-        $place = self::target($db, $f);
+        $place = self::target($db, $f, true, false);
         $f->fail();
         return UnitOfWork::run($app, $request, function (Db $db) use ($app, $request, $viewer, $values, $place): Response {
             BaseRepository::create($app, $db, $request, NoteDef::class, $values + [$place['col'] => $place['id'], 'workspace_id' => $place['workspace_id']]);
@@ -130,11 +131,12 @@ final class OutfitsController
 
     /**
      * Which outfit / accessory / step a note, attachment or task is for (exactly one given).
-     * @return array{col:string, type:string, id:int, outfit_id:int, workspace_id:int, section:string}|null
+     * @return array{col:string, type:string, id:int, outfit_id:?int, workspace_id:int, section:string}|null
      */
-    public static function target(Db $db, Fields $f, bool $required = true): ?array
+    public static function target(Db $db, Fields $f, bool $required = true, bool $menu = true): ?array
     {
-        $given = array_values(array_filter(OutfitParts::TARGETS, static fn ($col) => $f->has($col) && $f->value($col) !== null && $f->value($col) !== ''));
+        $cols = $menu ? OutfitParts::TARGETS : array_diff_key(OutfitParts::TARGETS, ['menu_item' => 1]);
+        $given = array_values(array_filter($cols, static fn ($col) => $f->has($col) && $f->value($col) !== null && $f->value($col) !== ''));
         if ($given === []) {
             if ($required) {
                 $f->error('outfit_id', Strings::get('field_required'));
@@ -148,6 +150,14 @@ final class OutfitsController
         $col = $given[0];
         $type = (string) array_search($col, OutfitParts::TARGETS, true);
         $v = $f->value($col);
+        if ($col === 'menu_item_id') { // 1.0.19: a dish on a workspace's menu (no outfit)
+            $r = is_string($v) ? $db->one('SELECT id, workspace_id FROM menu_items WHERE public_id = ? AND deleted_at IS NULL', [$v]) : null;
+            if ($r === null) {
+                $f->error($col, Strings::get('field_bad_link'));
+                return null;
+            }
+            return ['col' => $col, 'type' => $type, 'id' => (int) $r['id'], 'outfit_id' => null, 'workspace_id' => (int) $r['workspace_id'], 'section' => 'menu'];
+        }
         $sql = [
             'outfit_id' => 'SELECT o.id, o.id AS outfit_id, o.workspace_id, o.person FROM outfits o WHERE o.public_id = ? AND o.deleted_at IS NULL',
             'accessory_id' => 'SELECT a.id, o.id AS outfit_id, o.workspace_id, o.person FROM accessories a JOIN outfits o ON o.id = a.outfit_id WHERE a.public_id = ? AND a.deleted_at IS NULL AND o.deleted_at IS NULL',

@@ -329,7 +329,7 @@ final class VaultController
         $viewer = $request->attr('user');
         Permissions::requireAdmin($viewer);
         $f = Fields::from($request->attr('json'));
-        $f->only(['workspace_id', 'section', 'outfit_id', 'accessory_id', 'outfit_step_id']);
+        $f->only(['workspace_id', 'section', 'outfit_id', 'accessory_id', 'outfit_step_id', 'menu_item_id']);
         $db = $app->db();
         $target = \AM\Modules\Outfits\OutfitsController::target($db, $f, false);
         if ($target !== null) {
@@ -375,7 +375,7 @@ final class VaultController
             $values = ['attachment_id' => $attachmentId, 'workspace_id' => $workspaceId, 'section' => $section];
             if ($target !== null) {
                 $values[$target['col']] = $target['id'];
-                if ($target['col'] !== 'outfit_id') {
+                if ($target['col'] !== 'outfit_id' && $target['outfit_id'] !== null) {
                     $values['outfit_id'] = $target['outfit_id']; // a step's or accessory's file also belongs to its outfit (deleted with it)
                 }
             }

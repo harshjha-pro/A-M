@@ -9,21 +9,46 @@ use AM\Modules\Tasks\TaskView;
 use AM\Modules\Vault\AttachmentDef;
 use AM\Repo\Refs;
 
-/** Shared reads for outfits, steps and accessories: their notes, attachments and tasks (1.0.18). */
+/**
+ * Shared reads for outfits, steps and accessories: their notes, attachments and tasks (1.0.18).
+ * 1.0.19: a decor item (Stage, Entry gate, …) is an outfit with person 'decor' — same page, own default steps.
+ */
 final class OutfitParts
 {
     public const PERSONS = [
         'bride' => 'Bride', 'groom' => 'Groom', 'close_male' => 'Close family · Male', 'close_female' => 'Close family · Female',
-        'extended_male' => 'Extended family · Male', 'extended_female' => 'Extended family · Female',
+        'extended_male' => 'Extended family · Male', 'extended_female' => 'Extended family · Female', 'decor' => 'Decor',
     ];
     /** The workspace section an outfit lives in. */
     public const SECTION = [
         'bride' => 'bride_outfit', 'groom' => 'groom_outfit', 'close_male' => 'family_outfit', 'close_female' => 'family_outfit',
-        'extended_male' => 'family_outfit', 'extended_female' => 'family_outfit',
+        'extended_male' => 'family_outfit', 'extended_female' => 'family_outfit', 'decor' => 'decor',
     ];
     public const DEFAULT_STEPS = ['Selected', 'Stitched', 'Trial done', 'Final approved'];
-    /** target column on notes / attachment_links ⇄ tasks.target_type */
-    public const TARGETS = ['outfit' => 'outfit_id', 'accessory' => 'accessory_id', 'outfit_step' => 'outfit_step_id'];
+    public const DECOR_STEPS = ['Booked', 'Sample seen', 'Final approved', 'Set up'];
+    /** target column on attachment_links ⇄ tasks.target_type (notes: the first three only) */
+    public const TARGETS = ['outfit' => 'outfit_id', 'accessory' => 'accessory_id', 'outfit_step' => 'outfit_step_id', 'menu_item' => 'menu_item_id'];
+
+    /** @return list<string> */
+    public static function defaultSteps(string $person): array
+    {
+        return $person === 'decor' ? self::DECOR_STEPS : self::DEFAULT_STEPS;
+    }
+
+    /** vendor_id from a request: null to clear; a bad id is a field error. */
+    public static function vendorId(Db $db, \AM\Validation\Fields $f, string $key = 'vendor_id'): ?int
+    {
+        $v = $f->value($key);
+        if ($v === null || $v === '') {
+            return null;
+        }
+        $id = is_string($v) ? $db->value('SELECT id FROM vendors WHERE public_id = ? AND deleted_at IS NULL', [$v]) : null;
+        if ($id === null) {
+            $f->error($key, \AM\Kernel\Strings::get('field_bad_link'));
+            return null;
+        }
+        return (int) $id;
+    }
 
     /** @return list<array> */
     public static function notes(App $app, Db $db, Refs $refs, string $col, int $id): array

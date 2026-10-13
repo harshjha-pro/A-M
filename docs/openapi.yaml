@@ -822,11 +822,11 @@ paths:
     post:
       tags: [Workspaces]
       operationId: createOutfit
-      summary: Add an outfit (bride or groom; family in step C) with the default timeline Selected → Stitched → Trial done → Final approved
+      summary: Add an outfit (bride, groom, family) with the default timeline Selected → Stitched → Trial done → Final approved, or a decor item (person decor) with Booked → Sample seen → Final approved → Set up
       x-permission: Adm
       security: [ { sessionCookie: [], csrfHeader: [] } ]
       parameters: [ { $ref: '#/components/parameters/IdempotencyKey' } ]
-      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [workspace_id, person, title], properties: { workspace_id: { $ref: '#/components/schemas/Ulid' }, person: { type: string, enum: [bride, groom, close_male, close_female, extended_male, extended_female] }, title: { type: string, maxLength: 120 } } } } } }
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [workspace_id, person, title], properties: { workspace_id: { $ref: '#/components/schemas/Ulid' }, person: { type: string, enum: [bride, groom, close_male, close_female, extended_male, extended_female, decor] }, title: { type: string, maxLength: 120 }, vendor_id: { type: [string, 'null'] } } } } } }
       responses:
         '201': { $ref: '#/components/responses/OutfitOne' }
         '403': { $ref: '#/components/responses/Forbidden' }
@@ -845,11 +845,11 @@ paths:
     patch:
       tags: [Workspaces]
       operationId: updateOutfit
-      summary: Rename or reorder
+      summary: Rename, set the vendor, or reorder
       x-permission: Adm
       security: [ { sessionCookie: [], csrfHeader: [] } ]
       parameters: [ { $ref: '#/components/parameters/IfMatch' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
-      requestBody: { required: true, content: { application/json: { schema: { type: object, properties: { title: { type: string }, sort_order: { type: integer } } } } } }
+      requestBody: { required: true, content: { application/json: { schema: { type: object, properties: { title: { type: string }, vendor_id: { type: [string, 'null'] }, sort_order: { type: integer } } } } } }
       responses:
         '200': { $ref: '#/components/responses/OutfitOne' }
         '403': { $ref: '#/components/responses/Forbidden' }
@@ -1031,6 +1031,135 @@ paths:
       requestBody: { required: true, content: { application/json: { schema: { type: object, required: [body], properties: { body: { type: string, maxLength: 5000 }, outfit_id: { type: string }, accessory_id: { type: string }, outfit_step_id: { type: string } } } } } }
       responses:
         '201': { $ref: '#/components/responses/OutfitOne' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        default: { $ref: '#/components/responses/Error' }
+  /workspaces/{id}/menu:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    get:
+      tags: [Workspaces]
+      operationId: getMenu
+      summary: 'The menu of a workspace: caterer, counts, categories with their dishes (each with attachments and tasks)'
+      x-permission: Adm
+      responses:
+        '200': { $ref: '#/components/responses/MenuOne' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        default: { $ref: '#/components/responses/Error' }
+  /workspaces/{id}/menu-categories:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    post:
+      tags: [Workspaces]
+      operationId: addMenuCategory
+      summary: Add a menu category (at the end); replies with the whole menu
+      x-permission: Adm
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IdempotencyKey' } ]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [name], properties: { name: { type: string, maxLength: 80 } } } } } }
+      responses:
+        '201': { $ref: '#/components/responses/MenuOne' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        default: { $ref: '#/components/responses/Error' }
+  /workspaces/{id}/menu/copy:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    post:
+      tags: [Workspaces]
+      operationId: copyMenu
+      summary: 'Copy another workspace''s menu here: same-named categories get the missing dishes, the rest come as new categories; one Undo (meta.undo) takes it back'
+      x-permission: Adm
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IdempotencyKey' } ]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [from_workspace_id], properties: { from_workspace_id: { $ref: '#/components/schemas/Ulid' } } } } } }
+      responses:
+        '200': { $ref: '#/components/responses/MenuOne' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        default: { $ref: '#/components/responses/Error' }
+  /menu-categories/{id}/items:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    post:
+      tags: [Workspaces]
+      operationId: addMenuItem
+      summary: Add a dish (Normal or Jain, must-have, note); replies with the whole menu
+      x-permission: Adm
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IdempotencyKey' } ]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/MenuItemInput' } } } }
+      responses:
+        '201': { $ref: '#/components/responses/MenuOne' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        default: { $ref: '#/components/responses/Error' }
+  /menu-categories/{id}:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    patch:
+      tags: [Workspaces]
+      operationId: updateMenuCategory
+      summary: Edit (MenuCategory)
+      x-permission: Adm
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IfMatch' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, properties: { name: { type: string, maxLength: 80 }, sort_order: { type: integer } } } } } }
+      responses:
+        '200': { description: Updated, content: { application/json: { schema: { $ref: '#/components/schemas/Ok' } } } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        default: { $ref: '#/components/responses/Error' }
+    delete:
+      tags: [Workspaces]
+      operationId: deleteMenuCategory
+      summary: Soft delete (MenuCategory) with Undo — its dishes and their attachment links go with it; tasks stay
+      x-permission: Adm
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IfMatch' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      responses:
+        '200': { $ref: '#/components/responses/Deleted' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        default: { $ref: '#/components/responses/Error' }
+  /menu-categories/{id}/restore:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    post:
+      tags: [Trash]
+      operationId: restoreMenuCategory
+      summary: Restore (MenuCategory)
+      x-permission: Adm
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IfMatch' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      responses:
+        '200': { description: Restored, content: { application/json: { schema: { $ref: '#/components/schemas/Ok' } } } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        default: { $ref: '#/components/responses/Error' }
+  /menu-items/{id}:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    patch:
+      tags: [Workspaces]
+      operationId: updateMenuItem
+      summary: Edit (MenuItem)
+      x-permission: Adm
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IfMatch' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/MenuItemInput' } } } }
+      responses:
+        '200': { description: Updated, content: { application/json: { schema: { $ref: '#/components/schemas/Ok' } } } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        default: { $ref: '#/components/responses/Error' }
+    delete:
+      tags: [Workspaces]
+      operationId: deleteMenuItem
+      summary: Soft delete (MenuItem) with Undo
+      x-permission: Adm
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IfMatch' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      responses:
+        '200': { $ref: '#/components/responses/Deleted' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        default: { $ref: '#/components/responses/Error' }
+  /menu-items/{id}/restore:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    post:
+      tags: [Trash]
+      operationId: restoreMenuItem
+      summary: Restore (MenuItem)
+      x-permission: Adm
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IfMatch' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      responses:
+        '200': { description: Restored, content: { application/json: { schema: { $ref: '#/components/schemas/Ok' } } } }
         '403': { $ref: '#/components/responses/Forbidden' }
         default: { $ref: '#/components/responses/Error' }
   /home-photos:
@@ -3049,6 +3178,14 @@ components:
             allOf:
               - $ref: '#/components/schemas/Ok'
               - properties: { data: { $ref: '#/components/schemas/Payment' } }
+    MenuOne:
+      description: The menu of a workspace
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/Ok'
+              - properties: { data: { $ref: '#/components/schemas/Menu' } }
     OutfitOne:
       description: Outfit page
       content:
@@ -3891,6 +4028,7 @@ components:
         person_label: { type: string }
         section: { type: string }
         title: { type: string }
+        vendor: { type: [object, 'null'], properties: { id: { type: string }, name: { type: string } } }
         steps: { type: array, items: { type: object, properties: { id: { type: string }, name: { type: string }, done_on: { type: [string, 'null'] }, done: { type: boolean }, notes: { type: array }, attachments: { type: array }, tasks: { type: array } } } }
         moodboard: { type: array, items: { $ref: '#/components/schemas/Attachment' } }
         accessories: { type: array, items: { type: object, properties: { id: { type: string }, name: { type: string }, notes: { type: array }, attachments: { type: array }, tasks: { type: array } } } }
@@ -3898,6 +4036,44 @@ components:
         tasks: { type: array, items: { $ref: '#/components/schemas/Task' } }
         cover_url: { type: [string, 'null'] }
         counts: { type: object }
+    Menu:
+      type: object
+      properties:
+        workspace_id: { $ref: '#/components/schemas/Ulid' }
+        caterer: { type: [object, 'null'], properties: { id: { type: string }, name: { type: string } } }
+        counts: { type: object, properties: { items: { type: integer }, jain: { type: integer } } }
+        copied: { type: integer, description: 'POST /workspaces/{id}/menu/copy only: categories and dishes added' }
+        categories:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { $ref: '#/components/schemas/Ulid' }
+              version: { type: integer }
+              name: { type: string }
+              sort_order: { type: integer }
+              items: { type: array, items: { $ref: '#/components/schemas/MenuItem' } }
+    MenuItem:
+      type: object
+      properties:
+        id: { $ref: '#/components/schemas/Ulid' }
+        version: { type: integer }
+        name: { type: string }
+        diet: { type: string, enum: [normal, jain] }
+        is_must_have: { type: boolean }
+        note: { type: [string, 'null'] }
+        sort_order: { type: integer }
+        attachments: { type: array, items: { $ref: '#/components/schemas/Attachment' } }
+        tasks: { type: array, items: { $ref: '#/components/schemas/Task' } }
+    MenuItemInput:
+      type: object
+      additionalProperties: false
+      properties:
+        name: { type: string, maxLength: 120 }
+        diet: { type: string, enum: [normal, jain], default: normal }
+        is_must_have: { type: boolean }
+        note: { type: [string, 'null'], maxLength: 500 }
+        sort_order: { type: integer }
     Workspace:
       type: object
       properties:
@@ -3906,9 +4082,14 @@ components:
         name: { type: string }
         sort_order: { type: integer }
         notes: { type: [string, 'null'] }
+        theme_name: { type: [string, 'null'] }
+        theme_colours: { type: [string, 'null'] }
+        caterer: { type: [object, 'null'] }
         event: { type: [object, 'null'], properties: { id: { type: string }, name: { type: string }, start_at: { type: [string, 'null'] } } }
         counts: { type: object, properties: { tasks_open: { type: integer }, attachments: { type: integer } } }
         tasks: { type: array, items: { $ref: '#/components/schemas/Task' }, description: 'GET /workspaces/{id} only' }
+        outfits: { type: array, items: { $ref: '#/components/schemas/Outfit' }, description: 'GET /workspaces/{id} only: outfits and decor items' }
+        menu: { $ref: '#/components/schemas/Menu' }
     WorkspaceInput:
       type: object
       additionalProperties: false
@@ -3917,6 +4098,9 @@ components:
         event_id: { oneOf: [ { $ref: '#/components/schemas/Ulid' }, { type: 'null' } ] }
         sort_order: { type: integer }
         notes: { type: [string, 'null'], maxLength: 5000 }
+        theme_name: { type: [string, 'null'], maxLength: 80 }
+        theme_colours: { type: [string, 'null'], maxLength: 120 }
+        caterer_id: { type: [string, 'null'] }
     Upload:
       type: object
       properties:

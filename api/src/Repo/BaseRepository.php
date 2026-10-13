@@ -40,11 +40,12 @@ final class BaseRepository
 
     /**
      * Insert a new record. A retry with the same key (even after 48 h) returns the
-     * existing row: ['row' => …, 'created' => false].
+     * existing row: ['row' => …, 'created' => false]. With $batchId the add rides in that
+     * batch, so one Undo takes back everything a call made (1.0.19: copy a menu).
      * @param class-string<EntityDef> $def
      * @return array{row: array, created: bool}
      */
-    public static function create(App $app, Db $db, Request $request, string $def, array $values): array
+    public static function create(App $app, Db $db, Request $request, string $def, array $values, ?int $batchId = null): array
     {
         $table = self::table($def);
         $key = (string) $request->attr('idem_key');
@@ -74,7 +75,7 @@ final class BaseRepository
         $row = $db->one("SELECT * FROM `$table` WHERE id = ?", [(int) $db->pdo->lastInsertId()]);
         AuditLog::record($app, $db, $request, [
             'action' => 'create', 'entity_type' => $def::TYPE, 'entity_id' => (int) $row['id'],
-            'entity_version' => (int) $row['version'], 'after' => $row,
+            'entity_version' => (int) $row['version'], 'after' => $row, 'batch_id' => $batchId,
         ]);
         return ['row' => $row, 'created' => true];
     }

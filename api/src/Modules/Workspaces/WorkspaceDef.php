@@ -25,8 +25,10 @@ final class WorkspaceDef extends EntityDef
     public const RESOURCE = 'workspaces';
     public const LABEL = 'workspace';
     public const LABEL_PLURAL = 'workspaces';
-    public const FIELD_LABELS = ['name' => 'Name', 'event' => 'Calendar event', 'sort_order' => 'Order', 'notes' => 'Notes'];
-    public const CHILDREN = [AttachmentLinkDef::class => 'workspace_id', \AM\Modules\Outfits\OutfitDef::class => 'workspace_id'];
+    public const FIELD_LABELS = ['name' => 'Name', 'event' => 'Calendar event', 'sort_order' => 'Order', 'notes' => 'Notes',
+        'theme_name' => 'Theme', 'theme_colours' => 'Colours', 'caterer_id' => 'Caterer'];
+    public const CHILDREN = [AttachmentLinkDef::class => 'workspace_id', \AM\Modules\Outfits\OutfitDef::class => 'workspace_id',
+        \AM\Modules\Menu\MenuCategoryDef::class => 'workspace_id'];
     /** Sections of a workspace page (steps B–D fill them in). */
     public const SECTIONS = [
         'general' => 'Files', 'bride_outfit' => 'Bride outfit', 'groom_outfit' => 'Groom outfit', 'family_outfit' => 'Family outfits',
@@ -57,6 +59,9 @@ final class WorkspaceDef extends EntityDef
             'name' => $row['name'],
             'sort_order' => (int) $row['sort_order'],
             'notes' => $row['notes'],
+            'theme_name' => $row['theme_name'] ?? null,
+            'theme_colours' => $row['theme_colours'] ?? null,
+            'caterer' => $refs->row('vendors', ($row['caterer_id'] ?? null) !== null ? (int) $row['caterer_id'] : null),
             'event' => $event,
             'counts' => [
                 'tasks_open' => (int) $db->value("SELECT COUNT(*) FROM tasks WHERE workspace_id = ? AND deleted_at IS NULL AND status IN ('todo','doing','waiting')", [$id]),
@@ -72,7 +77,7 @@ final class WorkspaceDef extends EntityDef
 
     public static function input(App $app, Fields $f, bool $create, ?array $current): array
     {
-        $f->only(['name', 'event_id', 'sort_order', 'notes']);
+        $f->only(['name', 'event_id', 'sort_order', 'notes', 'theme_name', 'theme_colours', 'caterer_id']);
         $out = [];
         if ($create || $f->has('name')) {
             $out['name'] = $f->text('name', 80, true);
@@ -113,6 +118,16 @@ final class WorkspaceDef extends EntityDef
         }
         if ($create || $f->has('notes')) {
             $out['notes'] = $f->text('notes', 5000);
+        }
+        // 1.0.19: Theme & decoration, and the caterer for the Menu.
+        if ($f->has('theme_name')) {
+            $out['theme_name'] = $f->text('theme_name', 80);
+        }
+        if ($f->has('theme_colours')) {
+            $out['theme_colours'] = $f->text('theme_colours', 120);
+        }
+        if ($f->has('caterer_id')) {
+            $out['caterer_id'] = \AM\Modules\Outfits\OutfitParts::vendorId($app->db(), $f, 'caterer_id');
         }
         return $out;
     }

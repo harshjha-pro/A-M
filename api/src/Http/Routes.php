@@ -24,6 +24,9 @@ use AM\Modules\Guests\ImportsController;
 use AM\Modules\Guests\InvitationsController;
 use AM\Modules\Health\HealthController;
 use AM\Modules\Members\MembersController;
+use AM\Modules\Menu\MenuCategoryDef;
+use AM\Modules\Menu\MenuController;
+use AM\Modules\Menu\MenuItemDef;
 use AM\Modules\Money\BudgetCategoryDef;
 use AM\Modules\Money\MoneyController;
 use AM\Modules\Money\PaymentDef;
@@ -245,6 +248,17 @@ final class Routes
         $r->add('POST', '/outfits/{id}/steps', OutfitsController::addStep(...));
         $r->add('POST', '/outfits/{id}/accessories', OutfitsController::addAccessory(...));
         $r->add('POST', '/notes', OutfitsController::addNote(...));
+
+        // Menu (1.0.19, Workspace step C): Ayush and Mahi only.
+        $r->add('GET', '/workspaces/{id}/menu', MenuController::get(...));
+        $r->add('POST', '/workspaces/{id}/menu-categories', MenuController::addCategory(...));
+        $r->add('POST', '/workspaces/{id}/menu/copy', MenuController::copy(...));
+        $r->add('POST', '/menu-categories/{id}/items', MenuController::addItem(...));
+        foreach ([['menu-categories', MenuCategoryDef::class], ['menu-items', MenuItemDef::class]] as [$res, $def]) {
+            $r->add('PATCH', "/$res/{id}", static fn (Request $q, App $a, array $p) => BaseController::update($q, $a, $p, $def, MenuController::canWrite()));
+            $r->add('DELETE', "/$res/{id}", static fn (Request $q, App $a, array $p) => BaseController::delete($q, $a, $p, $def, MenuController::canWrite()));
+            $r->add('POST', "/$res/{id}/restore", static fn (Request $q, App $a, array $p) => BaseController::restore($q, $a, $p, $def));
+        }
 
         // Home photos (1.0.16): stored in the database, admins add and remove.
         $r->add('GET', '/home-photos', HomePhotosController::list(...));

@@ -41,9 +41,11 @@ final class WorkspacesController
         );
         $view['tasks'] = TaskView::summaries($app, $db, $refs, $tasks);
         $view['sections'] = WorkspaceDef::SECTIONS;
-        // 1.0.18: outfit cards for the Bride / Groom outfit sections (family in step C).
+        // 1.0.18: outfit cards for the Bride / Groom outfit sections; 1.0.19: family outfits and decor items too.
         $view['outfits'] = array_map(static fn ($o) => \AM\Modules\Outfits\OutfitDef::present($app, $db, $refs, $o, $viewer),
-            $db->all("SELECT * FROM outfits WHERE workspace_id = ? AND deleted_at IS NULL ORDER BY FIELD(person, 'bride', 'groom', 'close_female', 'close_male', 'extended_female', 'extended_male'), sort_order, id", [$row['id']]));
+            $db->all("SELECT * FROM outfits WHERE workspace_id = ? AND deleted_at IS NULL ORDER BY FIELD(person, 'bride', 'groom', 'close_female', 'close_male', 'extended_female', 'extended_male', 'decor'), sort_order, id", [$row['id']]));
+        // 1.0.19: the menu (categories with their dishes, caterer).
+        $view['menu'] = \AM\Modules\Menu\MenuController::menu($app, $db, $row, $viewer);
         return Response::ok($view)->withHeader('ETag', '"' . $view['version'] . '"');
     }
 }

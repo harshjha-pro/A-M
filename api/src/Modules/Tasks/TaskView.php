@@ -117,7 +117,7 @@ final class TaskView
         return $ref;
     }
 
-    /** The outfit, accessory or timeline step a task came from (1.0.18): {type, id, name, outfit_id}. */
+    /** The outfit, accessory, timeline step (1.0.18) or dish (1.0.19) a task came from: {type, id, name, outfit_id, workspace_id?}. */
     private static function target(Db $db, array $r): ?array
     {
         $type = $r['target_type'] ?? null;
@@ -128,8 +128,9 @@ final class TaskView
             'outfit' => 'SELECT o.public_id AS id, o.title AS name, o.public_id AS outfit FROM outfits o WHERE o.id = ?',
             'accessory' => 'SELECT a.public_id AS id, a.name, o.public_id AS outfit FROM accessories a JOIN outfits o ON o.id = a.outfit_id WHERE a.id = ?',
             'outfit_step' => 'SELECT s.public_id AS id, s.name, o.public_id AS outfit FROM outfit_steps s JOIN outfits o ON o.id = s.outfit_id WHERE s.id = ?',
+            'menu_item' => 'SELECT m.public_id AS id, m.name, NULL AS outfit, w.public_id AS workspace FROM menu_items m JOIN workspaces w ON w.id = m.workspace_id WHERE m.id = ?',
         ][$type] ?? null;
         $t = $sql === null ? null : $db->one($sql, [(int) $r['target_id']]);
-        return $t === null ? null : ['type' => $type, 'id' => $t['id'], 'name' => $t['name'], 'outfit_id' => $t['outfit']];
+        return $t === null ? null : ['type' => $type, 'id' => $t['id'], 'name' => $t['name'], 'outfit_id' => $t['outfit']] + (isset($t['workspace']) ? ['workspace_id' => $t['workspace']] : []);
     }
 }

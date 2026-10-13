@@ -66,6 +66,9 @@ final class AttachmentDef extends EntityDef
             if ($l['outfit_id'] !== null && $outfit === null) {
                 continue; // its outfit is in Deleted items
             }
+            if (($l['menu_item_id'] ?? null) !== null && $db->value('SELECT 1 FROM menu_items WHERE id = ? AND deleted_at IS NULL', [$l['menu_item_id']]) === null) {
+                continue; // its dish is in Deleted items
+            }
             $out[] = ['kind' => 'link', 'link_id' => $l['public_id'], 'link_version' => (int) $l['version'], 'workspace_id' => $w['public_id'], 'section' => $l['section'],
                 'path' => AttachmentLinkDef::path($db, $l), 'to' => $outfit !== null ? '/outfits/' . $outfit : '/workspaces/' . $w['public_id'] . '#' . $l['section']];
         }
@@ -127,7 +130,7 @@ final class AttachmentDef extends EntityDef
     public static function input(App $app, Fields $f, bool $create, ?array $current): array
     {
         $db = $app->db();
-        $f->only($create ? ['kind', 'upload_id', 'workspace_id', 'section', 'outfit_id', 'accessory_id', 'outfit_step_id', 'code', 'title', 'note', 'url', 'body', 'is_favourite', 'vendor_id', 'task_id']
+        $f->only($create ? ['kind', 'upload_id', 'workspace_id', 'section', 'outfit_id', 'accessory_id', 'outfit_step_id', 'menu_item_id', 'code', 'title', 'note', 'url', 'body', 'is_favourite', 'vendor_id', 'task_id']
             : ['code', 'title', 'note', 'url', 'body', 'is_favourite', 'vendor_id', 'task_id']);
         $out = [];
         if ($f->has('code')) {

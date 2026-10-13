@@ -131,6 +131,7 @@ final class Strings
         'photo_too_big'            => 'This photo is too big ({size}). Max 3 MB.',
         'photo_only_images'        => 'Only photos (JPEG, PNG, WebP) can be used here.',
         'workspace_name_taken'     => 'A workspace called {name} already exists.',
+        'menu_copy_same'           => 'Pick another workspace to copy from.',
         'workspace_event_taken'    => 'This event already has a workspace: {name}.',
         'field_bad_url'            => 'Paste a full link starting with https://',
         'attachment_code_format'   => 'Use 3 to 30 letters, numbers, - or _ (no spaces).',
