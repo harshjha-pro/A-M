@@ -68,7 +68,8 @@ export default function AttachmentDetail() {
     if (!Object.keys(changed).length) { setForm(null); return; }
     setSaving(true);
     try {
-      await withRelogin(() => api('PATCH', `/attachments/${id}`, { body: changed, ifMatch: a.version, idemKey: newIdemKey() }));
+      const res = await withRelogin(() => api('PATCH', `/attachments/${id}`, { body: changed, ifMatch: a.version, idemKey: newIdemKey() }));
+      qc.setQueryData(['attachment', id], res.data); // show the saved version at once
       setForm(null); setErrors({}); showToast(t('vault.saved')); refresh();
     } catch (e) {
       if (e instanceof ValidationError) setErrors(e.fields); else showToast(e.message || t('errors.server'));

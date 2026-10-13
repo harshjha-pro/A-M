@@ -51,7 +51,7 @@ test('Ayush: Workspace → Mehndi → task in the strip, a link and a video in F
   await expect(page.getByRole('link', { name: new RegExp(`trial-${tag}`) })).toBeVisible();
   await link.click();
   const code = `HAATH-${info.project.name.slice(0, 5).toUpperCase()}-${String(Date.now()).slice(-6)}`;
-  await page.getByLabel('ID').fill(code);
+  await page.getByLabel('ID', { exact: true }).fill(code);
   await expect(page.getByText('This ID is free.')).toBeVisible();
   await page.getByRole('button', { name: 'Save attachment' }).click();
   await expect(page.getByText('Saved.')).toBeVisible();

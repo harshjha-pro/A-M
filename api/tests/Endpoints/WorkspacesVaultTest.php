@@ -256,4 +256,16 @@ final class WorkspacesVaultTest extends ApiTestCase
             $p->postJson('/workspaces', ['name' => 'Mine'])->assertStatus(403);
         }
     }
+
+    /** Bug found by the phone tests: every 2 MB piece counted against the 120 writes / 5 min, so a long video failed. */
+    public function test_upload_pieces_have_their_own_limit_and_never_use_up_the_writes(): void
+    {
+        $c = $this->loginAs('mahi');
+        $id = $c->postJson('/attachment-uploads', ['name' => 'long.mp4', 'size_bytes' => 10, 'sha256' => hash('sha256', '0123456789')])->json('data.upload_id');
+        for ($i = 0; $i < 130; $i++) {
+            $c->upload("/attachment-uploads/$id/chunks", '0123456789', 'blob', ['seq' => '0', 'sha256' => null], ['field' => 'chunk'])->assertStatus(200);
+        }
+        $c->postJson("/attachment-uploads/$id/finish", new \stdClass())->assertStatus(200);
+        $this->add($c, ['kind' => 'video', 'upload_id' => $id, 'title' => 'Long video'])->assertStatus(201);
+    }
 }

@@ -17,7 +17,7 @@ test('Home shows the person, the version and a live server connection', async ({
 
 test('bottom nav goes everywhere, with ≥ 48 px targets and 17 px text', async ({ page }) => {
   const nav = page.getByRole('navigation', { name: 'Main' });
-  for (const name of ['Calendar', 'Tasks', 'Guests', 'More', 'Home']) {
+  for (const name of ['Calendar', 'Tasks', 'Workspace', 'More', 'Home']) { // Ayush: Workspace in place of Guests (1.0.17)
     const link = nav.getByRole('link', { name });
     const box = await link.boundingBox();
     expect(box.height).toBeGreaterThanOrEqual(48);
