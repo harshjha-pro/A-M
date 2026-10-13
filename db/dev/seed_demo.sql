@@ -536,13 +536,13 @@ FROM documents d WHERE NOT EXISTS (SELECT 1 FROM attachments a WHERE a.document_
 INSERT INTO attachments (public_id, code, kind, title, url, note, is_favourite, created_at, created_by, updated_at, updated_by) VALUES
   ('01JC0VB0000000000000000001', 'MEHNDI-DECOR-01', 'link', 'Mehndi decor idea (Pinterest)', 'https://www.pinterest.com/search/pins/?q=mehndi%20decor', 'Yellow and green, low seating', 1, '2026-10-06 10:00:00', 2, '2026-10-06 10:00:00', 2);
 INSERT INTO attachment_links (public_id, attachment_id, workspace_id, section, created_at, created_by, updated_at, updated_by)
-SELECT '01JC0VL0000000000000000001', a.id, w.id, 'general', '2026-10-06 10:00:00', 2, '2026-10-06 10:00:00', 2
+SELECT '01JC0VN0000000000000000001', a.id, w.id, 'general', '2026-10-06 10:00:00', 2, '2026-10-06 10:00:00', 2
 FROM attachments a JOIN workspaces w ON w.public_id = '01JC0WS0000000000000000002' WHERE a.code = 'MEHNDI-DECOR-01';
 
 -- Outfits (migration 006, version 1.0.18): Mahi's Mehndi lehenga with the default timeline, an accessory and a note.
 INSERT INTO outfits (public_id, workspace_id, person, title, sort_order, created_at, created_by, updated_at, updated_by)
-SELECT '01JD0OF0000000000000000001', w.id, 'bride', 'Mehndi lehenga', 10, '2026-10-06 10:00:00', 2, '2026-10-06 10:00:00', 2 FROM workspaces w WHERE w.public_id = '01JC0WS0000000000000000002';
-SET @demo_outfit := (SELECT id FROM outfits WHERE public_id = '01JD0OF0000000000000000001');
+SELECT '01JD0QF0000000000000000001', w.id, 'bride', 'Mehndi lehenga', 10, '2026-10-06 10:00:00', 2, '2026-10-06 10:00:00', 2 FROM workspaces w WHERE w.public_id = '01JC0WS0000000000000000002';
+SET @demo_outfit := (SELECT id FROM outfits WHERE public_id = '01JD0QF0000000000000000001');
 INSERT INTO outfit_steps (public_id, outfit_id, name, sort_order, done_on, created_by, updated_by) VALUES
   ('01JD0ST0000000000000000001', @demo_outfit, 'Selected', 10, '2026-10-05', 2, 2),
   ('01JD0ST0000000000000000002', @demo_outfit, 'Stitched', 20, NULL, 2, 2),
@@ -551,6 +551,6 @@ INSERT INTO outfit_steps (public_id, outfit_id, name, sort_order, done_on, creat
 INSERT INTO accessories (public_id, workspace_id, section, outfit_id, name, sort_order, created_by, updated_by)
 SELECT '01JD0AC0000000000000000001', workspace_id, 'bride_outfit', id, 'Maang tikka', 10, 2, 2 FROM outfits WHERE id = @demo_outfit;
 INSERT INTO notes (public_id, workspace_id, outfit_id, body, created_by, updated_by)
-SELECT '01JD0NO0000000000000000001', workspace_id, id, 'Pastel green with a light dupatta. Trial at Rekha Tailors.', 2, 2 FROM outfits WHERE id = @demo_outfit;
+SELECT '01JD0N00000000000000000001', workspace_id, id, 'Pastel green with a light dupatta. Trial at Rekha Tailors.', 2, 2 FROM outfits WHERE id = @demo_outfit;
 
 -- End of DEV ONLY demo data.

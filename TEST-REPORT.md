@@ -1,18 +1,18 @@
-# Test report — Workspace step A + Attachment Vault — version 1.0.17
+# Test report — Workspace step B: outfits — version 1.0.18
 
-Date: 2026-10-13T12:10Z · App version: 1.0.17 · DB: **MySQL 8.0.46-0ubuntu0.24.04.4** (sandbox, same major as Hostinger) · PHP 8.3.6 · Node v22.22.0 · Web server for .htaccess tests: Apache/2.4.58 (Ubuntu)
+Date: 2026-10-13T15:18Z · App version: 1.0.18 · DB: **MySQL 8.0.46-0ubuntu0.24.04.4** (sandbox, same major as Hostinger) · PHP 8.3.6 · Node v22.22.0 · Web server for .htaccess tests: Apache/2.4.58 (Ubuntu)
 
-Overall: **RED — see failures**
+Overall: **GREEN — all suites passed**
 
 | Suite | Result |
 |---|---|
-| PHPUnit (unit, db, endpoints, security, static, coverage) | OK (857 tests, 9205 assertions) |
-| Endpoint coverage | 136/136 operations built and tested (the rest arrive session by session) |
-| Vitest (formats, API client, shell, routes, axe) | Tests 272 passed (272) |
-| Build (staging + live) | JS 122.56 kB gz · CSS 7.05 kB gz |
+| PHPUnit (unit, db, endpoints, security, static, coverage) | OK (930 tests, 9731 assertions) |
+| Endpoint coverage | 153/153 operations built and tested (the rest arrive session by session) |
+| Vitest (formats, API client, shell, routes, axe) | Tests 276 passed (276) |
+| Build (staging + live) | JS 122.99 kB gz · CSS 7.15 kB gz |
 | HTTP rules (real requests) | Apache 2.4.58 + real .htaccess: PASS · php -S + tools/router.php: PASS — OK (13 tests, 267 assertions) OK (13 tests, 263 assertions)  |
-| Playwright smoke (android, small-iphone, small-android; Chromium, not Safari) | 146 passed (9.9m) |
-| Lighthouse mobile, simulated slow 4G (budget: Perf ≥ 90, A11y ≥ 95, BP ≥ 95) | login: Performance 97 · Accessibility 100 · Best Practices 96 · LCP 2.11 s · TBT 0 ms · CLS 0.000 home: Performance 92 · Accessibility 100 · Best Practices 100 · LCP 2.76 s · TBT 158 ms · CLS 0.064 guests: Performance 89 · Accessibility 100 · Best Practices 100 · LCP 3.09 s · TBT 203 ms · CLS 0.000  |
+| Playwright smoke (android, small-iphone, small-android; Chromium, not Safari) | 149 passed (10.4m) |
+| Lighthouse mobile, simulated slow 4G (budget: Perf ≥ 90, A11y ≥ 95, BP ≥ 95) | login: Performance 95 · Accessibility 100 · Best Practices 96 · LCP 2.63 s · TBT 26 ms · CLS 0.000 home: Performance 91 · Accessibility 100 · Best Practices 100 · LCP 2.93 s · TBT 193 ms · CLS 0.026 guests: Performance 90 · Accessibility 100 · Best Practices 100 · LCP 3.10 s · TBT 171 ms · CLS 0.000  |
 
 Database checks: 001 → 002 → 003 apply with finished_at set; second run of each stops at its guard with data unchanged (DS-28); seed_demo.sql loads (61 families, Devanagari intact) and its second run stops at user id 1.
 
@@ -171,9 +171,3 @@ Headers (Tests\Security\Headers)
 Health (Tests\Endpoints\Health)
  ✔ Anonymous gets only status ok
 ```
-
-## Note on Lighthouse (Guests page)
-The full run measured Guests at Performance 89 (budget 90). Across 5 runs on this machine today Guests scored 87, 89, 91, 93, 93 (TBT 89–264 ms).
-For comparison, version 1.0.16 measured on the same machine today scored 91 and 92 (TBT 132–219 ms).
-The Guests page code is unchanged in 1.0.17; the main bundle grew by 1.1 KB gz (new strings).
-So this is within run-to-run noise. It is reported, not hidden: the Overall line above stays as measured.

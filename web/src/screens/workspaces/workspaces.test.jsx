@@ -20,7 +20,7 @@ const task = (id, title, over = {}) => ({ id, version: 1, title, status: 'todo',
   postpone_count: 0, assignees: [], tags: [], item_count: 0, items_done: 0, event: null, workspace: { id: MEHNDI, name: 'Mehndi' }, workspace_section: null, ...over });
 const att = (over = {}) => ({ id: A1, version: 1, code: 'MEHNDI-DECOR-01', kind: 'link', title: 'Mehndi decor idea', note: null, url: 'https://example.com/decor', body: null,
   is_favourite: true, vendor: null, task: null, file: null, file_url: null, document: null,
-  used_in: [{ kind: 'link', link_id: '01JC0VL0000000000000000001', link_version: 1, workspace_id: MEHNDI, section: 'general', path: 'Mehndi › Files', to: `/workspaces/${MEHNDI}#general` }], ...over });
+  used_in: [{ kind: 'link', link_id: '01JC0VN0000000000000000001', link_version: 1, workspace_id: MEHNDI, section: 'general', path: 'Mehndi › Files', to: `/workspaces/${MEHNDI}#general` }], ...over });
 const page = (data, meta = {}) => new Response(JSON.stringify({ ok: true, data, meta: { has_more: false, next_cursor: null, storage: { database_bytes: 52428800, vault_bytes: 1000, limit_bytes: 3221225472, warn: false }, ...meta } }), { status: 200, headers: { 'Content-Type': 'application/json' } });
 
 function renderAt(path) {
@@ -159,7 +159,7 @@ describe('Attachment Vault', () => {
     await user.click(screen.getByRole('button', { name: 'Remove from Mehndi › Files' }));
     expect(await screen.findByText('Deleted Link to Files')).toBeInTheDocument();
     const del = calls.mock.calls.find(([, i]) => i?.method === 'DELETE');
-    expect(del[0]).toBe('/api/v1/attachment-links/01JC0VL0000000000000000001');
+    expect(del[0]).toBe('/api/v1/attachment-links/01JC0VN0000000000000000001');
     expect(del[1].headers['If-Match']).toBe('"1"');
   });
 });

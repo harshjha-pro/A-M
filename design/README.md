@@ -1,11 +1,11 @@
-# A&M Wedding — design (as built, version 1.0.17)
+# A&M Wedding — design (as built, version 1.0.18)
 
 Taken from the real app (demo data, phone size 412 × 915, Pixel-style), so Figma matches what people see.
 
 | What | Where |
 |---|---|
 | Style sheet: colours (light + dark), type, buttons, chips, cards, banners, shapes | `style-sheet.png` (picture) · `style-sheet.html` (open in a browser) |
-| Every screen, light | `screens/light/01-login.png` … `43-offline-not-saved.png` |
+| Every screen, light | `screens/light/01-login.png` … `44-offline-not-saved.png` (38 = Outfit page, new in 1.0.18) |
 | Every screen, dark | `screens/dark/…` (same names) |
 | Fonts used | `fonts/` (Atkinson Hyperlegible 400/700; Hindi uses Noto Sans Devanagari) |
 

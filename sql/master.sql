@@ -1544,5 +1544,9 @@ ALTER TABLE tasks
   ADD COLUMN target_id   BIGINT UNSIGNED NULL AFTER target_type,
   ADD KEY ix_tasks_target (target_type, target_id, deleted_at);
 
+-- Demo data fix (1.0.17 seed): an id with a letter outside the ID alphabet could not be unlinked.
+-- Changes nothing on a database without the demo data.
+UPDATE attachment_links SET public_id = '01JC0VN0000000000000000001' WHERE public_id = '01JC0VL0000000000000000001';
+
 UPDATE schema_migrations SET finished_at = CURRENT_TIMESTAMP WHERE version = 6;
 

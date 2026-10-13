@@ -35,7 +35,7 @@ for (const theme of ['light', 'dark']) {
       ['documents', '/documents'], ['document', `/documents/${doc?.id}`],
       ['settings', '/settings'], ['wedding-details', '/settings/wedding'], ['members', '/settings/members'], ['member-form', '/settings/members/new'],
       ['safety', '/settings/safety'], ['activity', '/settings/activity'], ['deleted-items', '/settings/deleted'], ['this-phone', '/settings/phone'],
-      ['changes-on-this-phone', '/settings/waiting'], ['export', '/settings/export'], ['home-photos', '/settings/home-photos'], ['workspaces', '/workspaces'], ['workspace', '/workspaces/01JC0WS0000000000000000002'], ['vault', '/vault'], ['outfit', '/outfits/01JD0OF0000000000000000001'], ['imports', '/settings/imports'], ['my-account', '/settings/account'],
+      ['changes-on-this-phone', '/settings/waiting'], ['export', '/settings/export'], ['home-photos', '/settings/home-photos'], ['workspaces', '/workspaces'], ['workspace', '/workspaces/01JC0WS0000000000000000002'], ['vault', '/vault'], ['outfit', '/outfits/01JD0QF0000000000000000001'], ['imports', '/settings/imports'], ['my-account', '/settings/account'],
       ['install-guide', '/install'], ['not-found', '/nope'],
     ];
     for (const [name, url] of screens) {
