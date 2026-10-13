@@ -35,3 +35,7 @@ Version 1.0.18 (Workspace step B: bride and groom outfits, "Session 14c"):
 Version 1.0.19 (Workspace step C: family outfits, decoration, menu, "Session 14d"):
 
 - `deploy-session14d.zip` — Hostinger upload packages **plus `migrations/007_decor_menu.sql`** (run it first; run 004, 005 and 006 first if you never did)
+
+Version 1.0.20 (Workspace step D: contacts, guest details, event timeline, "Session 14e"):
+
+- `deploy-session14e.zip` — Hostinger upload packages **plus `migrations/008_contacts_timeline.sql`** (run it first; run 004–007 first if you never did)
