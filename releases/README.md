@@ -27,3 +27,7 @@ Version 1.0.16 (Home & Calendar redesign, "Session 14a"):
 Version 1.0.17 (Workspace step A + Attachment Vault, "Session 14b"):
 
 - `deploy-session14b.zip` — Hostinger upload packages **plus `migrations/005_workspaces_vault.sql`** (run it first; run 004 first if you never did)
+
+Version 1.0.18 (Workspace step B: bride and groom outfits, "Session 14c"):
+
+- `deploy-session14c.zip` — Hostinger upload packages **plus `migrations/006_outfits.sql`** (run it first; run 004 and 005 first if you never did)
