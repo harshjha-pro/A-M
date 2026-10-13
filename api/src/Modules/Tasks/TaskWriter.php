@@ -24,7 +24,7 @@ use DateTimeImmutable;
  */
 final class TaskWriter
 {
-    public const FIELDS = ['title', 'notes', 'status', 'priority', 'due_date', 'due_time', 'event_id', 'vendor_id', 'household_id', 'workspace_id', 'workspace_section',
+    public const FIELDS = ['title', 'notes', 'status', 'priority', 'due_date', 'due_time', 'event_id', 'vendor_id', 'household_id', 'workspace_id', 'workspace_section', 'outfit_id', 'accessory_id', 'outfit_step_id',
         'assignee_ids', 'tag_ids', 'new_tags', 'items', 'allow_duplicate'];
     public const MAX_LINKS = 10;
     public const MAX_ITEMS = 100;
@@ -79,6 +79,13 @@ final class TaskWriter
         // 1.0.17: the section of the workspace the task came from (Bride outfit, Menu, …).
         if ($create || $f->has('workspace_section')) {
             $c['workspace_section'] = $f->enum('workspace_section', array_keys(\AM\Modules\Workspaces\WorkspaceDef::SECTIONS));
+        }
+        // 1.0.18: the outfit, accessory or timeline step a task came from (sets its workspace and section too).
+        if ($create && ($t = \AM\Modules\Outfits\OutfitsController::target($db, $f, false)) !== null) {
+            $c['target_type'] = $t['type'];
+            $c['target_id'] = $t['id'];
+            $c['workspace_id'] = $t['workspace_id'];
+            $c['workspace_section'] = $t['section'];
         }
         $finalWs = array_key_exists('workspace_id', $c) ? $c['workspace_id'] : ($current['workspace_id'] ?? null);
         if ($finalWs === null && ($c['workspace_section'] ?? null) !== null) {

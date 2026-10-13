@@ -818,6 +818,221 @@ paths:
       responses:
         '200': { description: Restored, content: { application/json: { schema: { $ref: '#/components/schemas/Ok' } } } }
         default: { $ref: '#/components/responses/Error' }
+  /outfits:
+    post:
+      tags: [Workspaces]
+      operationId: createOutfit
+      summary: Add an outfit (bride or groom; family in step C) with the default timeline Selected → Stitched → Trial done → Final approved
+      x-permission: Adm
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IdempotencyKey' } ]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [workspace_id, person, title], properties: { workspace_id: { $ref: '#/components/schemas/Ulid' }, person: { type: string, enum: [bride, groom, close_male, close_female, extended_male, extended_female] }, title: { type: string, maxLength: 120 } } } } } }
+      responses:
+        '201': { $ref: '#/components/responses/OutfitOne' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        default: { $ref: '#/components/responses/Error' }
+  /outfits/{id}:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    get:
+      tags: [Workspaces]
+      operationId: getOutfit
+      summary: 'The outfit page: timeline (each step with notes, attachments, tasks), moodboard, accessories, notes, tasks'
+      x-permission: Adm
+      responses:
+        '200': { $ref: '#/components/responses/OutfitOne' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        default: { $ref: '#/components/responses/Error' }
+    patch:
+      tags: [Workspaces]
+      operationId: updateOutfit
+      summary: Rename or reorder
+      x-permission: Adm
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IfMatch' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, properties: { title: { type: string }, sort_order: { type: integer } } } } } }
+      responses:
+        '200': { $ref: '#/components/responses/OutfitOne' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        default: { $ref: '#/components/responses/Error' }
+    delete:
+      tags: [Workspaces]
+      operationId: deleteOutfit
+      summary: Soft delete with its steps, accessories, notes and attachment links (one Undo); tasks stay
+      x-permission: Adm
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IfMatch' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      responses:
+        '200': { $ref: '#/components/responses/Deleted' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        default: { $ref: '#/components/responses/Error' }
+  /outfits/{id}/restore:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    post:
+      tags: [Trash]
+      operationId: restoreOutfit
+      summary: Restore
+      x-permission: Adm
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IfMatch' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      responses:
+        '200': { $ref: '#/components/responses/OutfitOne' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        default: { $ref: '#/components/responses/Error' }
+  /outfits/{id}/steps:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    post:
+      tags: [Workspaces]
+      operationId: addOutfitStep
+      summary: Add a timeline step (at the end)
+      x-permission: Adm
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IdempotencyKey' } ]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [name], properties: { name: { type: string, maxLength: 60 } } } } } }
+      responses:
+        '201': { $ref: '#/components/responses/OutfitOne' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        default: { $ref: '#/components/responses/Error' }
+  /outfits/{id}/accessories:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    post:
+      tags: [Workspaces]
+      operationId: addAccessory
+      summary: Add an accessory
+      x-permission: Adm
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IdempotencyKey' } ]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [name], properties: { name: { type: string, maxLength: 120 } } } } } }
+      responses:
+        '201': { $ref: '#/components/responses/OutfitOne' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        default: { $ref: '#/components/responses/Error' }
+  /outfit-steps/{id}:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    patch:
+      tags: [Workspaces]
+      operationId: updateOutfitStep
+      summary: Edit (OutfitStep)
+      x-permission: Adm
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IfMatch' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, properties: { name: { type: string }, sort_order: { type: integer }, done_on: { type: [string, 'null'], format: date } } } } } }
+      responses:
+        '200': { description: Updated, content: { application/json: { schema: { $ref: '#/components/schemas/Ok' } } } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        default: { $ref: '#/components/responses/Error' }
+    delete:
+      tags: [Workspaces]
+      operationId: deleteOutfitStep
+      summary: Soft delete (OutfitStep) with Undo
+      x-permission: Adm
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IfMatch' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      responses:
+        '200': { $ref: '#/components/responses/Deleted' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        default: { $ref: '#/components/responses/Error' }
+  /outfit-steps/{id}/restore:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    post:
+      tags: [Trash]
+      operationId: restoreOutfitStep
+      summary: Restore (OutfitStep)
+      x-permission: Adm
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IfMatch' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      responses:
+        '200': { description: Restored, content: { application/json: { schema: { $ref: '#/components/schemas/Ok' } } } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        default: { $ref: '#/components/responses/Error' }
+  /accessories/{id}:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    patch:
+      tags: [Workspaces]
+      operationId: updateAccessory
+      summary: Edit (Accessory)
+      x-permission: Adm
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IfMatch' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, properties: { name: { type: string }, sort_order: { type: integer } } } } } }
+      responses:
+        '200': { description: Updated, content: { application/json: { schema: { $ref: '#/components/schemas/Ok' } } } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        default: { $ref: '#/components/responses/Error' }
+    delete:
+      tags: [Workspaces]
+      operationId: deleteAccessory
+      summary: Soft delete (Accessory) with Undo
+      x-permission: Adm
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IfMatch' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      responses:
+        '200': { $ref: '#/components/responses/Deleted' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        default: { $ref: '#/components/responses/Error' }
+  /accessories/{id}/restore:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    post:
+      tags: [Trash]
+      operationId: restoreAccessory
+      summary: Restore (Accessory)
+      x-permission: Adm
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IfMatch' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      responses:
+        '200': { description: Restored, content: { application/json: { schema: { $ref: '#/components/schemas/Ok' } } } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        default: { $ref: '#/components/responses/Error' }
+  /notes/{id}:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    patch:
+      tags: [Workspaces]
+      operationId: updateNote
+      summary: Edit (Note)
+      x-permission: Adm
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IfMatch' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [body], properties: { body: { type: string, maxLength: 5000 } } } } } }
+      responses:
+        '200': { description: Updated, content: { application/json: { schema: { $ref: '#/components/schemas/Ok' } } } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        default: { $ref: '#/components/responses/Error' }
+    delete:
+      tags: [Workspaces]
+      operationId: deleteNote
+      summary: Soft delete (Note) with Undo
+      x-permission: Adm
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IfMatch' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      responses:
+        '200': { $ref: '#/components/responses/Deleted' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        default: { $ref: '#/components/responses/Error' }
+  /notes/{id}/restore:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    post:
+      tags: [Trash]
+      operationId: restoreNote
+      summary: Restore (Note)
+      x-permission: Adm
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IfMatch' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      responses:
+        '200': { description: Restored, content: { application/json: { schema: { $ref: '#/components/schemas/Ok' } } } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        default: { $ref: '#/components/responses/Error' }
+  /notes:
+    post:
+      tags: [Workspaces]
+      operationId: addNote
+      summary: Add a note to exactly one of outfit_id, accessory_id, outfit_step_id
+      x-permission: Adm
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IdempotencyKey' } ]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [body], properties: { body: { type: string, maxLength: 5000 }, outfit_id: { type: string }, accessory_id: { type: string }, outfit_step_id: { type: string } } } } } }
+      responses:
+        '201': { $ref: '#/components/responses/OutfitOne' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        default: { $ref: '#/components/responses/Error' }
   /home-photos:
     get:
       tags: [Dashboard]
@@ -2834,6 +3049,14 @@ components:
             allOf:
               - $ref: '#/components/schemas/Ok'
               - properties: { data: { $ref: '#/components/schemas/Payment' } }
+    OutfitOne:
+      description: Outfit page
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/Ok'
+              - properties: { data: { $ref: '#/components/schemas/Outfit' } }
     WorkspaceOne:
       description: Workspace
       content:
@@ -2956,7 +3179,7 @@ components:
           properties:
             batch_id: { $ref: '#/components/schemas/Ulid' }
             until: { $ref: '#/components/schemas/DateTime' }
-            summary: { type: string }
+            summary: '{ type: string }'
         warnings: { type: array, items: { type: string } }
       additionalProperties: true
     PageMeta:
@@ -3658,6 +3881,23 @@ components:
             receipt_count: { type: integer }
 
     # ---- documents
+    Outfit:
+      type: object
+      properties:
+        id: { $ref: '#/components/schemas/Ulid' }
+        version: { type: integer }
+        workspace: { type: object }
+        person: { type: string }
+        person_label: { type: string }
+        section: { type: string }
+        title: { type: string }
+        steps: { type: array, items: { type: object, properties: { id: { type: string }, name: { type: string }, done_on: { type: [string, 'null'] }, done: { type: boolean }, notes: { type: array }, attachments: { type: array }, tasks: { type: array } } } }
+        moodboard: { type: array, items: { $ref: '#/components/schemas/Attachment' } }
+        accessories: { type: array, items: { type: object, properties: { id: { type: string }, name: { type: string }, notes: { type: array }, attachments: { type: array }, tasks: { type: array } } } }
+        notes: { type: array, items: { type: object, properties: { id: { type: string }, body: { type: string }, created_by: { type: [object, 'null'] }, created_at: { type: string } } } }
+        tasks: { type: array, items: { $ref: '#/components/schemas/Task' } }
+        cover_url: { type: [string, 'null'] }
+        counts: { type: object }
     Workspace:
       type: object
       properties:
@@ -3840,7 +4080,7 @@ components:
         batch_id: { $ref: '#/components/schemas/Ulid' }
         action: { type: string }
         entity_type: { type: string }
-        summary: { type: string }
+        summary: '{ type: string }'
         item_count: { type: integer }
         user: { $ref: '#/components/schemas/Ref' }
         deleted_at: { $ref: '#/components/schemas/DateTime' }

@@ -299,14 +299,19 @@ final class VaultController
             }
             $section = $f->enum('section', array_keys(WorkspaceDef::SECTIONS)) ?? 'general';
         }
+        // 1.0.18: straight onto an outfit's moodboard, an accessory or a timeline step.
+        $target = \AM\Modules\Outfits\OutfitsController::target($db, $f, false);
+        if ($target !== null) {
+            [$workspaceId, $section] = [$target['workspace_id'], $target['section']];
+        }
         $f->fail();
         try {
-            return UnitOfWork::run($app, $request, function (Db $db) use ($app, $request, $viewer, $kind, $values, $fileId, $workspaceId, $section): Response {
+            return UnitOfWork::run($app, $request, function (Db $db) use ($app, $request, $viewer, $kind, $values, $fileId, $workspaceId, $section, $target): Response {
                 $values += ['kind' => $kind, 'file_id' => $fileId];
                 $values['code'] ??= AttachmentDef::nextCode($db);
                 $r = BaseRepository::create($app, $db, $request, AttachmentDef::class, $values);
                 if ($r['created'] && $workspaceId !== null) {
-                    self::addLink($app, $db, $request, (int) $r['row']['id'], (int) $workspaceId, $section, true);
+                    self::addLink($app, $db, $request, (int) $r['row']['id'], (int) $workspaceId, $section, true, $target);
                 }
                 return self::reply($app, $db, $r['row'], $viewer, $r['created'] ? 201 : 200);
             });
@@ -324,25 +329,39 @@ final class VaultController
         $viewer = $request->attr('user');
         Permissions::requireAdmin($viewer);
         $f = Fields::from($request->attr('json'));
-        $f->only(['workspace_id', 'section']);
+        $f->only(['workspace_id', 'section', 'outfit_id', 'accessory_id', 'outfit_step_id']);
         $db = $app->db();
-        $ws = is_string($f->value('workspace_id')) ? $db->value('SELECT id FROM workspaces WHERE public_id = ? AND deleted_at IS NULL', [$f->value('workspace_id')]) : null;
-        if ($ws === null) {
-            $f->error('workspace_id', Strings::get('field_bad_link'));
+        $target = \AM\Modules\Outfits\OutfitsController::target($db, $f, false);
+        if ($target !== null) {
+            [$ws, $section] = [$target['workspace_id'], $target['section']];
+        } else {
+            $ws = is_string($f->value('workspace_id')) ? $db->value('SELECT id FROM workspaces WHERE public_id = ? AND deleted_at IS NULL', [$f->value('workspace_id')]) : null;
+            if ($ws === null) {
+                $f->error('workspace_id', Strings::get('field_bad_link'));
+            }
+            $section = $f->enum('section', array_keys(WorkspaceDef::SECTIONS)) ?? 'general';
         }
-        $section = $f->enum('section', array_keys(WorkspaceDef::SECTIONS)) ?? 'general';
         $f->fail();
-        return UnitOfWork::run($app, $request, function (Db $db) use ($app, $request, $viewer, $params, $ws, $section): Response {
+        return UnitOfWork::run($app, $request, function (Db $db) use ($app, $request, $viewer, $params, $ws, $section, $target): Response {
             $row = BaseRepository::find($db, AttachmentDef::class, $params['id'], true, false);
-            self::addLink($app, $db, $request, (int) $row['id'], (int) $ws, $section, false);
+            self::addLink($app, $db, $request, (int) $row['id'], (int) $ws, $section, false, $target);
             return self::reply($app, $db, $db->one('SELECT * FROM attachments WHERE id = ?', [$row['id']]), $viewer, 200);
         });
     }
 
-    private static function addLink(App $app, Db $db, Request $request, int $attachmentId, int $workspaceId, string $section, bool $fresh): void
+    private static function addLink(App $app, Db $db, Request $request, int $attachmentId, int $workspaceId, string $section, bool $fresh, ?array $target = null): void
     {
-        $exists = $db->value('SELECT 1 FROM attachment_links WHERE attachment_id = ? AND workspace_id = ? AND section = ? AND target_type IS NULL AND deleted_at IS NULL',
-            [$attachmentId, $workspaceId, $section]);
+        $where = 'attachment_id = ? AND workspace_id = ? AND section = ? AND target_type IS NULL AND deleted_at IS NULL';
+        $args = [$attachmentId, $workspaceId, $section];
+        foreach (\AM\Modules\Outfits\OutfitParts::TARGETS as $col) {
+            if ($target !== null && $target['col'] === $col) {
+                $where .= " AND `$col` = ?";
+                $args[] = $target['id'];
+            } else {
+                $where .= " AND `$col` IS NULL";
+            }
+        }
+        $exists = $db->value("SELECT 1 FROM attachment_links WHERE $where", $args);
         if ($exists !== null) {
             return; // already used there: nothing to add
         }
@@ -353,7 +372,14 @@ final class VaultController
             $request->attributes['idem_key'] = '';
         }
         try {
-            BaseRepository::create($app, $db, $request, AttachmentLinkDef::class, ['attachment_id' => $attachmentId, 'workspace_id' => $workspaceId, 'section' => $section]);
+            $values = ['attachment_id' => $attachmentId, 'workspace_id' => $workspaceId, 'section' => $section];
+            if ($target !== null) {
+                $values[$target['col']] = $target['id'];
+                if ($target['col'] !== 'outfit_id') {
+                    $values['outfit_id'] = $target['outfit_id']; // a step's or accessory's file also belongs to its outfit (deleted with it)
+                }
+            }
+            BaseRepository::create($app, $db, $request, AttachmentLinkDef::class, $values);
         } finally {
             $request->attributes['idem_key'] = $key;
         }

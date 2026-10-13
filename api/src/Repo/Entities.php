@@ -16,6 +16,10 @@ use AM\Modules\Money\VendorDef;
 use AM\Modules\Safety\RestoreDrillDef;
 use AM\Modules\Settings\SettingsDef;
 use AM\Modules\Tasks\TagDef;
+use AM\Modules\Outfits\AccessoryDef;
+use AM\Modules\Outfits\NoteDef;
+use AM\Modules\Outfits\OutfitDef;
+use AM\Modules\Outfits\OutfitStepDef;
 use AM\Modules\Vault\AttachmentDef;
 use AM\Modules\Vault\AttachmentLinkDef;
 use AM\Modules\Workspaces\WorkspaceDef;
@@ -49,6 +53,10 @@ final class Entities
         'workspace' => WorkspaceDef::class,
         'attachment' => AttachmentDef::class,
         'attachment_link' => AttachmentLinkDef::class,
+        'outfit' => OutfitDef::class,
+        'outfit_step' => OutfitStepDef::class,
+        'accessory' => AccessoryDef::class,
+        'note' => NoteDef::class,
     ];
 
     /** URL segment for /{resource}/{id}/history => definition */
@@ -66,6 +74,7 @@ final class Entities
         'home-photos' => HomePhotoDef::class,
         'workspaces' => WorkspaceDef::class,
         'attachments' => AttachmentDef::class,
+        'outfits' => OutfitDef::class,
     ];
 
     /** The value that names a row (public id or checklist key); null for link rows. */

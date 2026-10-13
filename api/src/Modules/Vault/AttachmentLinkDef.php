@@ -46,7 +46,18 @@ final class AttachmentLinkDef extends EntityDef
     public static function path(Db $db, array $row): string
     {
         $w = (string) ($db->value('SELECT name FROM workspaces WHERE id = ?', [$row['workspace_id']]) ?? 'Workspace');
-        return $w . ' › ' . (WorkspaceDef::SECTIONS[(string) $row['section']] ?? (string) $row['section']);
+        $path = $w . ' › ' . (WorkspaceDef::SECTIONS[(string) $row['section']] ?? (string) $row['section']);
+        // 1.0.18: "Mehndi › Bride outfit › Mehndi lehenga › Maang tikka"
+        if (($row['outfit_id'] ?? null) !== null) {
+            $path .= ' › ' . (string) ($db->value('SELECT title FROM outfits WHERE id = ?', [$row['outfit_id']]) ?? 'Outfit');
+        }
+        if (($row['accessory_id'] ?? null) !== null) {
+            $path .= ' › ' . (string) ($db->value('SELECT name FROM accessories WHERE id = ?', [$row['accessory_id']]) ?? 'Accessory');
+        }
+        if (($row['outfit_step_id'] ?? null) !== null) {
+            $path .= ' › ' . (string) ($db->value('SELECT name FROM outfit_steps WHERE id = ?', [$row['outfit_step_id']]) ?? 'Step');
+        }
+        return $path;
     }
 
     public static function present(App $app, Db $db, Refs $refs, array $row, ?array $viewer): array

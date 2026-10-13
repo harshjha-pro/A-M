@@ -41,6 +41,11 @@ use AM\Modules\Sync\SyncController;
 use AM\Modules\Trash\TrashController;
 use AM\Modules\Undo\UndoController;
 use AM\Modules\Tasks\TagDef;
+use AM\Modules\Outfits\AccessoryDef;
+use AM\Modules\Outfits\NoteDef;
+use AM\Modules\Outfits\OutfitDef;
+use AM\Modules\Outfits\OutfitStepDef;
+use AM\Modules\Outfits\OutfitsController;
 use AM\Modules\Vault\AttachmentDef;
 use AM\Modules\Vault\AttachmentLinkDef;
 use AM\Modules\Vault\VaultController;
@@ -228,6 +233,18 @@ final class Routes
         $r->add('POST', '/attachments/{id}/links', VaultController::link(...));
         $r->add('DELETE', '/attachment-links/{id}', static fn (Request $q, App $a, array $p) => BaseController::delete($q, $a, $p, AttachmentLinkDef::class, BaseController::adminOnly()[1]));
         $r->add('POST', '/attachment-links/{id}/restore', static fn (Request $q, App $a, array $p) => BaseController::restore($q, $a, $p, AttachmentLinkDef::class));
+
+        // Outfits (1.0.18, Workspace step B): Ayush and Mahi only.
+        $r->add('POST', '/outfits', OutfitsController::create(...));
+        $r->add('GET', '/outfits/{id}', OutfitsController::get(...));
+        foreach ([['outfits', OutfitDef::class], ['outfit-steps', OutfitStepDef::class], ['accessories', AccessoryDef::class], ['notes', NoteDef::class]] as [$res, $def]) {
+            $r->add('PATCH', "/$res/{id}", static fn (Request $q, App $a, array $p) => BaseController::update($q, $a, $p, $def, OutfitsController::canWrite()));
+            $r->add('DELETE', "/$res/{id}", static fn (Request $q, App $a, array $p) => BaseController::delete($q, $a, $p, $def, OutfitsController::canWrite()));
+            $r->add('POST', "/$res/{id}/restore", static fn (Request $q, App $a, array $p) => BaseController::restore($q, $a, $p, $def));
+        }
+        $r->add('POST', '/outfits/{id}/steps', OutfitsController::addStep(...));
+        $r->add('POST', '/outfits/{id}/accessories', OutfitsController::addAccessory(...));
+        $r->add('POST', '/notes', OutfitsController::addNote(...));
 
         // Home photos (1.0.16): stored in the database, admins add and remove.
         $r->add('GET', '/home-photos', HomePhotosController::list(...));

@@ -26,7 +26,7 @@ final class WorkspaceDef extends EntityDef
     public const LABEL = 'workspace';
     public const LABEL_PLURAL = 'workspaces';
     public const FIELD_LABELS = ['name' => 'Name', 'event' => 'Calendar event', 'sort_order' => 'Order', 'notes' => 'Notes'];
-    public const CHILDREN = [AttachmentLinkDef::class => 'workspace_id'];
+    public const CHILDREN = [AttachmentLinkDef::class => 'workspace_id', \AM\Modules\Outfits\OutfitDef::class => 'workspace_id'];
     /** Sections of a workspace page (steps B–D fill them in). */
     public const SECTIONS = [
         'general' => 'Files', 'bride_outfit' => 'Bride outfit', 'groom_outfit' => 'Groom outfit', 'family_outfit' => 'Family outfits',

@@ -63,6 +63,7 @@ final class TaskView
                 'household' => self::link($db, 'households', $r['household_id']),
                 'workspace' => self::link($db, 'workspaces', $r['workspace_id'] ?? null),
                 'workspace_section' => $r['workspace_section'] ?? null,
+                'target' => self::target($db, $r),
                 'assignees' => array_values(array_filter($assignees[$id] ?? [])),
                 'tags' => $tags[$id] ?? [],
                 'item_count' => $counts[$id][0] ?? 0,
@@ -114,5 +115,21 @@ final class TaskView
             $ref['deleted'] = true;
         }
         return $ref;
+    }
+
+    /** The outfit, accessory or timeline step a task came from (1.0.18): {type, id, name, outfit_id}. */
+    private static function target(Db $db, array $r): ?array
+    {
+        $type = $r['target_type'] ?? null;
+        if ($type === null || $r['target_id'] === null) {
+            return null;
+        }
+        $sql = [
+            'outfit' => 'SELECT o.public_id AS id, o.title AS name, o.public_id AS outfit FROM outfits o WHERE o.id = ?',
+            'accessory' => 'SELECT a.public_id AS id, a.name, o.public_id AS outfit FROM accessories a JOIN outfits o ON o.id = a.outfit_id WHERE a.id = ?',
+            'outfit_step' => 'SELECT s.public_id AS id, s.name, o.public_id AS outfit FROM outfit_steps s JOIN outfits o ON o.id = s.outfit_id WHERE s.id = ?',
+        ][$type] ?? null;
+        $t = $sql === null ? null : $db->one($sql, [(int) $r['target_id']]);
+        return $t === null ? null : ['type' => $type, 'id' => $t['id'], 'name' => $t['name'], 'outfit_id' => $t['outfit']];
     }
 }
