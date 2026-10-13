@@ -27,6 +27,9 @@ use AM\Modules\Members\MembersController;
 use AM\Modules\Menu\MenuCategoryDef;
 use AM\Modules\Menu\MenuController;
 use AM\Modules\Menu\MenuItemDef;
+use AM\Modules\Planning\PlanningController;
+use AM\Modules\Planning\TimelineStepDef;
+use AM\Modules\Planning\WorkspaceContactDef;
 use AM\Modules\Money\BudgetCategoryDef;
 use AM\Modules\Money\MoneyController;
 use AM\Modules\Money\PaymentDef;
@@ -257,6 +260,17 @@ final class Routes
         foreach ([['menu-categories', MenuCategoryDef::class], ['menu-items', MenuItemDef::class]] as [$res, $def]) {
             $r->add('PATCH', "/$res/{id}", static fn (Request $q, App $a, array $p) => BaseController::update($q, $a, $p, $def, MenuController::canWrite()));
             $r->add('DELETE', "/$res/{id}", static fn (Request $q, App $a, array $p) => BaseController::delete($q, $a, $p, $def, MenuController::canWrite()));
+            $r->add('POST', "/$res/{id}/restore", static fn (Request $q, App $a, array $p) => BaseController::restore($q, $a, $p, $def));
+        }
+
+        // Contacts, Guest details, Event timeline (1.0.20, Workspace step D): Ayush and Mahi only.
+        $r->add('POST', '/workspaces/{id}/contacts', PlanningController::addContact(...));
+        $r->add('POST', '/workspaces/{id}/timeline', PlanningController::addStep(...));
+        $r->add('POST', '/workspaces/{id}/timeline/suggested', PlanningController::suggested(...));
+        $r->add('POST', '/timeline-steps/{id}/move', PlanningController::move(...));
+        foreach ([['workspace-contacts', WorkspaceContactDef::class], ['timeline-steps', TimelineStepDef::class]] as [$res, $def]) {
+            $r->add('PATCH', "/$res/{id}", static fn (Request $q, App $a, array $p) => BaseController::update($q, $a, $p, $def, PlanningController::canWrite()));
+            $r->add('DELETE', "/$res/{id}", static fn (Request $q, App $a, array $p) => BaseController::delete($q, $a, $p, $def, PlanningController::canWrite()));
             $r->add('POST', "/$res/{id}/restore", static fn (Request $q, App $a, array $p) => BaseController::restore($q, $a, $p, $def));
         }
 

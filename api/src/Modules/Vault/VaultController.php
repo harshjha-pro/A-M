@@ -329,7 +329,7 @@ final class VaultController
         $viewer = $request->attr('user');
         Permissions::requireAdmin($viewer);
         $f = Fields::from($request->attr('json'));
-        $f->only(['workspace_id', 'section', 'outfit_id', 'accessory_id', 'outfit_step_id', 'menu_item_id']);
+        $f->only(['workspace_id', 'section', 'outfit_id', 'accessory_id', 'outfit_step_id', 'menu_item_id', 'timeline_step_id']);
         $db = $app->db();
         $target = \AM\Modules\Outfits\OutfitsController::target($db, $f, false);
         if ($target !== null) {

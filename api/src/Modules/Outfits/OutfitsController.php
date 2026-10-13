@@ -135,7 +135,7 @@ final class OutfitsController
      */
     public static function target(Db $db, Fields $f, bool $required = true, bool $menu = true): ?array
     {
-        $cols = $menu ? OutfitParts::TARGETS : array_diff_key(OutfitParts::TARGETS, ['menu_item' => 1]);
+        $cols = $menu ? OutfitParts::TARGETS : array_diff_key(OutfitParts::TARGETS, ['menu_item' => 1, 'timeline_step' => 1]); // notes: outfits only
         $given = array_values(array_filter($cols, static fn ($col) => $f->has($col) && $f->value($col) !== null && $f->value($col) !== ''));
         if ($given === []) {
             if ($required) {
@@ -150,13 +150,16 @@ final class OutfitsController
         $col = $given[0];
         $type = (string) array_search($col, OutfitParts::TARGETS, true);
         $v = $f->value($col);
-        if ($col === 'menu_item_id') { // 1.0.19: a dish on a workspace's menu (no outfit)
-            $r = is_string($v) ? $db->one('SELECT id, workspace_id FROM menu_items WHERE public_id = ? AND deleted_at IS NULL', [$v]) : null;
+        // 1.0.19: a dish on a workspace's menu; 1.0.20: a step of the event timeline (no outfit)
+        $plain = ['menu_item_id' => ['menu_items', 'menu'], 'timeline_step_id' => ['timeline_steps', 'timeline']];
+        if (isset($plain[$col])) {
+            [$table, $section] = $plain[$col];
+            $r = is_string($v) ? $db->one("SELECT id, workspace_id FROM `$table` WHERE public_id = ? AND deleted_at IS NULL", [$v]) : null;
             if ($r === null) {
                 $f->error($col, Strings::get('field_bad_link'));
                 return null;
             }
-            return ['col' => $col, 'type' => $type, 'id' => (int) $r['id'], 'outfit_id' => null, 'workspace_id' => (int) $r['workspace_id'], 'section' => 'menu'];
+            return ['col' => $col, 'type' => $type, 'id' => (int) $r['id'], 'outfit_id' => null, 'workspace_id' => (int) $r['workspace_id'], 'section' => $section];
         }
         $sql = [
             'outfit_id' => 'SELECT o.id, o.id AS outfit_id, o.workspace_id, o.person FROM outfits o WHERE o.public_id = ? AND o.deleted_at IS NULL',

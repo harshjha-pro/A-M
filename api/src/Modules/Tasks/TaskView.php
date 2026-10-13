@@ -129,6 +129,7 @@ final class TaskView
             'accessory' => 'SELECT a.public_id AS id, a.name, o.public_id AS outfit FROM accessories a JOIN outfits o ON o.id = a.outfit_id WHERE a.id = ?',
             'outfit_step' => 'SELECT s.public_id AS id, s.name, o.public_id AS outfit FROM outfit_steps s JOIN outfits o ON o.id = s.outfit_id WHERE s.id = ?',
             'menu_item' => 'SELECT m.public_id AS id, m.name, NULL AS outfit, w.public_id AS workspace FROM menu_items m JOIN workspaces w ON w.id = m.workspace_id WHERE m.id = ?',
+            'timeline_step' => 'SELECT s.public_id AS id, s.purpose AS name, NULL AS outfit, w.public_id AS workspace FROM timeline_steps s JOIN workspaces w ON w.id = s.workspace_id WHERE s.id = ?',
         ][$type] ?? null;
         $t = $sql === null ? null : $db->one($sql, [(int) $r['target_id']]);
         return $t === null ? null : ['type' => $type, 'id' => $t['id'], 'name' => $t['name'], 'outfit_id' => $t['outfit']] + (isset($t['workspace']) ? ['workspace_id' => $t['workspace']] : []);

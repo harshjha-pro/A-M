@@ -59,6 +59,11 @@ final class VendorDef extends EntityDef
             'updated_at' => Time::iso($row['updated_at']),
             'updated_by' => $refs->user($row['updated_by'] !== null ? (int) $row['updated_by'] : null),
         ];
+        if (Permissions::isAdmin($viewer)) { // 1.0.20: the workspaces this vendor is a contact in
+            $out['workspaces'] = array_map(static fn ($w) => ['id' => $w['public_id'], 'name' => $w['name'], 'role' => $w['role']], $db->all(
+                'SELECT w.public_id, w.name, c.role FROM workspace_contacts c JOIN workspaces w ON w.id = c.workspace_id
+                 WHERE c.vendor_id = ? AND c.deleted_at IS NULL AND w.deleted_at IS NULL ORDER BY w.sort_order, w.id', [$row['id']]));
+        }
         if (Permissions::canSeeMoney($viewer)) {
             $agreed = $row['agreed_amount_paise'] !== null ? (int) $row['agreed_amount_paise'] : null;
             $t = $db->one(

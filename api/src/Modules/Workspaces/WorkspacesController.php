@@ -51,9 +51,11 @@ final class WorkspacesController
         foreach (['decor', 'menu'] as $section) {
             $view['boards'][$section] = array_map(static fn ($a) => \AM\Modules\Vault\AttachmentDef::present($app, $db, $refs, $a, $viewer), $db->all(
                 'SELECT a.* FROM attachment_links l JOIN attachments a ON a.id = l.attachment_id
-                 WHERE l.workspace_id = ? AND l.section = ? AND l.outfit_id IS NULL AND l.accessory_id IS NULL AND l.outfit_step_id IS NULL AND l.menu_item_id IS NULL
+                 WHERE l.workspace_id = ? AND l.section = ? AND l.outfit_id IS NULL AND l.accessory_id IS NULL AND l.outfit_step_id IS NULL AND l.menu_item_id IS NULL AND l.timeline_step_id IS NULL
                    AND l.deleted_at IS NULL AND a.deleted_at IS NULL ORDER BY l.id', [$row['id'], $section]));
         }
+        // 1.0.20: Contacts, Guest details, Event timeline.
+        $view['planning'] = \AM\Modules\Planning\PlanningController::planning($app, $db, $row, $viewer);
         return Response::ok($view)->withHeader('ETag', '"' . $view['version'] . '"');
     }
 }

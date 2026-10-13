@@ -27,7 +27,7 @@ final class OutfitParts
     public const DEFAULT_STEPS = ['Selected', 'Stitched', 'Trial done', 'Final approved'];
     public const DECOR_STEPS = ['Booked', 'Sample seen', 'Final approved', 'Set up'];
     /** target column on attachment_links ⇄ tasks.target_type (notes: the first three only) */
-    public const TARGETS = ['outfit' => 'outfit_id', 'accessory' => 'accessory_id', 'outfit_step' => 'outfit_step_id', 'menu_item' => 'menu_item_id'];
+    public const TARGETS = ['outfit' => 'outfit_id', 'accessory' => 'accessory_id', 'outfit_step' => 'outfit_step_id', 'menu_item' => 'menu_item_id', 'timeline_step' => 'timeline_step_id'];
 
     /** @return list<string> */
     public static function defaultSteps(string $person): array

@@ -24,7 +24,7 @@ use DateTimeImmutable;
  */
 final class TaskWriter
 {
-    public const FIELDS = ['title', 'notes', 'status', 'priority', 'due_date', 'due_time', 'event_id', 'vendor_id', 'household_id', 'workspace_id', 'workspace_section', 'outfit_id', 'accessory_id', 'outfit_step_id', 'menu_item_id',
+    public const FIELDS = ['title', 'notes', 'status', 'priority', 'due_date', 'due_time', 'event_id', 'vendor_id', 'household_id', 'workspace_id', 'workspace_section', 'outfit_id', 'accessory_id', 'outfit_step_id', 'menu_item_id', 'timeline_step_id',
         'assignee_ids', 'tag_ids', 'new_tags', 'items', 'allow_duplicate'];
     public const MAX_LINKS = 10;
     public const MAX_ITEMS = 100;

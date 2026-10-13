@@ -59,6 +59,8 @@ final class Entities
         'note' => NoteDef::class,
         'menu_category' => \AM\Modules\Menu\MenuCategoryDef::class,
         'menu_item' => \AM\Modules\Menu\MenuItemDef::class,
+        'workspace_contact' => \AM\Modules\Planning\WorkspaceContactDef::class,
+        'timeline_step' => \AM\Modules\Planning\TimelineStepDef::class,
     ];
 
     /** URL segment for /{resource}/{id}/history => definition */
@@ -79,6 +81,8 @@ final class Entities
         'outfits' => OutfitDef::class,
         'menu-categories' => \AM\Modules\Menu\MenuCategoryDef::class,
         'menu-items' => \AM\Modules\Menu\MenuItemDef::class,
+        'workspace-contacts' => \AM\Modules\Planning\WorkspaceContactDef::class,
+        'timeline-steps' => \AM\Modules\Planning\TimelineStepDef::class,
     ];
 
     /** The value that names a row (public id or checklist key); null for link rows. */

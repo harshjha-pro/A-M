@@ -60,6 +60,9 @@ final class AttachmentLinkDef extends EntityDef
         if (($row['menu_item_id'] ?? null) !== null) { // 1.0.19: "Reception › Menu › Paneer tikka"
             $path .= ' › ' . (string) ($db->value('SELECT name FROM menu_items WHERE id = ?', [$row['menu_item_id']]) ?? 'Dish');
         }
+        if (($row['timeline_step_id'] ?? null) !== null) { // 1.0.20: "Varmala & Phere › Event timeline › Varmala"
+            $path .= ' › ' . (string) ($db->value('SELECT purpose FROM timeline_steps WHERE id = ?', [$row['timeline_step_id']]) ?? 'Step');
+        }
         return $path;
     }
 

@@ -1162,6 +1162,138 @@ paths:
         '200': { description: Restored, content: { application/json: { schema: { $ref: '#/components/schemas/Ok' } } } }
         '403': { $ref: '#/components/responses/Forbidden' }
         default: { $ref: '#/components/responses/Error' }
+  /workspaces/{id}/contacts:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    post:
+      tags: [Workspaces]
+      operationId: addWorkspaceContact
+      summary: 'Link a vendor to this workspace as a contact (one vendor can be in many workspaces); replies with the planning block'
+      x-permission: Adm
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IdempotencyKey' } ]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [vendor_id], properties: { vendor_id: { $ref: '#/components/schemas/Ulid' }, role: { type: [string, 'null'], maxLength: 120 } } } } } }
+      responses:
+        '201': { $ref: '#/components/responses/PlanningOne' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        default: { $ref: '#/components/responses/Error' }
+  /workspaces/{id}/timeline:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    post:
+      tags: [Workspaces]
+      operationId: addTimelineStep
+      summary: 'Add an event timeline step (at the end); purpose and duration required, time optional'
+      x-permission: Adm
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IdempotencyKey' } ]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/TimelineStepInput' } } } }
+      responses:
+        '201': { $ref: '#/components/responses/PlanningOne' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        default: { $ref: '#/components/responses/Error' }
+  /workspaces/{id}/timeline/suggested:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    post:
+      tags: [Workspaces]
+      operationId: addSuggestedTimeline
+      summary: 'Add the suggested steps for this workspace (by its name, or general ones) to an empty timeline; 409 when it has steps'
+      x-permission: Adm
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IdempotencyKey' } ]
+      requestBody: { required: true, content: { application/json: { schema: { type: object } } } }
+      responses:
+        '201': { $ref: '#/components/responses/PlanningOne' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        default: { $ref: '#/components/responses/Error' }
+  /timeline-steps/{id}/move:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    post:
+      tags: [Workspaces]
+      operationId: moveTimelineStep
+      summary: 'Swap a step with the one above or below it'
+      x-permission: Adm
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IdempotencyKey' } ]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [direction], properties: { direction: { type: string, enum: [up, down] } } } } } }
+      responses:
+        '200': { $ref: '#/components/responses/PlanningOne' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        default: { $ref: '#/components/responses/Error' }
+  /workspace-contacts/{id}:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    patch:
+      tags: [Workspaces]
+      operationId: updateWorkspaceContact
+      summary: Edit (WorkspaceContact)
+      x-permission: Adm
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IfMatch' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, properties: { role: { type: [string, 'null'] }, sort_order: { type: integer } } } } } }
+      responses:
+        '200': { description: Updated, content: { application/json: { schema: { $ref: '#/components/schemas/Ok' } } } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        default: { $ref: '#/components/responses/Error' }
+    delete:
+      tags: [Workspaces]
+      operationId: deleteWorkspaceContact
+      summary: Soft delete (WorkspaceContact) with Undo — only unlinks the vendor
+      x-permission: Adm
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IfMatch' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      responses:
+        '200': { $ref: '#/components/responses/Deleted' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        default: { $ref: '#/components/responses/Error' }
+  /workspace-contacts/{id}/restore:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    post:
+      tags: [Trash]
+      operationId: restoreWorkspaceContact
+      summary: Restore (WorkspaceContact)
+      x-permission: Adm
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IfMatch' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      responses:
+        '200': { description: Restored, content: { application/json: { schema: { $ref: '#/components/schemas/Ok' } } } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        default: { $ref: '#/components/responses/Error' }
+  /timeline-steps/{id}:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    patch:
+      tags: [Workspaces]
+      operationId: updateTimelineStep
+      summary: Edit (TimelineStep)
+      x-permission: Adm
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IfMatch' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/TimelineStepInput' } } } }
+      responses:
+        '200': { description: Updated, content: { application/json: { schema: { $ref: '#/components/schemas/Ok' } } } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        default: { $ref: '#/components/responses/Error' }
+    delete:
+      tags: [Workspaces]
+      operationId: deleteTimelineStep
+      summary: Soft delete (TimelineStep) with Undo — its attachment links go with it; tasks stay
+      x-permission: Adm
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IfMatch' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      responses:
+        '200': { $ref: '#/components/responses/Deleted' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        default: { $ref: '#/components/responses/Error' }
+  /timeline-steps/{id}/restore:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    post:
+      tags: [Trash]
+      operationId: restoreTimelineStep
+      summary: Restore (TimelineStep)
+      x-permission: Adm
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IfMatch' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      responses:
+        '200': { description: Restored, content: { application/json: { schema: { $ref: '#/components/schemas/Ok' } } } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        default: { $ref: '#/components/responses/Error' }
   /home-photos:
     get:
       tags: [Dashboard]
@@ -3178,6 +3310,14 @@ components:
             allOf:
               - $ref: '#/components/schemas/Ok'
               - properties: { data: { $ref: '#/components/schemas/Payment' } }
+    PlanningOne:
+      description: Contacts, guest details and event timeline of a workspace
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/Ok'
+              - properties: { data: { $ref: '#/components/schemas/Planning' } }
     MenuOne:
       description: The menu of a workspace
       content:
@@ -4036,6 +4176,37 @@ components:
         tasks: { type: array, items: { $ref: '#/components/schemas/Task' } }
         cover_url: { type: [string, 'null'] }
         counts: { type: object }
+    Planning:
+      type: object
+      properties:
+        contacts: { type: array, items: { type: object, properties: { id: { $ref: '#/components/schemas/Ulid' }, version: { type: integer }, role: { type: [string, 'null'] }, vendor: { type: object, properties: { id: { type: string }, name: { type: string }, category: { type: string }, category_label: { type: string }, contact_person: { type: [string, 'null'] }, phone: { type: [string, 'null'] }, alt_phone: { type: [string, 'null'] } } } } } }
+        also_used: { type: array, description: 'Vendors connected here (caterer, decor item, outfit, attachment, task) but not added as contacts', items: { type: object, properties: { vendor: { type: object }, where: { type: array, items: { type: string } } } } }
+        guests: { type: [object, 'null'], description: 'Headcount of the linked calendar event (null when none or it takes no guests)', properties: { event: { type: object }, families_invited: { type: integer }, families_coming: { type: integer }, families_not_coming: { type: integer }, families_waiting: { type: integer }, people_coming: { type: integer }, adults_coming: { type: integer }, children_coming: { type: integer }, jain_coming: { type: integer }, people_up_to: { type: integer } } }
+        timeline: { type: object, properties: { total_min: { type: integer }, steps: { type: array, items: { $ref: '#/components/schemas/TimelineStep' } } } }
+    TimelineStep:
+      type: object
+      properties:
+        id: { $ref: '#/components/schemas/Ulid' }
+        version: { type: integer }
+        purpose: { type: string }
+        start_time: { type: [string, 'null'], description: 'HH:MM (IST) as entered' }
+        duration_min: { type: integer, minimum: 1, maximum: 1440 }
+        note: { type: [string, 'null'] }
+        sort_order: { type: integer }
+        starts: { type: [string, 'null'], description: 'Its own time, or the end of the step before (estimated true); null until a step above has a time' }
+        estimated: { type: boolean }
+        ends: { type: [string, 'null'] }
+        attachments: { type: array, items: { $ref: '#/components/schemas/Attachment' } }
+        tasks: { type: array, items: { $ref: '#/components/schemas/Task' } }
+    TimelineStepInput:
+      type: object
+      additionalProperties: false
+      properties:
+        purpose: { type: string, maxLength: 120 }
+        start_time: { type: [string, 'null'], pattern: '^([01][0-9]|2[0-3]):[0-5][0-9]$' }
+        duration_min: { type: integer, minimum: 1, maximum: 1440 }
+        note: { type: [string, 'null'], maxLength: 5000 }
+        sort_order: { type: integer }
     Menu:
       type: object
       properties:
@@ -4090,6 +4261,8 @@ components:
         tasks: { type: array, items: { $ref: '#/components/schemas/Task' }, description: 'GET /workspaces/{id} only' }
         outfits: { type: array, items: { $ref: '#/components/schemas/Outfit' }, description: 'GET /workspaces/{id} only: outfits and decor items' }
         menu: { $ref: '#/components/schemas/Menu' }
+        planning: { $ref: '#/components/schemas/Planning' }
+        guest_notes: { type: [string, 'null'] }
         boards: { type: object, description: 'GET /workspaces/{id} only: attachments of the decor and menu sections themselves', properties: { decor: { type: array, items: { $ref: '#/components/schemas/Attachment' } }, menu: { type: array, items: { $ref: '#/components/schemas/Attachment' } } } }
     WorkspaceInput:
       type: object
@@ -4102,6 +4275,7 @@ components:
         theme_name: { type: [string, 'null'], maxLength: 80 }
         theme_colours: { type: [string, 'null'], maxLength: 120 }
         caterer_id: { type: [string, 'null'] }
+        guest_notes: { type: [string, 'null'], maxLength: 5000 }
     Upload:
       type: object
       properties:
