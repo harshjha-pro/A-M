@@ -1,7 +1,8 @@
 // One outfit (1.0.18, Workspace step B): timeline (tap a step: done + date, notes,
 // attachments, tasks, rename, delete; add your own steps), moodboard from the Vault (add or
 // pick), accessories (each with notes, attachments, tasks), notes and tasks. Rename; delete
-// with Undo (tasks stay). Ayush and Mahi only.
+// with Undo (tasks stay). Ayush and Mahi only. 1.0.19: also family outfits and decor items
+// (props instead of accessories), and the vendor (tailor / decorator).
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -19,6 +20,7 @@ import { showUndo, showToast } from '../../undo/undoStore.js';
 import { todayIst, formatDateOnly } from '../../format/ist.js';
 import { useAttachments } from '../../data/vault.js';
 import { AttachmentThumb } from '../vault/AttachmentRow.jsx';
+import { VendorSelect } from '../vault/AttachmentAddSheet.jsx';
 import { NotesBlock, AttachBlock, TasksBlock, useRefresh } from './parts.jsx';
 import { t } from '../../i18n/strings.en.js';
 
@@ -86,7 +88,7 @@ function StepSheet({ outfit, step, onClose, refresh }) {
   );
 }
 
-function AccessorySheet({ outfit, acc, onClose, refresh }) {
+function AccessorySheet({ outfit, acc, onClose, refresh, L }) {
   const [renaming, setRenaming] = useState(false);
   async function remove() {
     try {
@@ -103,10 +105,10 @@ function AccessorySheet({ outfit, acc, onClose, refresh }) {
         <section className="flex flex-col gap-2"><h3 className="font-bold">{t('outfit.tasks')}</h3><TasksBlock tasks={acc.tasks} query={`accessory=${acc.id}`} outfitId={outfit.id} /></section>
         <div className="flex flex-wrap gap-2">
           <Button variant="secondary" needsInternet onClick={() => setRenaming(true)}><Pencil aria-hidden="true" size={18} />{t('outfit.rename')}</Button>
-          <Button variant="danger" needsInternet onClick={remove}><Trash2 aria-hidden="true" size={18} />{t('outfit.deleteAccessory')}</Button>
+          <Button variant="danger" needsInternet onClick={remove}><Trash2 aria-hidden="true" size={18} />{L.deleteAccessory}</Button>
         </div>
       </div>
-      {renaming && <NameSheet title={t('outfit.rename')} label={t('outfit.accessoryName')} initial={acc.name} onClose={() => setRenaming(false)}
+      {renaming && <NameSheet title={t('outfit.rename')} label={L.accessoryName} initial={acc.name} onClose={() => setRenaming(false)}
         onSave={(name) => withRelogin(() => api('PATCH', `/accessories/${acc.id}`, { body: { name }, ifMatch: acc.version, idemKey: newIdemKey() })).then(refresh)} />}
     </Sheet>
   );
@@ -160,6 +162,17 @@ export default function OutfitDetail() {
   const done = o.steps.filter((s) => s.done).length;
   const step = sheet?.kind === 'step' ? o.steps.find((s) => s.id === sheet.id) : null;
   const acc = sheet?.kind === 'acc' ? o.accessories.find((a) => a.id === sheet.id) : null;
+  const decor = o.person === 'decor';
+  const L = decor
+    ? { accessories: t('decor.props'), addAccessory: t('decor.addProp'), accessoryName: t('decor.propName'), deleteAccessory: t('decor.deleteProp'), delete: t('decor.delete'), deleteBody: t('decor.deleteBody'), rename: t('decor.rename'), nameLabel: t('decor.nameLabel') }
+    : { accessories: t('outfit.accessories'), addAccessory: t('outfit.addAccessory'), accessoryName: t('outfit.accessoryName'), deleteAccessory: t('outfit.deleteAccessory'), delete: t('outfit.delete'), deleteBody: t('outfit.deleteBody'), rename: t('outfit.rename'), nameLabel: t('outfit.nameLabel') };
+
+  async function setVendor(vendorId) {
+    try {
+      await withRelogin(() => api('PATCH', `/outfits/${id}`, { body: { vendorId: vendorId || null }, ifMatch: o.version, idemKey: newIdemKey() }));
+      refresh();
+    } catch (e) { showToast(e.message || t('errors.server')); }
+  }
 
   async function remove() {
     setConfirm(false);
@@ -173,8 +186,9 @@ export default function OutfitDetail() {
 
   return (
     <Screen title={o.title} back={back}
-      actions={<button type="button" onClick={() => setSheet({ kind: 'rename' })} aria-label={t('outfit.rename')} className="tap grid place-items-center text-primary"><Pencil aria-hidden="true" size={22} /></button>}>
+      actions={<button type="button" onClick={() => setSheet({ kind: 'rename' })} aria-label={L.rename} className="tap grid place-items-center text-primary"><Pencil aria-hidden="true" size={22} /></button>}>
       <p className="text-text-muted">{o.workspace?.name} · {t(`outfit.persons.${o.person}`)}</p>
+      <VendorSelect value={o.vendor?.id ?? ''} onChange={setVendor} />
 
       <section aria-labelledby="o-timeline" className="flex flex-col gap-3">
         <div className="flex items-baseline justify-between">
@@ -208,7 +222,7 @@ export default function OutfitDetail() {
       </section>
 
       <section aria-labelledby="o-acc" className="flex flex-col gap-3 rounded-md bg-surface p-4 shadow-card">
-        <h2 id="o-acc" className="text-lg font-bold">{t('outfit.accessories')}</h2>
+        <h2 id="o-acc" className="text-lg font-bold">{L.accessories}</h2>
         <ul className="-mx-4 border-t border-border">
           {o.accessories.map((a) => (
             <li key={a.id} className="border-b border-border">
@@ -220,7 +234,7 @@ export default function OutfitDetail() {
             </li>
           ))}
         </ul>
-        <Button variant="secondary" needsInternet onClick={() => setSheet({ kind: 'addAcc' })}><Plus aria-hidden="true" size={20} />{t('outfit.addAccessory')}</Button>
+        <Button variant="secondary" needsInternet onClick={() => setSheet({ kind: 'addAcc' })}><Plus aria-hidden="true" size={20} />{L.addAccessory}</Button>
       </section>
 
       <section aria-labelledby="o-notes" className="flex flex-col gap-3 rounded-md bg-surface p-4 shadow-card">
@@ -233,19 +247,19 @@ export default function OutfitDetail() {
         <TasksBlock tasks={o.tasks} query={`outfit=${o.id}`} outfitId={o.id} />
       </section>
 
-      <Button variant="danger" needsInternet onClick={() => setConfirm(true)}><Trash2 aria-hidden="true" size={20} />{t('outfit.delete')}</Button>
+      <Button variant="danger" needsInternet onClick={() => setConfirm(true)}><Trash2 aria-hidden="true" size={20} />{L.delete}</Button>
       {o.workspace && <Link to={back} className="tap self-start font-bold text-primary">← {o.workspace.name}</Link>}
 
       {step && <StepSheet outfit={o} step={step} refresh={refresh} onClose={() => setSheet(null)} />}
-      {acc && <AccessorySheet outfit={o} acc={acc} refresh={refresh} onClose={() => setSheet(null)} />}
+      {acc && <AccessorySheet outfit={o} acc={acc} refresh={refresh} L={L} onClose={() => setSheet(null)} />}
       {sheet?.kind === 'pick' && <VaultPickSheet outfit={o} refresh={refresh} onClose={() => setSheet(null)} />}
       {sheet?.kind === 'addStep' && <NameSheet title={t('outfit.addStep')} label={t('outfit.stepName')} max={60} onClose={() => setSheet(null)}
         onSave={(name) => withRelogin(() => api('POST', `/outfits/${o.id}/steps`, { body: { name }, idemKey: newIdemKey() })).then(refresh)} />}
-      {sheet?.kind === 'addAcc' && <NameSheet title={t('outfit.addAccessory')} label={t('outfit.accessoryName')} onClose={() => setSheet(null)}
+      {sheet?.kind === 'addAcc' && <NameSheet title={L.addAccessory} label={L.accessoryName} onClose={() => setSheet(null)}
         onSave={(name) => withRelogin(() => api('POST', `/outfits/${o.id}/accessories`, { body: { name }, idemKey: newIdemKey() })).then(refresh)} />}
-      {sheet?.kind === 'rename' && <NameSheet title={t('outfit.rename')} label={t('outfit.nameLabel')} initial={o.title} onClose={() => setSheet(null)}
+      {sheet?.kind === 'rename' && <NameSheet title={L.rename} label={L.nameLabel} initial={o.title} onClose={() => setSheet(null)}
         onSave={(title) => withRelogin(() => api('PATCH', `/outfits/${o.id}`, { body: { title }, ifMatch: o.version, idemKey: newIdemKey() })).then(refresh)} />}
-      {confirm && <ConfirmDialog title={t('outfit.delete')} body={t('outfit.deleteBody')} confirmLabel={t('outfit.delete')} danger onConfirm={remove} onCancel={() => setConfirm(false)} />}
+      {confirm && <ConfirmDialog title={L.delete} body={L.deleteBody} confirmLabel={L.delete} danger onConfirm={remove} onCancel={() => setConfirm(false)} />}
     </Screen>
   );
 }

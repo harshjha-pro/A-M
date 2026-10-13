@@ -553,4 +553,31 @@ SELECT '01JD0AC0000000000000000001', workspace_id, 'bride_outfit', id, 'Maang ti
 INSERT INTO notes (public_id, workspace_id, outfit_id, body, created_by, updated_by)
 SELECT '01JD0N00000000000000000001', workspace_id, id, 'Pastel green with a light dupatta. Trial at Rekha Tailors.', 2, 2 FROM outfits WHERE id = @demo_outfit;
 
+-- Theme & decoration and Menu (migration 007, version 1.0.19): the Mehndi theme, a Stage with its
+-- decor timeline and a prop, and a small Reception menu (one Jain dish).
+UPDATE workspaces SET theme_name = 'Garden mehndi', theme_colours = 'Pastel green, yellow, gold' WHERE public_id = '01JC0WS0000000000000000002';
+INSERT INTO outfits (public_id, workspace_id, person, title, vendor_id, sort_order, created_at, created_by, updated_at, updated_by)
+SELECT '01JD0QF0000000000000000002', w.id, 'decor', 'Stage', (SELECT id FROM vendors WHERE name = 'Shree Tent House' ORDER BY id LIMIT 1), 10, '2026-10-07 10:00:00', 1, '2026-10-07 10:00:00', 1
+FROM workspaces w WHERE w.public_id = '01JC0WS0000000000000000002';
+SET @demo_stage := (SELECT id FROM outfits WHERE public_id = '01JD0QF0000000000000000002');
+INSERT INTO outfit_steps (public_id, outfit_id, name, sort_order, done_on, created_by, updated_by) VALUES
+  ('01JD0ST0000000000000000005', @demo_stage, 'Booked', 10, '2026-10-07', 1, 1),
+  ('01JD0ST0000000000000000006', @demo_stage, 'Sample seen', 20, NULL, 1, 1),
+  ('01JD0ST0000000000000000007', @demo_stage, 'Final approved', 30, NULL, 1, 1),
+  ('01JD0ST0000000000000000008', @demo_stage, 'Set up', 40, NULL, 1, 1);
+INSERT INTO accessories (public_id, workspace_id, section, outfit_id, name, sort_order, created_by, updated_by)
+SELECT '01JD0AC0000000000000000002', workspace_id, 'decor', id, 'Marigold strings', 10, 1, 1 FROM outfits WHERE id = @demo_stage;
+UPDATE attachment_links SET section = 'decor' WHERE public_id = '01JC0VN0000000000000000001';
+UPDATE workspaces SET caterer_id = (SELECT id FROM vendors WHERE name = 'Annapurna Caterers' ORDER BY id LIMIT 1) WHERE public_id = '01JC0WS0000000000000000006';
+INSERT INTO menu_categories (public_id, workspace_id, name, sort_order, created_by, updated_by)
+SELECT '01JD0MC0000000000000000001', id, 'Starters', 10, 2, 2 FROM workspaces WHERE public_id = '01JC0WS0000000000000000006';
+INSERT INTO menu_categories (public_id, workspace_id, name, sort_order, created_by, updated_by)
+SELECT '01JD0MC0000000000000000002', id, 'Desserts', 20, 2, 2 FROM workspaces WHERE public_id = '01JC0WS0000000000000000006';
+INSERT INTO menu_items (public_id, workspace_id, category_id, name, diet, is_must_have, note, sort_order, created_by, updated_by)
+SELECT v.public_id, c.workspace_id, c.id, v.name, v.diet, v.must, v.note, v.sort_order, 2, 2
+FROM (SELECT '01JD0M10000000000000000001' AS public_id, '01JD0MC0000000000000000001' AS cat, 'Paneer tikka' AS name, 'normal' AS diet, 1 AS must, NULL AS note, 10 AS sort_order
+      UNION ALL SELECT '01JD0M10000000000000000002', '01JD0MC0000000000000000001', 'Hara bhara kabab', 'jain', 0, 'No onion, no garlic', 20
+      UNION ALL SELECT '01JD0M10000000000000000003', '01JD0MC0000000000000000002', 'Moong dal halwa', 'normal', 1, 'Served warm', 10) v
+JOIN menu_categories c ON c.public_id = v.cat;
+
 -- End of DEV ONLY demo data.

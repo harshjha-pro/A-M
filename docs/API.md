@@ -850,6 +850,22 @@ Ayush and Mahi only. `GET /workspaces/{id}` also returns `outfits` (cards).
 
 `POST /attachments` and `POST /attachments/{id}/links` accept `outfit_id`, `accessory_id` or `outfit_step_id` (workspace and section are set from it); "where it is used" reads "Mehndi › Bride outfit › Mehndi lehenga › Maang tikka". `POST /tasks` accepts the same three; tasks carry `target {type, id, name, outfit_id}`.
 
+### 6.9d Family outfits, Theme & decoration, Menu (version 1.0.19, Workspace step C)
+
+Ayush and Mahi only. `GET /workspaces/{id}` also returns `theme_name`, `theme_colours`, `caterer`, `menu` and `boards {decor, menu}` (attachments of those sections themselves, not of a decor item or a dish).
+
+|Method|Path|Purpose|
+|-|-|-|
+|POST|`/outfits`|`person` also takes `close_female`, `close_male`, `extended_female`, `extended_male` (Family outfits) and `decor` (a decor item: timeline Booked, Sample seen, Final approved, Set up; accessories are its props); `vendor_id` optional|
+|PATCH|`/outfits/{id}`|+ `vendor_id` (null to clear)|
+|PATCH|`/workspaces/{id}`|+ `theme_name`, `theme_colours`, `caterer_id`|
+|GET|`/workspaces/{id}/menu`|`{caterer, counts {items, jain}, categories [{id, version, name, items [{id, version, name, diet normal/jain, is_must_have, note, attachments, tasks}]}]}`|
+|POST|`/workspaces/{id}/menu-categories` · `/menu-categories/{id}/items`|Add a category / a dish; reply = the whole menu|
+|PATCH / DELETE / POST restore|`/menu-categories/{id}` · `/menu-items/{id}`|Edit / delete with Undo (a category takes its dishes) / restore|
+|POST|`/workspaces/{id}/menu/copy`|`{from_workspace_id}`: same-named categories get the dishes they lack (by name, capitals ignored), the rest come as new categories; notes, Normal / Jain and ⭐ come along, attachments and tasks stay. Reply = the menu + `copied`; `meta.undo` takes it all back.|
+
+`POST /attachments`, `POST /attachments/{id}/links` and `POST /tasks` also accept `menu_item_id` ("Reception › Menu › Paneer tikka"; task `target {type: menu_item, id, name, outfit_id: null, workspace_id}`). Notes are not for dishes (a dish has its own `note`).
+
 ### 6.10 History and activity
 
 |Method|Path|Purpose|Who|Request|Response|Errors|

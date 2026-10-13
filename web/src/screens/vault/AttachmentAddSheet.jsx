@@ -30,13 +30,13 @@ export function CodeField({ value, onChange, except, error }) {
   );
 }
 
-export function VendorSelect({ value, onChange }) {
+export function VendorSelect({ value, onChange, label = t('vault.vendor'), none = t('vault.noVendor') }) {
   const vendors = useQuery({ queryKey: ['vendors'], queryFn: () => api('GET', '/vendors').then((r) => r.data), staleTime: 60_000 });
   return (
     <label className="flex flex-col gap-1">
-      <span className="font-bold">{t('vault.vendor')}</span>
+      <span className="font-bold">{label}</span>
       <select value={value} onChange={(e) => onChange(e.target.value)} className="tap rounded-sm border-[1.5px] border-border-strong bg-surface px-3 text-base text-text">
-        <option value="">{t('vault.noVendor')}</option>
+        <option value="">{none}</option>
         {(vendors.data ?? []).map((v) => <option key={v.id} value={v.id}>{v.name}</option>)}
       </select>
     </label>

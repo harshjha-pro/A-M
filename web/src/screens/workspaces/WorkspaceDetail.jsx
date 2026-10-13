@@ -1,4 +1,4 @@
-// One workspace (1.0.17, step A): tasks strip at the top (tap a task; + Add task links it
+// One workspace (1.0.17, step A; outfits 1.0.18; family outfits, decoration and menu 1.0.19): tasks strip at the top (tap a task; + Add task links it
 // here), the Files section (attachments used here; add one), and the sections that come in
 // the next updates. Edit name / calendar event; delete with Undo (tasks stay).
 import { useState } from 'react';
@@ -18,10 +18,12 @@ import { formatDate, formatDateOnly } from '../../format/ist.js';
 import AttachmentRow from '../vault/AttachmentRow.jsx';
 import AttachmentAddSheet from '../vault/AttachmentAddSheet.jsx';
 import WorkspaceSheet from './WorkspaceSheet.jsx';
-import OutfitSection from '../outfits/OutfitSection.jsx';
+import OutfitSection, { FamilySection } from '../outfits/OutfitSection.jsx';
+import DecorSection from './DecorSection.jsx';
+import MenuSection from './MenuSection.jsx';
 import { t } from '../../i18n/strings.en.js';
 
-const LATER = ['family_outfit', 'decor', 'menu', 'contacts', 'guests', 'timeline'];
+const LATER = ['contacts', 'guests', 'timeline'];
 
 function TaskStrip({ ws }) {
   return (
@@ -103,6 +105,9 @@ export default function WorkspaceDetail() {
       <TaskStrip ws={ws} />
       <OutfitSection ws={ws} sectionKey="bride_outfit" person="bride" title={SECTIONS.bride_outfit} />
       <OutfitSection ws={ws} sectionKey="groom_outfit" person="groom" title={SECTIONS.groom_outfit} />
+      <FamilySection ws={ws} title={SECTIONS.family_outfit} />
+      <DecorSection ws={ws} title={SECTIONS.decor} />
+      <MenuSection ws={ws} title={SECTIONS.menu} />
       <FilesSection ws={ws} />
       {LATER.map((k) => (
         <section key={k} id={k} className="flex flex-col gap-1 rounded-md border-[1.5px] border-dashed border-border p-4">

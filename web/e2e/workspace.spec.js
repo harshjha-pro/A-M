@@ -26,7 +26,7 @@ test('Ayush: Workspace → Mehndi → task in the strip, a link and a video in F
   await expect(page.getByRole('list', { name: 'Tasks' }).getByText(`Book mehndi artist ${tag}`)).toBeVisible();
 
   // A link in Files.
-  await page.getByRole('button', { name: 'Add attachment' }).click();
+  await page.getByRole('region', { name: 'Files' }).getByRole('button', { name: 'Add attachment' }).click();
   let sheet = page.getByRole('dialog');
   await sheet.getByText('Link', { exact: true }).click();
   await sheet.getByLabel('Link (https://…)').fill('https://example.com/haath');
@@ -35,7 +35,7 @@ test('Ayush: Workspace → Mehndi → task in the strip, a link and a video in F
   await expect(page.getByText(`Haath design ${tag}`)).toBeVisible();
 
   // A 5 MB video: 3 pieces of 2 MB.
-  await page.getByRole('button', { name: 'Add attachment' }).click();
+  await page.getByRole('region', { name: 'Files' }).getByRole('button', { name: 'Add attachment' }).click();
   sheet = page.getByRole('dialog');
   await sheet.getByText('Video', { exact: true }).click();
   await sheet.getByTestId('vault-file').setInputFiles({ name: `trial-${tag}.mp4`, mimeType: 'video/mp4', buffer: Buffer.alloc(5 * 1024 * 1024, info.project.name.length) });

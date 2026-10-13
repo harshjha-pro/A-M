@@ -98,7 +98,7 @@ describe('Workspaces', () => {
     for (const later of ['Bride outfit', 'Groom outfit', 'Menu', 'Event timeline']) expect(screen.getByRole('heading', { name: later })).toBeInTheDocument();
     expect(await axe(container)).toHaveNoViolations();
 
-    await user.click(screen.getByRole('button', { name: 'Add attachment' }));
+    await user.click(within(screen.getByRole('region', { name: 'Files' })).getByRole('button', { name: 'Add attachment' }));
     const sheet = screen.getByRole('dialog');
     await user.click(within(sheet).getByRole('radio', { name: 'Link' }));
     await user.type(within(sheet).getByLabelText('Link (https://…)'), 'https://example.com/haath');

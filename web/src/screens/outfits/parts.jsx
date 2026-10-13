@@ -24,7 +24,7 @@ export function useRefresh(outfitId) {
   };
 }
 
-/** target: { outfitId } | { accessoryId } | { outfitStepId } */
+/** target: { outfitId } | { accessoryId } | { outfitStepId } (notes); attachments also { menuItemId } (1.0.19) */
 export function NotesBlock({ target, notes, refresh }) {
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
@@ -68,7 +68,8 @@ export function NotesBlock({ target, notes, refresh }) {
   );
 }
 
-export function AttachBlock({ target, attachments, refresh, grid = false }) {
+/** target for an outfit / accessory / step / dish, or place = { workspaceId, section } for a section's own board (1.0.19). */
+export function AttachBlock({ target = null, place = null, attachments, refresh, grid = false }) {
   const [adding, setAdding] = useState(false);
   return (
     <div className="flex flex-col gap-2">
@@ -88,13 +89,13 @@ export function AttachBlock({ target, attachments, refresh, grid = false }) {
         </ul>
       )}
       <Button variant="secondary" needsInternet onClick={() => setAdding(true)}><Plus aria-hidden="true" size={20} />{t('vault.addHere')}</Button>
-      {adding && <AttachmentAddSheet target={target} onClose={() => setAdding(false)} onAdded={refresh} />}
+      {adding && <AttachmentAddSheet target={target} workspaceId={place?.workspaceId} section={place?.section} onClose={() => setAdding(false)} onAdded={refresh} />}
     </div>
   );
 }
 
-/** Tasks for one place, with Add task (the form comes back to the outfit page). */
-export function TasksBlock({ tasks, query, outfitId }) {
+/** Tasks for one place, with Add task (the form comes back to the outfit page, or to `back`). */
+export function TasksBlock({ tasks, query, outfitId, back = null }) {
   return (
     <div className="flex flex-col gap-2">
       {tasks.length === 0 && <p className="text-text-muted">{t('outfit.noTasks')}</p>}
@@ -108,7 +109,7 @@ export function TasksBlock({ tasks, query, outfitId }) {
           </li>
         ))}
       </ul>
-      <Link to={`/tasks/new?${query}&back=${encodeURIComponent(`/outfits/${outfitId}`)}`} className="tap inline-flex items-center gap-1 self-start font-bold text-primary"><Plus aria-hidden="true" size={20} />{t('outfit.addTask')}</Link>
+      <Link to={`/tasks/new?${query}&back=${encodeURIComponent(back ?? `/outfits/${outfitId}`)}`} className="tap inline-flex items-center gap-1 self-start font-bold text-primary"><Plus aria-hidden="true" size={20} />{t('outfit.addTask')}</Link>
     </div>
   );
 }

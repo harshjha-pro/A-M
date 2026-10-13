@@ -1,8 +1,8 @@
 -- =============================================================================
--- A&M Wedding Planner — master_with_demo.sql  (version 1.0.18)
+-- A&M Wedding Planner — master_with_demo.sql  (version 1.0.19)
 -- ONE file for a NEW, EMPTY database:
 --   phpMyAdmin → select the database → Import → this file → Character set utf-8 → Go.
--- Contains, in order: migrations/001_init.sql migrations/002_open_answers.sql migrations/003_api_support.sql migrations/004_home_photos.sql migrations/005_workspaces_vault.sql migrations/006_outfits.sql dev/seed_demo.sql
+-- Contains, in order: migrations/001_init.sql migrations/002_open_answers.sql migrations/003_api_support.sql migrations/004_home_photos.sql migrations/005_workspaces_vault.sql migrations/006_outfits.sql migrations/007_decor_menu.sql dev/seed_demo.sql
 -- On a database that already has the tables it stops at the first line
 -- ("Table 'schema_migrations' already exists") and changes nothing.
 -- Made by tools/make-master-sql.sh — do not edit; edit the files listed above.
@@ -1551,6 +1551,114 @@ UPDATE attachment_links SET public_id = '01JC0VN0000000000000000001' WHERE publi
 UPDATE schema_migrations SET finished_at = CURRENT_TIMESTAMP WHERE version = 6;
 
 
+-- ##### migrations/007_decor_menu.sql #####
+
+-- =============================================================================
+-- A&M Wedding Planner — migration 007_decor_menu.sql
+-- Workspace step C: family outfits, theme & decoration, menu (version 1.0.19). Run AFTER 006.
+-- Target: MySQL 8.0.16+ (also runs on MariaDB 10.4+).
+--
+--   1. outfits: person + 'decor' (a decor item — Stage, Entry gate, Mandap — has the
+--      same page as an outfit: timeline, moodboard, accessories/props, notes, tasks),
+--      and + vendor_id (the decorator / tailor). Family outfits need no change.
+--   2. workspaces: + theme_name, theme_colours (Theme & decoration) and caterer_id (Menu).
+--   3. menu_categories / menu_items: the menu of a workspace; each item Normal or Jain,
+--      ⭐ must-have, a short note.
+--   4. attachment_links: + menu_item_id (a dish photo or menu PDF from the Vault).
+--   tasks.target_type also takes 'menu_item' (no column change).
+--
+-- Card tracking (planned) moves to 008.
+-- =============================================================================
+
+-- Fails here, changing nothing, if 007 already ran.
+INSERT INTO schema_migrations (version, name, applied_by)
+VALUES (7, '007_decor_menu', 'phpMyAdmin');
+
+ALTER TABLE outfits
+  MODIFY COLUMN person ENUM('bride','groom','close_male','close_female','extended_male','extended_female','decor') NOT NULL,
+  ADD COLUMN vendor_id BIGINT UNSIGNED NULL AFTER title,
+  ADD CONSTRAINT fk_outfits_vendor FOREIGN KEY (vendor_id) REFERENCES vendors (id) ON DELETE RESTRICT ON UPDATE RESTRICT;
+
+ALTER TABLE workspaces
+  ADD COLUMN theme_name    VARCHAR(80) NULL AFTER notes,
+  ADD COLUMN theme_colours VARCHAR(120) NULL AFTER theme_name,
+  ADD COLUMN caterer_id    BIGINT UNSIGNED NULL AFTER theme_colours,
+  ADD CONSTRAINT fk_workspaces_caterer FOREIGN KEY (caterer_id) REFERENCES vendors (id) ON DELETE RESTRICT ON UPDATE RESTRICT;
+
+CREATE TABLE menu_categories (
+  id               BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  public_id        CHAR(26) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+  client_uuid      CHAR(36) CHARACTER SET ascii COLLATE ascii_general_ci NULL,
+  workspace_id     BIGINT UNSIGNED NOT NULL,
+  name             VARCHAR(80) NOT NULL,
+  sort_order       SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+  version          INT UNSIGNED NOT NULL DEFAULT 1,
+  created_at       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  created_by       BIGINT UNSIGNED NULL,
+  updated_at       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  updated_by       BIGINT UNSIGNED NULL,
+  deleted_at       DATETIME NULL,
+  deleted_by       BIGINT UNSIGNED NULL,
+  delete_batch_id  BIGINT UNSIGNED NULL,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_menu_categories_public_id (public_id),
+  UNIQUE KEY uq_menu_categories_client_uuid (client_uuid),
+  KEY ix_menu_categories_ws (workspace_id, deleted_at, sort_order),
+  CONSTRAINT fk_menu_categories_workspace  FOREIGN KEY (workspace_id) REFERENCES workspaces (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT fk_menu_categories_created_by FOREIGN KEY (created_by) REFERENCES users (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT fk_menu_categories_updated_by FOREIGN KEY (updated_by) REFERENCES users (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT fk_menu_categories_deleted_by FOREIGN KEY (deleted_by) REFERENCES users (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT fk_menu_categories_batch      FOREIGN KEY (delete_batch_id) REFERENCES change_batches (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT ck_menu_categories_version CHECK (version >= 1),
+  CONSTRAINT ck_menu_categories_deleted CHECK ((deleted_at IS NULL) = (delete_batch_id IS NULL))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE menu_items (
+  id               BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  public_id        CHAR(26) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+  client_uuid      CHAR(36) CHARACTER SET ascii COLLATE ascii_general_ci NULL,
+  workspace_id     BIGINT UNSIGNED NOT NULL,
+  category_id      BIGINT UNSIGNED NOT NULL,
+  name             VARCHAR(120) NOT NULL,
+  diet             ENUM('normal','jain') NOT NULL DEFAULT 'normal',
+  is_must_have     TINYINT(1) NOT NULL DEFAULT 0,
+  note             VARCHAR(500) NULL,
+  sort_order       SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+  version          INT UNSIGNED NOT NULL DEFAULT 1,
+  created_at       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  created_by       BIGINT UNSIGNED NULL,
+  updated_at       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  updated_by       BIGINT UNSIGNED NULL,
+  deleted_at       DATETIME NULL,
+  deleted_by       BIGINT UNSIGNED NULL,
+  delete_batch_id  BIGINT UNSIGNED NULL,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_menu_items_public_id (public_id),
+  UNIQUE KEY uq_menu_items_client_uuid (client_uuid),
+  KEY ix_menu_items_category (category_id, deleted_at, sort_order),
+  KEY ix_menu_items_ws (workspace_id, deleted_at),
+  CONSTRAINT fk_menu_items_workspace  FOREIGN KEY (workspace_id) REFERENCES workspaces (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT fk_menu_items_category   FOREIGN KEY (category_id) REFERENCES menu_categories (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT fk_menu_items_created_by FOREIGN KEY (created_by) REFERENCES users (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT fk_menu_items_updated_by FOREIGN KEY (updated_by) REFERENCES users (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT fk_menu_items_deleted_by FOREIGN KEY (deleted_by) REFERENCES users (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT fk_menu_items_batch      FOREIGN KEY (delete_batch_id) REFERENCES change_batches (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT ck_menu_items_version CHECK (version >= 1),
+  CONSTRAINT ck_menu_items_deleted CHECK ((deleted_at IS NULL) = (delete_batch_id IS NULL)),
+  CONSTRAINT ck_menu_items_must CHECK (is_must_have IN (0, 1))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+ALTER TABLE attachment_links
+  ADD COLUMN menu_item_id BIGINT UNSIGNED NULL AFTER outfit_step_id,
+  ADD KEY ix_attachment_links_menu_item (menu_item_id, deleted_at),
+  ADD CONSTRAINT fk_attachment_links_menu_item FOREIGN KEY (menu_item_id) REFERENCES menu_items (id) ON DELETE RESTRICT ON UPDATE RESTRICT;
+
+ALTER TABLE tasks
+  MODIFY COLUMN target_type VARCHAR(20) CHARACTER SET ascii COLLATE ascii_general_ci NULL COMMENT 'outfit, accessory, outfit_step or menu_item';
+
+UPDATE schema_migrations SET finished_at = CURRENT_TIMESTAMP WHERE version = 7;
+
+
 -- ##### dev/seed_demo.sql #####
 
 -- =============================================================================
@@ -2107,6 +2215,33 @@ INSERT INTO accessories (public_id, workspace_id, section, outfit_id, name, sort
 SELECT '01JD0AC0000000000000000001', workspace_id, 'bride_outfit', id, 'Maang tikka', 10, 2, 2 FROM outfits WHERE id = @demo_outfit;
 INSERT INTO notes (public_id, workspace_id, outfit_id, body, created_by, updated_by)
 SELECT '01JD0N00000000000000000001', workspace_id, id, 'Pastel green with a light dupatta. Trial at Rekha Tailors.', 2, 2 FROM outfits WHERE id = @demo_outfit;
+
+-- Theme & decoration and Menu (migration 007, version 1.0.19): the Mehndi theme, a Stage with its
+-- decor timeline and a prop, and a small Reception menu (one Jain dish).
+UPDATE workspaces SET theme_name = 'Garden mehndi', theme_colours = 'Pastel green, yellow, gold' WHERE public_id = '01JC0WS0000000000000000002';
+INSERT INTO outfits (public_id, workspace_id, person, title, vendor_id, sort_order, created_at, created_by, updated_at, updated_by)
+SELECT '01JD0QF0000000000000000002', w.id, 'decor', 'Stage', (SELECT id FROM vendors WHERE name = 'Shree Tent House' ORDER BY id LIMIT 1), 10, '2026-10-07 10:00:00', 1, '2026-10-07 10:00:00', 1
+FROM workspaces w WHERE w.public_id = '01JC0WS0000000000000000002';
+SET @demo_stage := (SELECT id FROM outfits WHERE public_id = '01JD0QF0000000000000000002');
+INSERT INTO outfit_steps (public_id, outfit_id, name, sort_order, done_on, created_by, updated_by) VALUES
+  ('01JD0ST0000000000000000005', @demo_stage, 'Booked', 10, '2026-10-07', 1, 1),
+  ('01JD0ST0000000000000000006', @demo_stage, 'Sample seen', 20, NULL, 1, 1),
+  ('01JD0ST0000000000000000007', @demo_stage, 'Final approved', 30, NULL, 1, 1),
+  ('01JD0ST0000000000000000008', @demo_stage, 'Set up', 40, NULL, 1, 1);
+INSERT INTO accessories (public_id, workspace_id, section, outfit_id, name, sort_order, created_by, updated_by)
+SELECT '01JD0AC0000000000000000002', workspace_id, 'decor', id, 'Marigold strings', 10, 1, 1 FROM outfits WHERE id = @demo_stage;
+UPDATE attachment_links SET section = 'decor' WHERE public_id = '01JC0VN0000000000000000001';
+UPDATE workspaces SET caterer_id = (SELECT id FROM vendors WHERE name = 'Annapurna Caterers' ORDER BY id LIMIT 1) WHERE public_id = '01JC0WS0000000000000000006';
+INSERT INTO menu_categories (public_id, workspace_id, name, sort_order, created_by, updated_by)
+SELECT '01JD0MC0000000000000000001', id, 'Starters', 10, 2, 2 FROM workspaces WHERE public_id = '01JC0WS0000000000000000006';
+INSERT INTO menu_categories (public_id, workspace_id, name, sort_order, created_by, updated_by)
+SELECT '01JD0MC0000000000000000002', id, 'Desserts', 20, 2, 2 FROM workspaces WHERE public_id = '01JC0WS0000000000000000006';
+INSERT INTO menu_items (public_id, workspace_id, category_id, name, diet, is_must_have, note, sort_order, created_by, updated_by)
+SELECT v.public_id, c.workspace_id, c.id, v.name, v.diet, v.must, v.note, v.sort_order, 2, 2
+FROM (SELECT '01JD0M10000000000000000001' AS public_id, '01JD0MC0000000000000000001' AS cat, 'Paneer tikka' AS name, 'normal' AS diet, 1 AS must, NULL AS note, 10 AS sort_order
+      UNION ALL SELECT '01JD0M10000000000000000002', '01JD0MC0000000000000000001', 'Hara bhara kabab', 'jain', 0, 'No onion, no garlic', 20
+      UNION ALL SELECT '01JD0M10000000000000000003', '01JD0MC0000000000000000002', 'Moong dal halwa', 'normal', 1, 'Served warm', 10) v
+JOIN menu_categories c ON c.public_id = v.cat;
 
 -- End of DEV ONLY demo data.
 

@@ -4090,6 +4090,7 @@ components:
         tasks: { type: array, items: { $ref: '#/components/schemas/Task' }, description: 'GET /workspaces/{id} only' }
         outfits: { type: array, items: { $ref: '#/components/schemas/Outfit' }, description: 'GET /workspaces/{id} only: outfits and decor items' }
         menu: { $ref: '#/components/schemas/Menu' }
+        boards: { type: object, description: 'GET /workspaces/{id} only: attachments of the decor and menu sections themselves', properties: { decor: { type: array, items: { $ref: '#/components/schemas/Attachment' } }, menu: { type: array, items: { $ref: '#/components/schemas/Attachment' } } } }
     WorkspaceInput:
       type: object
       additionalProperties: false

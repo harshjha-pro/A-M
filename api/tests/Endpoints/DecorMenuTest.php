@@ -55,6 +55,9 @@ final class DecorMenuTest extends ApiTestCase
         $this->assertSame([self::MEHNDI, 'decor'], [$task['workspace']['id'], $task['workspace_section']]);
         $a = $c->postJson('/attachments', ['kind' => 'link', 'url' => 'https://example.com/stage', 'title' => 'Stage idea', 'outfit_id' => $d['id']])->assertStatus(201)->json('data');
         $this->assertSame('Mehndi › Theme & decoration › Stage', $a['used_in'][0]['path']);
+        $theme = $c->postJson('/attachments', ['kind' => 'link', 'url' => 'https://example.com/garden', 'title' => 'Garden look', 'workspace_id' => self::MEHNDI, 'section' => 'decor'])->assertStatus(201)->json('data');
+        $boards = $c->get('/workspaces/' . self::MEHNDI)->json('data.boards');
+        $this->assertSame([[$theme['id']], []], [array_column($boards['decor'], 'id'), $boards['menu']], 'the theme board has only the section\'s own attachments, not the Stage\'s');
         $d = $c->patchJson("/outfits/{$d['id']}", ['vendor_id' => null], $d['version'])->assertStatus(200)->json('data');
         $this->assertNull($d['vendor']);
         $c->patchJson("/outfits/{$d['id']}", ['vendor_id' => '01JA6ZB0000000000000000999'], $d['version'])->assertStatus(422);
