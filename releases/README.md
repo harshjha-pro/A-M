@@ -31,3 +31,7 @@ Version 1.0.17 (Workspace step A + Attachment Vault, "Session 14b"):
 Version 1.0.18 (Workspace step B: bride and groom outfits, "Session 14c"):
 
 - `deploy-session14c.zip` — Hostinger upload packages **plus `migrations/006_outfits.sql`** (run it first; run 004 and 005 first if you never did)
+
+Version 1.0.19 (Workspace step C: family outfits, decoration, menu, "Session 14d"):
+
+- `deploy-session14d.zip` — Hostinger upload packages **plus `migrations/007_decor_menu.sql`** (run it first; run 004, 005 and 006 first if you never did)

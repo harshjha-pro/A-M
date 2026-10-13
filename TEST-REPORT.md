@@ -1,18 +1,18 @@
-# Test report — Workspace step B: outfits — version 1.0.18
+# Test report — Workspace step C: family outfits, decoration, menu
 
-Date: 2026-10-13T15:18Z · App version: 1.0.18 · DB: **MySQL 8.0.46-0ubuntu0.24.04.4** (sandbox, same major as Hostinger) · PHP 8.3.6 · Node v22.22.0 · Web server for .htaccess tests: Apache/2.4.58 (Ubuntu)
+Date: 2026-10-13T17:57Z · App version: 1.0.19 · DB: **MySQL 8.0.46-0ubuntu0.24.04.4** (sandbox, same major as Hostinger) · PHP 8.3.6 · Node v22.22.0 · Web server for .htaccess tests: Apache/2.4.58 (Ubuntu)
 
 Overall: **GREEN — all suites passed**
 
 | Suite | Result |
 |---|---|
-| PHPUnit (unit, db, endpoints, security, static, coverage) | OK (930 tests, 9731 assertions) |
-| Endpoint coverage | 153/153 operations built and tested (the rest arrive session by session) |
-| Vitest (formats, API client, shell, routes, axe) | Tests 276 passed (276) |
-| Build (staging + live) | JS 122.99 kB gz · CSS 7.15 kB gz |
+| PHPUnit (unit, db, endpoints, security, static, coverage) | OK (975 tests, 10080 assertions) |
+| Endpoint coverage | 163/163 operations built and tested (the rest arrive session by session) |
+| Vitest (formats, API client, shell, routes, axe) | Tests 282 passed (282) |
+| Build (staging + live) | JS 123.55 kB gz · CSS 7.15 kB gz |
 | HTTP rules (real requests) | Apache 2.4.58 + real .htaccess: PASS · php -S + tools/router.php: PASS — OK (13 tests, 267 assertions) OK (13 tests, 263 assertions)  |
-| Playwright smoke (android, small-iphone, small-android; Chromium, not Safari) | 149 passed (10.4m) |
-| Lighthouse mobile, simulated slow 4G (budget: Perf ≥ 90, A11y ≥ 95, BP ≥ 95) | login: Performance 95 · Accessibility 100 · Best Practices 96 · LCP 2.63 s · TBT 26 ms · CLS 0.000 home: Performance 91 · Accessibility 100 · Best Practices 100 · LCP 2.93 s · TBT 193 ms · CLS 0.026 guests: Performance 90 · Accessibility 100 · Best Practices 100 · LCP 3.10 s · TBT 171 ms · CLS 0.000  |
+| Playwright smoke (android, small-iphone, small-android; Chromium, not Safari) | 152 passed (9.9m) |
+| Lighthouse mobile, simulated slow 4G (budget: Perf ≥ 90, A11y ≥ 95, BP ≥ 95) | login: Performance 96 · Accessibility 100 · Best Practices 96 · LCP 2.46 s · TBT 6 ms · CLS 0.000 home: Performance 90 · Accessibility 100 · Best Practices 100 · LCP 2.96 s · TBT 227 ms · CLS 0.035 guests: Performance 91 · Accessibility 100 · Best Practices 100 · LCP 2.95 s · TBT 178 ms · CLS 0.018  |
 
 Database checks: 001 → 002 → 003 apply with finished_at set; second run of each stops at its guard with data unchanged (DS-28); seed_demo.sql loads (61 families, Devanagari intact) and its second run stops at user id 1.
 
@@ -85,6 +85,12 @@ Dashboard (Tests\Endpoints\Dashboard)
  ✔ Ac dash 05 safety backup 27 hours old is red
  ✔ Start here and recent activity for admins
  ✔ Documented demo results
+Decor Menu (Tests\Endpoints\DecorMenu)
+ ✔ Family outfits in four groups
+ ✔ Decor item has its own timeline vendor props and the theme is on the workspace
+ ✔ Menu categories and dishes normal or jain with caterer
+ ✔ Dish attachments and tasks delete category with its dishes undo
+ ✔ Copy a menu merges by category skips dishes already there and one undo takes it back
 Documents (Tests\Endpoints\Documents)
  ✔ Upload photo stored outside web auto title ds04
  ✔ Ac doc 04 same file twice then save again on the same file
@@ -164,10 +170,4 @@ Guests Import (Tests\Endpoints\GuestsImport)
  ✔ Three thousand rows
 Guests Scale (Tests\Endpoints\GuestsScale)
  ✔ Headcount matches database 7 4 on demo data
- ✔ List of 50 with 2000 families under 300ms
-Headers (Tests\Security\Headers)
- ✔ Api security headers on success and error
- ✔ Cross origin preflight gets no cors
-Health (Tests\Endpoints\Health)
- ✔ Anonymous gets only status ok
 ```
