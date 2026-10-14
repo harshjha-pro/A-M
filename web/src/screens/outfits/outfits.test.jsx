@@ -105,11 +105,10 @@ describe('Outfit page', () => {
     expect(JSON.parse(calls.mock.calls.find(([u, i]) => i?.method === 'POST' && u.endsWith('/notes'))[1].body)).toEqual({ outfit_id: O, body: 'Light dupatta' });
   });
 
-  test('Family never opens an outfit', async () => {
+  test('1.0.21: Family opens an outfit', async () => {
     signInAs('papa');
-    const calls = fakeApi({});
+    fakeApi({ [`GET /outfits/${O}`]: () => ok(outfit()), 'GET /vendors': () => ok([]) });
     renderAt(`/outfits/${O}`);
-    expect(await screen.findByText('Only Ayush and Mahi can open workspaces.')).toBeInTheDocument();
-    expect(calls.mock.calls.filter(([u]) => u.includes('/outfits'))).toEqual([]);
+    expect(await screen.findByRole('heading', { level: 1, name: 'Mehndi lehenga' })).toBeInTheDocument();
   });
 });

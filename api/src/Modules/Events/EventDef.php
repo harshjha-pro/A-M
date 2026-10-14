@@ -71,7 +71,7 @@ final class EventDef extends EntityDef
             'dress_code' => $row['dress_code'],
             'notes' => $row['notes'],
             'sort_order' => (int) $row['sort_order'],
-            'workspace' => \AM\Auth\Permissions::isAdmin($viewer) ? CalendarController::workspaceOf($db, (int) $row['id']) : null,
+            'workspace' => \AM\Auth\WorkspaceAccess::canView($viewer) ? CalendarController::workspaceOf($db, (int) $row['id']) : null,
             'counts' => $counts,
             'headcount' => (bool) $row['guests_invited'] ? Headcount::forEvent($db, $row) : null,
             'created_at' => Time::iso($row['created_at']),

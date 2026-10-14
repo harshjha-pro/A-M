@@ -1,6 +1,7 @@
 // Add / edit a task (FEATURES B3, DESIGN §6.2). Quick fields first (title, due date,
 // assigned to), the rest under "More details". Shared form rules: changed fields
 // only + If-Match, a draft on this phone, the conflict screen on a clash.
+import { canEditWorkspace } from '../../api/workspaceAccess.js';
 import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -17,21 +18,22 @@ import { saveViaOutbox } from '../../offline/save.js';
 import { DuplicateError } from '../../api/errors.js';
 import { useSession } from '../../api/session.js';
 import { useEntityForm } from '../../forms/useEntityForm.js';
+import { CodeField } from '../vault/AttachmentAddSheet.jsx';
 import { showToast } from '../../undo/undoStore.js';
 import { useTags } from './TaskList.jsx';
 import { formatDateOnly } from '../../format/ist.js';
 import { t } from '../../i18n/strings.en.js';
 
-const FIELDS = ['title', 'notes', 'status', 'priority', 'dueDate', 'dueTime', 'assigneeIds', 'tagIds', 'newTags', 'eventId', 'workspaceId'];
+const FIELDS = ['code', 'title', 'notes', 'status', 'priority', 'dueDate', 'dueTime', 'assigneeIds', 'tagIds', 'newTags', 'eventId', 'workspaceId'];
 const LABELS = {
-  title: t('tasks.titleLabel'), notes: t('tasks.notes'), status: t('tasks.statusLabel'), priority: t('tasks.priorityLabel'),
+  code: t('tasks.codeLabel'), title: t('tasks.titleLabel'), notes: t('tasks.notes'), status: t('tasks.statusLabel'), priority: t('tasks.priorityLabel'),
   dueDate: t('tasks.due'), dueTime: t('tasks.time'), assigneeIds: t('tasks.assignees'), tagIds: t('tasks.tags'), newTags: t('tasks.newTag'), eventId: t('tasks.eventLabel'), workspaceId: t('nav.workspace'),
 };
 const EMPTY = { version: 0, title: '', notes: '', status: 'todo', priority: 'normal', dueDate: null, dueTime: null, assignees: null, tags: [] };
 
 function toForm(task, meId) {
   return {
-    title: task.title ?? '', notes: task.notes ?? '', status: task.status, priority: task.priority,
+    code: task.code ?? '', title: task.title ?? '', notes: task.notes ?? '', status: task.status, priority: task.priority,
     dueDate: task.dueDate ?? '', dueTime: task.dueTime ?? '',
     assigneeIds: task.assignees ? task.assignees.map((a) => a.id) : [meId],
     tagIds: (task.tags ?? []).map((g) => g.id), newTags: [], eventId: task.event?.id ?? '', workspaceId: task.workspace?.id ?? '',
@@ -60,7 +62,7 @@ export default function TaskForm() {
   const backTo = search.get('back');
   const record = id ? q.data : EMPTY;
   const events = useQuery({ queryKey: ['events'], queryFn: () => api('GET', '/events').then((r) => r.data), staleTime: 60_000 });
-  const workspaces = useQuery({ queryKey: ['workspaces'], queryFn: () => api('GET', '/workspaces').then((r) => r.data), staleTime: 60_000, enabled: Boolean(permissions?.admin) });
+  const workspaces = useQuery({ queryKey: ['workspaces'], queryFn: () => api('GET', '/workspaces').then((r) => r.data), staleTime: 60_000, enabled: canEditWorkspace(permissions) });
 
   const f = useEntityForm({
     form: 'task',
@@ -76,6 +78,7 @@ export default function TaskForm() {
         else if (k === 'tagIds') body.tagIds = v.tagIds;
         else if (k === 'newTags') { if (v.newTags.length) body.newTags = v.newTags; }
         else if (k === 'dueDate' || k === 'dueTime' || k === 'eventId' || k === 'workspaceId') body[k] = v[k] || null;
+        else if (k === 'code') { if (v.code.trim()) body.code = v.code.trim(); } // empty = a random ID (1.0.22)
         else body[k] = v[k];
       }
       if (!id) {
@@ -165,6 +168,7 @@ export default function TaskForm() {
           </div>
         )}
         <TextField label={t('tasks.titleLabel')} value={v.title} onChange={f.set('title')} error={errors.title} maxLength={200} autoFocus={!id} />
+        <CodeField value={v.code ?? ''} onChange={f.set('code')} except={id} error={errors.code} endpoint="/tasks/check-code" help={t('tasks.codeHelp')} label={t('tasks.codeLabel')} />
         <DateField label={t('tasks.due')} value={v.dueDate} onChange={(d) => { f.set('dueDate')(d); if (!d) f.set('dueTime')(''); }} error={errors.dueDate} />
         {activeMembers.length > 0 && (
           <MultiChips label={t('tasks.assignees')} options={activeMembers.map((m) => ({ value: m.id, label: m.id === user?.id ? `${m.name} (me)` : m.name }))}
@@ -183,7 +187,7 @@ export default function TaskForm() {
                 </select>
               </label>
             )}
-            {permissions?.admin && (workspaces.data ?? []).length > 0 && (
+            {canEditWorkspace(permissions) && (workspaces.data ?? []).length > 0 && (
               <label className="flex flex-col gap-1">
                 <span className="font-bold">{t('nav.workspace')}</span>
                 <select value={v.workspaceId} onChange={(e) => f.set('workspaceId')(e.target.value)} className="tap rounded-sm border-[1.5px] border-border-strong bg-surface px-3 text-base text-text">

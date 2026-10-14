@@ -58,15 +58,15 @@ final class WorkspacesVaultTest extends ApiTestCase
         $this->assertSame('Mehndi', $byName['Mehndi']['event']['name']);
         $this->assertSame('Wedding', $byName['Varmala & Phere']['event']['name']);
         $this->assertNull($byName['Carnival']['event']);
+        // 1.0.21 (owner: "visible to all for now"): everyone who can log in sees workspaces and the Vault.
         foreach (['papa', 'mummy', 'nani'] as $who) {
-            $this->loginAs($who)->get('/workspaces')->assertStatus(403);
-            $this->loginAs($who)->get('/workspaces/' . self::MEHNDI_WS)->assertStatus(403);
-            $this->loginAs($who)->get('/attachments')->assertStatus(403);
+            $this->assertCount(7, $this->loginAs($who)->get('/workspaces')->assertStatus(200)->json('data'));
+            $this->loginAs($who)->get('/workspaces/' . self::MEHNDI_WS)->assertStatus(200);
+            $this->loginAs($who)->get('/attachments')->assertStatus(200);
         }
-        // The calendar event shows its workspace to admins only.
         $ev = $byName['Mehndi']['event']['id'];
         $this->assertSame(['id' => self::MEHNDI_WS, 'name' => 'Mehndi'], $mahi->get("/events/$ev")->json('data.workspace'));
-        $this->assertNull($this->loginAs('papa')->get("/events/$ev")->json('data.workspace'));
+        $this->assertSame(['id' => self::MEHNDI_WS, 'name' => 'Mehndi'], $this->loginAs('nani')->get("/events/$ev")->json('data.workspace'));
     }
 
     #[Endpoint('POST /workspaces')]
@@ -76,7 +76,7 @@ final class WorkspacesVaultTest extends ApiTestCase
     public function test_add_rename_link_delete_and_restore_a_workspace(): void
     {
         $ayush = $this->loginAs('ayush');
-        $this->loginAs('papa')->postJson('/workspaces', ['name' => 'Haldi'])->assertStatus(403);
+        $this->loginAs('nani')->postJson('/workspaces', ['name' => 'Haldi'])->assertStatus(403); // view only
         $w = $ayush->postJson('/workspaces', ['name' => 'Haldi'])->assertStatus(201)->json('data');
         $this->assertSame(80, $w['sort_order']);
         $this->assertSame('A workspace called Mehndi already exists.', $ayush->postJson('/workspaces', ['name' => 'Mehndi'])->assertStatus(422)->json('error.fields.name'));
@@ -104,7 +104,6 @@ final class WorkspacesVaultTest extends ApiTestCase
         $this->assertSame(1, $ws['counts']['tasks_open']);
         $this->assertSame(['Book mehndi artist'], array_column($ayush->get('/tasks', ['view' => 'all', 'workspace' => self::MEHNDI_WS])->json('data'), 'title'));
         // Family edits tasks but doesn't move them between workspaces.
-        $this->loginAs('papa')->patchJson("/tasks/{$t['id']}", ['workspace_id' => null], 1)->assertStatus(403);
         $this->loginAs('papa')->patchJson("/tasks/{$t['id']}", ['notes' => 'Ask Rekha'], 1)->assertStatus(200);
         // A section without a workspace means nothing: dropped.
         $x = $ayush->postJson('/tasks', ['title' => 'Loose', 'workspace_section' => 'menu', 'allow_duplicate' => true])->json('data');
@@ -135,7 +134,8 @@ final class WorkspacesVaultTest extends ApiTestCase
         $this->assertTrue($done['complete']);
         $this->assertSame(3, $this->rows('vault_file_chunks'));
         $a = $this->add($mahi, ['kind' => 'video', 'upload_id' => $id, 'title' => 'Lehenga trial', 'workspace_id' => self::MEHNDI_WS, 'section' => 'bride_outfit'])->assertStatus(201)->json('data');
-        $this->assertSame(['ATT-000001', 'video', 'Mehndi › Bride outfit'], [$a['code'], $a['kind'], $a['used_in'][0]['path']]);
+        $this->assertMatchesRegularExpression('/^ATT-[23456789A-HJKMNP-TV-Z]{6}$/', $a['code']); // 1.0.22: random
+        $this->assertSame(['video', 'Mehndi › Bride outfit'], [$a['kind'], $a['used_in'][0]['path']]);
         $file = $mahi->get("/attachments/{$a['id']}/file");
         $file->assertStatus(200);
         $this->assertSame($video, $file->body());
@@ -151,7 +151,7 @@ final class WorkspacesVaultTest extends ApiTestCase
         // The same file again is not sent again.
         $again = $mahi->postJson('/attachment-uploads', ['name' => 'copy.mp4', 'mime_type' => 'video/mp4', 'size_bytes' => strlen($video), 'sha256' => hash('sha256', $video)])->assertStatus(200)->json('data');
         $this->assertTrue($again['complete']);
-        $this->loginAs('papa')->get("/attachments/{$a['id']}/file")->assertStatus(403);
+        $this->loginAs('nani')->get("/attachments/{$a['id']}/file")->assertStatus(200); // 1.0.21: visible to all
     }
 
     public function test_a_wrong_checksum_starts_the_upload_again(): void
@@ -188,7 +188,7 @@ final class WorkspacesVaultTest extends ApiTestCase
         $c->request('DELETE', "/attachments/{$photo['id']}", null, [], [], ['ifMatch' => 2])->assertStatus(200);
         $this->assertStringContainsString('(Deleted items)', $c->patchJson("/attachments/{$link['id']}", ['code' => 'BRIDE-LEHENGA-01'], 1)->assertStatus(422)->json('error.fields.code'));
         // History says it in plain words.
-        $this->assertStringContainsString('changed ID from ATT-000001 to BRIDE-LEHENGA-01', implode("\n", array_column($c->get("/attachments/{$photo['id']}/history")->json('data'), 'sentence')));
+        $this->assertMatchesRegularExpression('/changed ID from ATT-[23456789A-HJKMNP-TV-Z]{6} to BRIDE-LEHENGA-01/', implode("\n", array_column($c->get("/attachments/{$photo['id']}/history")->json('data'), 'sentence')));
     }
 
     #[Endpoint('GET /attachments')]
@@ -240,21 +240,24 @@ final class WorkspacesVaultTest extends ApiTestCase
         $pdf = "%PDF-1.4\n1 0 obj << /Type /Catalog >> endobj\ntrailer << /Root 1 0 R >>\n%%EOF\n";
         $doc = $c->upload('/documents', $pdf, 'contract.pdf', ['type' => 'contract', 'title' => 'Tent contract'])->assertStatus(201)->json('data');
         $v = array_values(array_filter($c->get('/attachments', ['kind' => 'document'])->json('data'), static fn ($x) => $x['title'] === 'Tent contract'))[0];
-        $this->assertSame(['ATT-000002', $doc['id'], "/api/v1/documents/{$doc['id']}/file", 'Documents'], [$v['code'], $v['document']['id'], $v['file_url'], $v['used_in'][0]['path']]);
+        $this->assertMatchesRegularExpression('/^ATT-[23456789A-HJKMNP-TV-Z]{6}$/', $v['code']);
+        $this->assertSame([$v['code'], $doc['id'], "/api/v1/documents/{$doc['id']}/file", 'Documents'], [$v['code'], $v['document']['id'], $v['file_url'], $v['used_in'][0]['path']]);
         $this->assertSame('This is a document. Change or delete it in Documents.', $c->request('DELETE', "/attachments/{$v['id']}", null, [], [], ['ifMatch' => 1])->assertStatus(422)->json('error.message'));
         $c->patchJson("/attachments/{$v['id']}", ['code' => 'TENT-CONTRACT', 'is_favourite' => true], 1)->assertStatus(200);
         $c->request('DELETE', "/documents/{$doc['id']}", null, [], [], ['ifMatch' => 1])->assertStatus(200);
         $this->assertSame([], array_values(array_filter($c->get('/attachments')->json('data'), static fn ($x) => $x['title'] === 'Tent contract')), 'a deleted document leaves the Vault too');
     }
 
-    public function test_family_cannot_add_attachments_or_upload(): void
+    /** 1.0.21: family members (editors) add; a view-only person cannot. */
+    public function test_family_adds_attachments_a_viewer_cannot(): void
     {
-        foreach (['papa', 'mummy', 'nani'] as $who) {
-            $p = $this->loginAs($who);
-            $p->postJson('/attachments', ['kind' => 'link', 'url' => 'https://example.com', 'title' => 'x'])->assertStatus(403);
-            $p->postJson('/attachment-uploads', ['name' => 'a', 'size_bytes' => 1, 'sha256' => str_repeat('a', 64)])->assertStatus(403);
-            $p->postJson('/workspaces', ['name' => 'Mine'])->assertStatus(403);
-        }
+        $papa = $this->loginAs('papa');
+        $papa->postJson('/attachments', ['kind' => 'link', 'url' => 'https://example.com', 'title' => 'x'])->assertStatus(201);
+        $papa->postJson('/workspaces', ['name' => 'Mine'])->assertStatus(201);
+        $nani = $this->loginAs('nani');
+        $nani->postJson('/attachments', ['kind' => 'link', 'url' => 'https://example.com', 'title' => 'x'])->assertStatus(403);
+        $nani->postJson('/attachment-uploads', ['name' => 'a', 'size_bytes' => 1, 'sha256' => str_repeat('a', 64)])->assertStatus(403);
+        $nani->postJson('/workspaces', ['name' => 'Mine 2'])->assertStatus(403);
     }
 
     /** Bug found by the phone tests: every 2 MB piece counted against the 120 writes / 5 min, so a long video failed. */

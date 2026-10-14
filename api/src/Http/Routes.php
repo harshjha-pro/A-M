@@ -125,6 +125,7 @@ final class Routes
         // Tasks and tags (Session 5): the first module on the shared base code
         $r->add('GET', '/tasks', TasksController::list(...), ['query' => TasksController::QUERY]);
         $r->add('POST', '/tasks', TasksController::create(...));
+        $r->add('GET', '/tasks/check-code', TasksController::checkCode(...), ['query' => ['code', 'except']]);
         $r->add('GET', '/tasks/{id}', TasksController::get(...));
         $r->add('PATCH', '/tasks/{id}', TasksController::update(...));
         $r->add('DELETE', '/tasks/{id}', static fn (Request $q, App $a, array $p) => BaseController::delete($q, $a, $p, TaskDef::class, TasksController::canWrite($a)));
@@ -237,7 +238,7 @@ final class Routes
         $r->add('POST', '/attachments/{id}/restore', static fn (Request $q, App $a, array $p) => BaseController::restore($q, $a, $p, AttachmentDef::class));
         $r->add('GET', '/attachments/{id}/file', VaultController::file(...), ['query' => ['v']]);
         $r->add('POST', '/attachments/{id}/links', VaultController::link(...));
-        $r->add('DELETE', '/attachment-links/{id}', static fn (Request $q, App $a, array $p) => BaseController::delete($q, $a, $p, AttachmentLinkDef::class, BaseController::adminOnly()[1]));
+        $r->add('DELETE', '/attachment-links/{id}', static fn (Request $q, App $a, array $p) => BaseController::delete($q, $a, $p, AttachmentLinkDef::class, static fn (?array $v) => \AM\Auth\WorkspaceAccess::requireWrite($v)));
         $r->add('POST', '/attachment-links/{id}/restore', static fn (Request $q, App $a, array $p) => BaseController::restore($q, $a, $p, AttachmentLinkDef::class));
 
         // Outfits (1.0.18, Workspace step B): Ayush and Mahi only.

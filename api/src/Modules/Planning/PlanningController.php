@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace AM\Modules\Planning;
 
 use AM\Auth\Permissions;
+use AM\Auth\WorkspaceAccess;
 use AM\Db\Db;
 use AM\Db\UnitOfWork;
 use AM\Kernel\App;
@@ -102,7 +103,7 @@ final class PlanningController
     public static function addContact(Request $request, App $app, array $params): Response
     {
         $viewer = $request->attr('user');
-        Permissions::requireAdmin($viewer);
+        WorkspaceAccess::requireWrite($viewer);
         $f = Fields::from($request->attr('json'));
         $f->only(['vendor_id', 'role']);
         $role = $f->text('role', 120);
@@ -128,7 +129,7 @@ final class PlanningController
     public static function addStep(Request $request, App $app, array $params): Response
     {
         $viewer = $request->attr('user');
-        Permissions::requireAdmin($viewer);
+        WorkspaceAccess::requireWrite($viewer);
         $f = Fields::from($request->attr('json'));
         $values = TimelineStepDef::input($app, $f, true, null);
         $f->fail();
@@ -144,7 +145,7 @@ final class PlanningController
     public static function suggested(Request $request, App $app, array $params): Response
     {
         $viewer = $request->attr('user');
-        Permissions::requireAdmin($viewer);
+        WorkspaceAccess::requireWrite($viewer);
         return UnitOfWork::run($app, $request, function (Db $db) use ($app, $request, $viewer, $params): Response {
             $ws = BaseRepository::find($db, WorkspaceDef::class, $params['id'], true, false);
             $key = (string) $request->attr('idem_key');
@@ -168,7 +169,7 @@ final class PlanningController
     public static function move(Request $request, App $app, array $params): Response
     {
         $viewer = $request->attr('user');
-        Permissions::requireAdmin($viewer);
+        WorkspaceAccess::requireWrite($viewer);
         $f = Fields::from($request->attr('json'));
         $f->only(['direction']);
         $dir = $f->enum('direction', ['up', 'down'], true);
@@ -201,6 +202,6 @@ final class PlanningController
 
     public static function canWrite(): callable
     {
-        return static fn (?array $v, string $action, ?array $row) => Permissions::requireAdmin($v);
+        return static fn (?array $v, string $action, ?array $row) => WorkspaceAccess::requireWrite($v);
     }
 }

@@ -2,6 +2,7 @@
 // contacts, guest details and event timeline 1.0.20): tasks strip at the top (tap a task; + Add task links it
 // here), the Files section (attachments used here; add one), and the sections that come in
 // the next updates. Edit name / calendar event; delete with Undo (tasks stay).
+import { canSeeWorkspace } from '../../api/workspaceAccess.js';
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
@@ -77,10 +78,10 @@ export default function WorkspaceDetail() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const { permissions } = useSession();
-  const q = useWorkspace(permissions?.admin ? id : null);
+  const q = useWorkspace(canSeeWorkspace(permissions) ? id : null);
   const [editing, setEditing] = useState(false);
   const [confirm, setConfirm] = useState(false);
-  if (!permissions?.admin) return <Screen title={t('workspace.title')} back="/workspaces"><Notice>{t('workspace.onlyAdmins')}</Notice></Screen>;
+  if (!canSeeWorkspace(permissions)) return <Screen title={t('workspace.title')} back="/workspaces"><Notice>{t('workspace.onlyAdmins')}</Notice></Screen>;
   if (q.isPending) return <Screen title={t('workspace.title')} back="/workspaces"><p aria-busy="true">…</p></Screen>;
   if (q.isError) return <Screen title={t('workspace.title')} back="/workspaces"><Notice kind="danger">{q.error.message || t('errors.loadFailed')}</Notice></Screen>;
   const ws = q.data;

@@ -10,7 +10,7 @@ use PDOException;
 /** Builds and resets the test database (TESTING §1.2). */
 final class TestDb
 {
-    public const MIGRATIONS = ['001_init.sql', '002_open_answers.sql', '003_api_support.sql', '004_home_photos.sql', '005_workspaces_vault.sql', '006_outfits.sql', '007_decor_menu.sql', '008_contacts_timeline.sql'];
+    public const MIGRATIONS = ['001_init.sql', '002_open_answers.sql', '003_api_support.sql', '004_home_photos.sql', '005_workspaces_vault.sql', '006_outfits.sql', '007_decor_menu.sql', '008_contacts_timeline.sql', '009_task_codes.sql'];
 
     /** @var array<string,string> outcome of the first build, for TEST-REPORT */
     public static array $buildLog = [];
@@ -61,7 +61,7 @@ final class TestDb
         return $pdo;
     }
 
-    /** Drop, create, apply 001 → 008, then fixtures. */
+    /** Drop, create, apply 001 → 009, then fixtures. */
     public static function rebuild(?string $db = null, bool $withFixtures = true): void
     {
         $db ??= self::name();

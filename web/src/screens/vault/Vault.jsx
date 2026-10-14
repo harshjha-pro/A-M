@@ -1,6 +1,7 @@
 // Attachment Vault (1.0.17): every attachment in the app with where it is used.
 // Search by ID, title or note; filter by type, favourites, not linked yet, workspace.
 // Shows how full the database is (Hostinger: 3 GB). Ayush and Mahi only.
+import { canSeeWorkspace } from '../../api/workspaceAccess.js';
 import { useState } from 'react';
 import { Archive } from 'lucide-react';
 import Screen from '../../components/Screen.jsx';
@@ -26,8 +27,8 @@ export default function Vault() {
     q: q.trim() || undefined, kind: kind === 'all' ? undefined : kind,
     favourite: only === 'fav' ? '1' : undefined, unlinked: only === 'unlinked' ? '1' : undefined, workspace: ws || undefined, limit: 200,
   };
-  const list = useAttachments(query, Boolean(permissions?.admin));
-  if (!permissions?.admin) return <Screen title={t('vault.title')} back="/more"><Notice>{t('workspace.onlyAdmins')}</Notice></Screen>;
+  const list = useAttachments(query, canSeeWorkspace(permissions));
+  if (!canSeeWorkspace(permissions)) return <Screen title={t('vault.title')} back="/more"><Notice>{t('workspace.onlyAdmins')}</Notice></Screen>;
   const storage = list.data?.meta?.storage;
   const filtered = Boolean(query.q || query.kind || query.favourite || query.unlinked || query.workspace);
   return (

@@ -112,7 +112,7 @@ Likelihood: how often this could happen to us before the wedding. Impact: how ba
 **T7 · Bad migration** — Low · High
 
 - **Prevent:** §5. Backup first; rehearse on the staging database with a copy of real data; only additive changes (DATABASE §6 rule 5); guard row in `schema_migrations`.
-- **Detect:** phpMyAdmin error; `schema_migrations.finished_at` is NULL; Safety → database red; API answers `503 app_updating`.
+- **Detect:** phpMyAdmin error; `schema_migrations.finished_at` is NULL; Safety → database red; API answers `503 app_updating` (core tables) or `503 db_update_needed` with the migrations to import (newer feature tables, 1.0.21).
 - **Recover:** DATABASE §6 step 6 (finish by hand, or restore the pre-migration backup). Never re-run the whole file.
 
 **T8 · Bad deploy** — Medium · Medium

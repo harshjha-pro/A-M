@@ -55,9 +55,7 @@ final class PlanningTest extends ApiTestCase
         $this->assertSame('Fresh Flowers Co.', $c->get("/vendors/$flowers")->json('data.name'), 'removing a contact only unlinks the vendor');
         $c->postJson('/undo/' . $d->json('meta.undo.batch_id'), new \stdClass())->assertStatus(200);
         $this->assertSame(['Flowers'], array_column($this->planning($c, self::MEHNDI)['contacts'], 'role'));
-        foreach (['papa', 'mummy'] as $who) {
-            $this->loginAs($who)->postJson('/workspaces/' . self::MEHNDI . '/contacts', ['vendor_id' => $flowers])->assertStatus(403);
-        }
+        $this->loginAs('nani')->postJson('/workspaces/' . self::MEHNDI . '/contacts', ['vendor_id' => $flowers])->assertStatus(403);
     }
 
     public function test_vendors_already_used_here_are_listed_apart_until_added(): void
@@ -128,7 +126,7 @@ final class PlanningTest extends ApiTestCase
         $c->postJson("/timeline-steps/{$cake['id']}/restore", new \stdClass(), [], ['ifMatch' => $p['timeline']['steps'][3]['version'] + 1])->assertStatus(200);
         $this->assertCount(5, $this->planning($c, self::RECEPTION)['timeline']['steps']);
         $this->assertStringContainsString('changed Time from no time to 19:30', implode("\n", array_column($c->get("/timeline-steps/{$entry['id']}/history")->json('data'), 'sentence')));
-        $this->loginAs('papa')->postJson('/workspaces/' . self::RECEPTION . '/timeline', ['purpose' => 'X', 'duration_min' => 5])->assertStatus(403);
+        $this->loginAs('nani')->postJson('/workspaces/' . self::RECEPTION . '/timeline', ['purpose' => 'X', 'duration_min' => 5])->assertStatus(403);
     }
 
     #[Endpoint('POST /workspaces/{id}/timeline/suggested')]

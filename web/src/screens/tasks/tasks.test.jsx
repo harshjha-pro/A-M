@@ -202,3 +202,40 @@ describe('Task detail', () => {
     expect(router.state.location.pathname).toBe('/tasks');
   });
 });
+
+describe('Task IDs (1.0.22)', () => {
+  test('the task page shows its ID; Edit changes it, checked while typing', async () => {
+    signInAs('ayush');
+    const user = userEvent.setup();
+    const calls = fakeApi({
+      [`GET /tasks/${T1}`]: () => ok(full({ code: 'TSK-4M8Q2D' })),
+      'GET /members': () => ok(members),
+      'GET /tags': () => ok([]),
+      'GET /events': () => ok([]),
+      'GET /workspaces': () => ok([]),
+      'GET /tasks/check-code': () => ok({ available: true, message: null }),
+      [`PATCH /tasks/${T1}`]: (body) => ok(full({ code: body.code, version: 4 })),
+    });
+    renderAt(`/tasks/${T1}`);
+    expect(await screen.findByLabelText('Task ID TSK-4M8Q2D')).toHaveTextContent('TSK-4M8Q2D');
+    renderAt(`/tasks/${T1}/edit`);
+    const field = await screen.findByLabelText('Task ID');
+    expect(field).toHaveValue('TSK-4M8Q2D');
+    await user.clear(field);
+    await user.type(field, 'TENT-01');
+    expect(await screen.findByText('This ID is free.')).toBeInTheDocument();
+    const check = calls.mock.calls.find(([u]) => u.includes('/tasks/check-code'))[0];
+    expect(check).toContain('code=TENT-01');
+    expect(check).toContain(`except=${T1}`);
+    await user.click(screen.getByRole('button', { name: /Save/ }));
+    await vi.waitFor(() => expect(calls.mock.calls.some(([, i]) => i?.method === 'PATCH')).toBe(true));
+    expect(JSON.parse(calls.mock.calls.find(([, i]) => i?.method === 'PATCH')[1].body)).toEqual({ code: 'TENT-01' });
+  });
+
+  test('a task row shows its ID; adding leaves it empty for a random one', async () => {
+    signInAs('ayush');
+    fakeApi({ 'GET /tasks': () => listReply([task({ code: 'TSK-7K3F9Q' })]), 'GET /tags': () => ok([]), 'GET /members': () => ok(members) });
+    renderAt('/tasks');
+    expect(await screen.findByText('TSK-7K3F9Q')).toBeInTheDocument();
+  });
+});

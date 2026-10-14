@@ -37,10 +37,8 @@ final class OutfitsTest extends ApiTestCase
         $this->assertSame([['bride', 'Mehndi lehenga'], ['groom', 'Sherwani']], array_map(static fn ($x) => [$x['person'], $x['title']], $ws['outfits']));
         $this->assertSame($o, $mahi->get("/outfits/{$o['id']}")->json('data'));
         $mahi->postJson('/outfits', ['workspace_id' => self::MEHNDI, 'person' => 'aunt', 'title' => 'X'])->assertStatus(422);
-        foreach (['papa', 'mummy', 'nani'] as $who) {
-            $this->loginAs($who)->postJson('/outfits', ['workspace_id' => self::MEHNDI, 'person' => 'bride', 'title' => 'X'])->assertStatus(403);
-            $this->loginAs($who)->get("/outfits/{$o['id']}")->assertStatus(403);
-        }
+        $this->loginAs('nani')->postJson('/outfits', ['workspace_id' => self::MEHNDI, 'person' => 'bride', 'title' => 'X'])->assertStatus(403); // view only
+        $this->loginAs('nani')->get("/outfits/{$o['id']}")->assertStatus(200); // 1.0.21: visible to all
     }
 
     #[Endpoint('POST /outfits/{id}/steps')]
@@ -149,7 +147,7 @@ final class OutfitsTest extends ApiTestCase
         $c->postJson('/undo/' . $d->json('meta.undo.batch_id'), new \stdClass())->assertStatus(200);
         $back = $c->get("/outfits/{$o['id']}")->json('data');
         $this->assertSame([4, 'Kaleere', ['From Mama ji'], ['Moodboard pic']], [count($back['steps']), $back['accessories'][0]['name'], array_column($back['accessories'][0]['notes'], 'body'), array_column($back['moodboard'], 'title')]);
-        $this->loginAs('papa')->request('DELETE', "/outfits/{$o['id']}", null, [], [], ['ifMatch' => 4])->assertStatus(403);
+        $this->loginAs('nani')->request('DELETE', "/outfits/{$o['id']}", null, [], [], ['ifMatch' => 4])->assertStatus(403);
     }
 
     public function test_pick_from_the_vault_onto_a_moodboard_and_deleting_the_workspace_takes_outfits_too(): void

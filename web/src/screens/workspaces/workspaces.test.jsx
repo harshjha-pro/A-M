@@ -43,14 +43,18 @@ describe('Navigation', () => {
     expect(screen.getByRole('link', { name: /Attachment Vault/ })).toHaveAttribute('href', '/vault');
   });
 
-  test('Papa (Family): Guests stays in the bottom bar; no Workspace, no Vault', async () => {
-    signInAs('papa');
-    fakeApi({});
-    renderAt('/more');
-    const nav = screen.getByRole('navigation', { name: 'Main' });
-    expect(within(nav).getByRole('link', { name: /Guests/ })).toBeInTheDocument();
-    expect(within(nav).queryByRole('link', { name: /Workspace/ })).toBeNull();
-    expect(screen.queryByRole('link', { name: /Attachment Vault/ })).toBeNull();
+  test('1.0.21: Papa (Family) and Nani (view only) get Workspace too; Guests and the Vault in More', async () => {
+    for (const who of ['papa', 'nani']) {
+      signInAs(who);
+      fakeApi({});
+      const { unmount } = renderAt('/more');
+      const nav = screen.getByRole('navigation', { name: 'Main' });
+      expect(within(nav).getByRole('link', { name: /Workspace/ })).toHaveAttribute('href', '/workspaces');
+      expect(within(nav).queryByRole('link', { name: /Guests/ })).toBeNull();
+      expect(screen.getByRole('link', { name: /Guests/ })).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: /Attachment Vault/ })).toBeInTheDocument();
+      unmount();
+    }
   });
 });
 
@@ -108,12 +112,19 @@ describe('Workspaces', () => {
     expect(JSON.parse(calls.mock.calls.find(([, i]) => i?.method === 'POST')[1].body)).toEqual({ kind: 'link', title: 'Haath design', note: null, url: 'https://example.com/haath', workspace_id: MEHNDI, section: 'general' });
   });
 
-  test('Family never opens a workspace', async () => {
+  test('1.0.21: Family opens a workspace', async () => {
     signInAs('papa');
-    const calls = fakeApi({});
+    fakeApi({ [`GET /workspaces/${MEHNDI}`]: () => ok(ws({ tasks: [], sections: {} })), 'GET /attachments': () => ok([]) });
     renderAt(`/workspaces/${MEHNDI}`);
-    expect(await screen.findByText('Only Ayush and Mahi can open workspaces.')).toBeInTheDocument();
-    expect(calls.mock.calls.filter(([u]) => u.includes('/workspaces'))).toEqual([]);
+    expect(await screen.findByRole('heading', { level: 1, name: 'Mehndi' })).toBeInTheDocument();
+  });
+
+  test('the database update message from the server is shown as it is', async () => {
+    signInAs('mahi');
+    const msg = 'The database needs an update before this works: import migrations 005 to 008 in phpMyAdmin, in order. Nothing was saved.';
+    fakeApi({ 'GET /workspaces': () => new Response(JSON.stringify({ ok: false, error: { code: 'db_update_needed', message: msg }, meta: {} }), { status: 503, headers: { 'Content-Type': 'application/json' } }) });
+    renderAt('/workspaces');
+    expect(await screen.findByText(msg)).toBeInTheDocument();
   });
 });
 

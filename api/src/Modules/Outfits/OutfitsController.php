@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace AM\Modules\Outfits;
 
 use AM\Auth\Permissions;
+use AM\Auth\WorkspaceAccess;
 use AM\Db\Db;
 use AM\Db\UnitOfWork;
 use AM\Kernel\App;
@@ -27,7 +28,7 @@ final class OutfitsController
     public static function create(Request $request, App $app, array $params): Response
     {
         $viewer = $request->attr('user');
-        Permissions::requireAdmin($viewer);
+        WorkspaceAccess::requireWrite($viewer);
         $f = Fields::from($request->attr('json'));
         $f->only(['workspace_id', 'person', 'title', 'vendor_id']);
         $db = $app->db();
@@ -54,7 +55,7 @@ final class OutfitsController
     public static function get(Request $request, App $app, array $params): Response
     {
         $viewer = $request->attr('user');
-        Permissions::requireAdmin($viewer);
+        WorkspaceAccess::requireView($viewer);
         $db = $app->db();
         $row = BaseRepository::find($db, OutfitDef::class, $params['id'], false, false);
         return self::reply($app, $db, $row, $viewer, 200);
@@ -101,7 +102,7 @@ final class OutfitsController
     private static function addChild(Request $request, App $app, array $params, string $def, int $max, \Closure $extra): Response
     {
         $viewer = $request->attr('user');
-        Permissions::requireAdmin($viewer);
+        WorkspaceAccess::requireWrite($viewer);
         $f = Fields::from($request->attr('json'));
         $f->only(['name']);
         $name = $f->text('name', $max, true);
@@ -117,7 +118,7 @@ final class OutfitsController
     public static function addNote(Request $request, App $app, array $params): Response
     {
         $viewer = $request->attr('user');
-        Permissions::requireAdmin($viewer);
+        WorkspaceAccess::requireWrite($viewer);
         $f = Fields::from($request->attr('json'));
         $values = NoteDef::input($app, $f, true, null);
         $db = $app->db();
@@ -189,7 +190,7 @@ final class OutfitsController
 
     public static function canWrite(): callable
     {
-        return static fn (?array $v, string $action, ?array $row) => Permissions::requireAdmin($v);
+        return static fn (?array $v, string $action, ?array $row) => WorkspaceAccess::requireWrite($v);
     }
 
     private static function reply(App $app, Db $db, ?array $row, ?array $viewer, int $status): Response

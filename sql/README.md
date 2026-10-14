@@ -16,4 +16,4 @@ These files are generated — don't edit them. The sources are `db/migrations/*.
 rebuild with `tools/make-master-sql.sh` after adding a migration.
 
 **Already imported an older master file (an older version)?** Don't import the master again —
-import only the migrations you have not run yet: `004_home_photos.sql` (1.0.16), `005_workspaces_vault.sql` (1.0.17), `006_outfits.sql` (1.0.18), `007_decor_menu.sql` (1.0.19) and/or `008_contacts_timeline.sql` (1.0.20), in that order.
+import only the migrations you have not run yet: `004_home_photos.sql` (1.0.16), `005_workspaces_vault.sql` (1.0.17), `006_outfits.sql` (1.0.18), `007_decor_menu.sql` (1.0.19), `008_contacts_timeline.sql` (1.0.20) and/or `009_task_codes.sql` (1.0.22), in that order.

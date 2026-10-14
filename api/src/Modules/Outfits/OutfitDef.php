@@ -39,7 +39,7 @@ final class OutfitDef extends EntityDef
 
     public static function canView(?array $viewer, array $row): bool
     {
-        return Permissions::isAdmin($viewer);
+        return \AM\Auth\WorkspaceAccess::canView($viewer);
     }
 
     /** A card: steps (with done dates), counts and the cover picture. */

@@ -13,20 +13,21 @@ import { showToast } from '../../undo/undoStore.js';
 import { sendFile, createAttachment, CODE_RE, kindOf } from '../../data/vault.js';
 import { t } from '../../i18n/strings.en.js';
 
-export function CodeField({ value, onChange, except, error }) {
+/** The editable unique ID, checked while typing. endpoint: attachments (default) or tasks (1.0.22). */
+export function CodeField({ value, onChange, except, error, endpoint = '/attachments/check-code', help = t('vault.codeHelp'), label = t('vault.code') }) {
   const [check, setCheck] = useState(null);
   useEffect(() => {
     const code = value.trim();
     if (!code) { setCheck(null); return undefined; }
-    if (!CODE_RE.test(code)) { setCheck({ available: false, message: t('vault.codeHelp') }); return undefined; }
+    if (!CODE_RE.test(code)) { setCheck({ available: false, message: help }); return undefined; }
     const id = setTimeout(() => {
-      api('GET', '/attachments/check-code', { query: { code, except } }).then((r) => setCheck(r.data)).catch(() => setCheck(null));
+      api('GET', endpoint, { query: { code, except } }).then((r) => setCheck(r.data)).catch(() => setCheck(null));
     }, 350);
     return () => clearTimeout(id);
-  }, [value, except]);
+  }, [value, except, endpoint, help]);
   return (
-    <TextField label={t('vault.code')} value={value} onChange={onChange} autoCapitalize="characters" spellCheck={false}
-      help={check?.available ? t('vault.codeFree') : t('vault.codeHelp')} error={error || (check && !check.available ? check.message : null)} />
+    <TextField label={label} value={value} onChange={onChange} autoCapitalize="characters" spellCheck={false}
+      help={check?.available ? t('vault.codeFree') : help} error={error || (check && !check.available ? check.message : null)} />
   );
 }
 

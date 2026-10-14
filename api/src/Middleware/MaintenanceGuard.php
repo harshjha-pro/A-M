@@ -28,7 +28,7 @@ final class MaintenanceGuard implements Middleware
             $app->logger->exception((string) $request->attr('request_id'), $e, ['endpoint' => $route->name()]);
             throw HttpError::make(503, 'service_unavailable', [], [], ['Retry-After' => '60']);
         }
-        if (!$schema['ok']) {
+        if (!$schema['core_ok']) { // newer feature tables missing only stop those screens (ErrorHandler: db_update_needed)
             throw HttpError::make(503, 'app_updating', [], [], ['Retry-After' => '120']);
         }
         return $next($request);

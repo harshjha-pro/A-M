@@ -56,6 +56,7 @@ export function TaskRow({ task, canEdit, onTick }) {
       )}
       <Link to={`/tasks/${task.id}`} className="flex min-h-16 min-w-0 flex-1 flex-col justify-center py-2 pr-4">
         <span className={`truncate text-lg font-bold ${closed ? 'text-text-muted line-through' : ''}`}>{task.title}</span>
+        {task.code && <span className="font-mono text-xs text-text-muted">{task.code}</span>}
         <span className="flex flex-wrap items-center gap-x-2 text-sm text-text-muted">
           {task.overdue && <span className="inline-flex items-center gap-1 font-bold text-danger"><TriangleAlert aria-hidden="true" size={14} />{t('tasks.overdue')}</span>}
           {!task.overdue && task.dueToday && <span className="inline-flex items-center gap-1 font-bold text-warning"><Sun aria-hidden="true" size={14} />{t('tasks.today')}</span>}

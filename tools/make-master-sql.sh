@@ -23,6 +23,6 @@ HDR
   } > "../sql/$out"
   echo "Built sql/$out"
 }
-MIG=(migrations/001_init.sql migrations/002_open_answers.sql migrations/003_api_support.sql migrations/004_home_photos.sql migrations/005_workspaces_vault.sql migrations/006_outfits.sql migrations/007_decor_menu.sql migrations/008_contacts_timeline.sql)
+MIG=(migrations/001_init.sql migrations/002_open_answers.sql migrations/003_api_support.sql migrations/004_home_photos.sql migrations/005_workspaces_vault.sql migrations/006_outfits.sql migrations/007_decor_menu.sql migrations/008_contacts_timeline.sql migrations/009_task_codes.sql)
 build master.sql "${MIG[@]}"
 build master_with_demo.sql "${MIG[@]}" dev/seed_demo.sql
