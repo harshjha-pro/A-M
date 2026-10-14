@@ -191,11 +191,10 @@ describe('Menu', () => {
     expect(await screen.findByText('Menu copied from Reception · 5 added')).toBeInTheDocument();
   });
 
-  test('Family never sees a workspace menu', async () => {
+  test('1.0.21: Family sees the menu', async () => {
     signInAs('papa');
-    const calls = fakeApi({});
+    fakeApi({ [`GET /workspaces/${WS}`]: () => ok(ws()), 'GET /attachments': () => ok([]), 'GET /vendors': () => ok([]) });
     renderAt(`/workspaces/${WS}`);
-    expect(await screen.findByText('Only Ayush and Mahi can open workspaces.')).toBeInTheDocument();
-    expect(calls.mock.calls.filter(([u]) => u.includes('/workspaces'))).toEqual([]);
+    expect(await screen.findByRole('list', { name: 'Starters' })).toHaveTextContent('Paneer tikka');
   });
 });

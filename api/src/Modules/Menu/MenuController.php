@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace AM\Modules\Menu;
 
 use AM\Auth\Permissions;
+use AM\Auth\WorkspaceAccess;
 use AM\Db\Db;
 use AM\Db\UnitOfWork;
 use AM\Kernel\App;
@@ -31,7 +32,7 @@ final class MenuController
     public static function get(Request $request, App $app, array $params): Response
     {
         $viewer = $request->attr('user');
-        Permissions::requireAdmin($viewer);
+        WorkspaceAccess::requireView($viewer);
         $db = $app->db();
         $ws = BaseRepository::find($db, WorkspaceDef::class, $params['id'], false, false);
         return Response::ok(self::menu($app, $db, $ws, $viewer));
@@ -56,7 +57,7 @@ final class MenuController
     public static function addCategory(Request $request, App $app, array $params): Response
     {
         $viewer = $request->attr('user');
-        Permissions::requireAdmin($viewer);
+        WorkspaceAccess::requireWrite($viewer);
         $f = Fields::from($request->attr('json'));
         $values = MenuCategoryDef::input($app, $f, true, null);
         $f->fail();
@@ -71,7 +72,7 @@ final class MenuController
     public static function addItem(Request $request, App $app, array $params): Response
     {
         $viewer = $request->attr('user');
-        Permissions::requireAdmin($viewer);
+        WorkspaceAccess::requireWrite($viewer);
         $f = Fields::from($request->attr('json'));
         $values = MenuItemDef::input($app, $f, true, null);
         $f->fail();
@@ -92,7 +93,7 @@ final class MenuController
     public static function copy(Request $request, App $app, array $params): Response
     {
         $viewer = $request->attr('user');
-        Permissions::requireAdmin($viewer);
+        WorkspaceAccess::requireWrite($viewer);
         $f = Fields::from($request->attr('json'));
         $f->only(['from_workspace_id']);
         $db = $app->db();
@@ -153,6 +154,6 @@ final class MenuController
 
     public static function canWrite(): callable
     {
-        return static fn (?array $v, string $action, ?array $row) => Permissions::requireAdmin($v);
+        return static fn (?array $v, string $action, ?array $row) => WorkspaceAccess::requireWrite($v);
     }
 }

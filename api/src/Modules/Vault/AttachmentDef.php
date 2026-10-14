@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace AM\Modules\Vault;
 
 use AM\Auth\Permissions;
+use AM\Auth\WorkspaceAccess;
 use AM\Db\Db;
 use AM\Kernel\App;
 use AM\Kernel\Strings;
@@ -39,9 +40,23 @@ final class AttachmentDef extends EntityDef
         return trim((string) ($row['code'] ?? '') . ' ' . (string) ($row['title'] ?? '')) ?: 'an attachment';
     }
 
+    /** History and Deleted items: anyone who sees workspaces (1.0.21); a document's copy only Ayush and Mahi (its own page has the rules). */
     public static function canView(?array $viewer, array $row): bool
     {
-        return Permissions::isAdmin($viewer);
+        return WorkspaceAccess::canView($viewer) && ($row['document_id'] === null || Permissions::isAdmin($viewer));
+    }
+
+    /** Vault list / page / file (1.0.21): a document's attachment follows the document's own rule (private, receipts). */
+    public static function visibleTo(Db $db, ?array $viewer, array $row): bool
+    {
+        if (!WorkspaceAccess::canView($viewer)) {
+            return false;
+        }
+        if ($row['document_id'] === null) {
+            return true;
+        }
+        $doc = $db->one('SELECT is_private, payment_id FROM documents WHERE id = ?', [$row['document_id']]);
+        return $doc === null || \AM\Modules\Documents\DocumentDef::canView($viewer, $doc);
     }
 
     /** Every place this attachment is used, as "where it's used" lines. @return list<array> */
@@ -224,7 +239,7 @@ final class AttachmentDef extends EntityDef
     public static function canWrite(): callable
     {
         return static function (?array $v, string $action, ?array $row): void {
-            Permissions::requireAdmin($v);
+            WorkspaceAccess::requireWrite($v);
             if ($row !== null && $row['document_id'] !== null && $action === 'delete') {
                 throw new \AM\Kernel\HttpError(422, 'rule_blocked', Strings::get('attachment_doc_in_documents'), ['rule' => 'document_in_documents']);
             }

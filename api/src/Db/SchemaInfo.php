@@ -8,7 +8,7 @@ use AM\Kernel\AppInfo;
 /** Reads schema_migrations: which version is applied, and did any file stop part-way? */
 final class SchemaInfo
 {
-    /** @return array{version:int, unfinished:bool, ok:bool} */
+    /** @return array{version:int, unfinished:bool, ok:bool, core_ok:bool} */
     public static function read(Db $db): array
     {
         $row = $db->one(
@@ -22,6 +22,7 @@ final class SchemaInfo
             'version' => $version,
             'unfinished' => $unfinished,
             'ok' => !$unfinished && $version >= AppInfo::EXPECTED_SCHEMA_VERSION,
+            'core_ok' => !$unfinished && $version >= AppInfo::MIN_SCHEMA_VERSION,
         ];
     }
 }

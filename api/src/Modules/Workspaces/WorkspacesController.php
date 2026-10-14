@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace AM\Modules\Workspaces;
 
 use AM\Auth\Permissions;
+use AM\Auth\WorkspaceAccess;
 use AM\Kernel\App;
 use AM\Kernel\Request;
 use AM\Kernel\Response;
@@ -17,7 +18,7 @@ final class WorkspacesController
     public static function list(Request $request, App $app, array $params): Response
     {
         $viewer = $request->attr('user');
-        Permissions::requireAdmin($viewer);
+        WorkspaceAccess::requireView($viewer);
         $db = $app->db();
         $refs = new Refs($db, $app->clock->todayIst());
         $rows = $db->all('SELECT * FROM workspaces WHERE deleted_at IS NULL ORDER BY sort_order, id');
@@ -29,7 +30,7 @@ final class WorkspacesController
     public static function get(Request $request, App $app, array $params): Response
     {
         $viewer = $request->attr('user');
-        Permissions::requireAdmin($viewer);
+        WorkspaceAccess::requireView($viewer);
         $db = $app->db();
         $row = BaseRepository::find($db, WorkspaceDef::class, $params['id'], false, false);
         $refs = new Refs($db, $app->clock->todayIst());

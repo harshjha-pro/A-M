@@ -1,6 +1,7 @@
 // One attachment (1.0.17): preview (photo, video, document, link, text), its editable
 // unique ID and details, where it is used (tap to go there; remove from one place with
 // Undo), use it in another workspace section, delete everywhere (Undo). History below.
+import { canSeeWorkspace } from '../../api/workspaceAccess.js';
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -41,7 +42,7 @@ export default function AttachmentDetail() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const { permissions } = useSession();
-  const q = useQuery({ queryKey: ['attachment', id], queryFn: () => api('GET', `/attachments/${id}`).then((r) => r.data), enabled: Boolean(permissions?.admin) });
+  const q = useQuery({ queryKey: ['attachment', id], queryFn: () => api('GET', `/attachments/${id}`).then((r) => r.data), enabled: canSeeWorkspace(permissions) });
   const workspaces = useWorkspaces();
   const [form, setForm] = useState(null);
   const [errors, setErrors] = useState({});
@@ -49,7 +50,7 @@ export default function AttachmentDetail() {
   const [confirm, setConfirm] = useState(false);
   const [place, setPlace] = useState({ ws: '', section: 'general' });
   const a = q.data;
-  if (!permissions?.admin) return <Screen title={t('vault.title')} back="/more"><Notice>{t('workspace.onlyAdmins')}</Notice></Screen>;
+  if (!canSeeWorkspace(permissions)) return <Screen title={t('vault.title')} back="/more"><Notice>{t('workspace.onlyAdmins')}</Notice></Screen>;
   if (q.isPending) return <Screen title={t('vault.title')} back="/vault"><p aria-busy="true">…</p></Screen>;
   if (q.isError) return <Screen title={t('vault.title')} back="/vault"><Notice kind="danger">{q.error.message || t('errors.loadFailed')}</Notice></Screen>;
   const refresh = () => { qc.invalidateQueries({ queryKey: ['attachment', id] }); qc.invalidateQueries({ queryKey: ['attachments'] }); qc.invalidateQueries({ queryKey: ['workspace'] }); };

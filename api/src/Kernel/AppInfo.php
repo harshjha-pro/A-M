@@ -9,8 +9,14 @@ namespace AM\Kernel;
  */
 final class AppInfo
 {
-    /** Highest migration this code needs. Below it, writes get 503 app_updating (DATABASE rule 14). */
-    public const EXPECTED_SCHEMA_VERSION = 3;
+    /**
+     * Newest migration this code uses. Below it, health and Settings › Safety show red (schema_behind)
+     * and a screen that needs a missing table says which migrations to import (1.0.21: this was left
+     * at 3 after 004–008, so health said ok on a database without them).
+     */
+    public const EXPECTED_SCHEMA_VERSION = 8;
+    /** The core (login, guests, tasks, money…) needs this one. Below it, writes get 503 app_updating (DATABASE rule 14). */
+    public const MIN_SCHEMA_VERSION = 3;
 
     /** Nothing is hard-deleted before this date (CONTEXT decision 34). */
     public const PURGE_ALLOWED_FROM = '2027-05-16';

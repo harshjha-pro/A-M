@@ -1,5 +1,6 @@
 // Workspace (1.0.17): one card per function (Engagement, Mehndi, …), with its calendar
 // date, open tasks and attachments. + adds one. Ayush and Mahi only.
+import { canSeeWorkspace } from '../../api/workspaceAccess.js';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { CalendarDays, ChevronRight, LayoutGrid } from 'lucide-react';
@@ -17,7 +18,7 @@ export default function WorkspaceList() {
   const { permissions } = useSession();
   const q = useWorkspaces();
   const [adding, setAdding] = useState(false);
-  if (!permissions?.admin) return <Screen title={t('workspace.title')}><Notice>{t('workspace.onlyAdmins')}</Notice></Screen>;
+  if (!canSeeWorkspace(permissions)) return <Screen title={t('workspace.title')}><Notice>{t('workspace.onlyAdmins')}</Notice></Screen>;
   return (
     <Screen title={t('workspace.title')}>
       <p className="text-text-muted">{t('workspace.intro')}</p>

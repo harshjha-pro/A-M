@@ -200,7 +200,7 @@ final class TasksController
         Permissions::requireEditor($viewer);
         $expected = Versioned::ifMatch($request);
         $f = Fields::from($request->attr('json'));
-        if (($f->has('workspace_id') || $f->has('workspace_section')) && !Permissions::isAdmin($viewer)) {
+        if (($f->has('workspace_id') || $f->has('workspace_section')) && !\AM\Auth\WorkspaceAccess::canWrite($viewer)) {
             throw HttpError::make(403, 'forbidden'); // workspaces are Ayush and Mahi's (1.0.17)
         }
         if ($f->keys() === []) {

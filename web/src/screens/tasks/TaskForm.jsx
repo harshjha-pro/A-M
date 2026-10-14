@@ -1,6 +1,7 @@
 // Add / edit a task (FEATURES B3, DESIGN §6.2). Quick fields first (title, due date,
 // assigned to), the rest under "More details". Shared form rules: changed fields
 // only + If-Match, a draft on this phone, the conflict screen on a clash.
+import { canEditWorkspace } from '../../api/workspaceAccess.js';
 import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -60,7 +61,7 @@ export default function TaskForm() {
   const backTo = search.get('back');
   const record = id ? q.data : EMPTY;
   const events = useQuery({ queryKey: ['events'], queryFn: () => api('GET', '/events').then((r) => r.data), staleTime: 60_000 });
-  const workspaces = useQuery({ queryKey: ['workspaces'], queryFn: () => api('GET', '/workspaces').then((r) => r.data), staleTime: 60_000, enabled: Boolean(permissions?.admin) });
+  const workspaces = useQuery({ queryKey: ['workspaces'], queryFn: () => api('GET', '/workspaces').then((r) => r.data), staleTime: 60_000, enabled: canEditWorkspace(permissions) });
 
   const f = useEntityForm({
     form: 'task',
@@ -183,7 +184,7 @@ export default function TaskForm() {
                 </select>
               </label>
             )}
-            {permissions?.admin && (workspaces.data ?? []).length > 0 && (
+            {canEditWorkspace(permissions) && (workspaces.data ?? []).length > 0 && (
               <label className="flex flex-col gap-1">
                 <span className="font-bold">{t('nav.workspace')}</span>
                 <select value={v.workspaceId} onChange={(e) => f.set('workspaceId')(e.target.value)} className="tap rounded-sm border-[1.5px] border-border-strong bg-surface px-3 text-base text-text">

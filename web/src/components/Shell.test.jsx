@@ -26,6 +26,7 @@ function renderAt(path) {
         { path: '/calendar', element: <Calendar /> },
         { path: '/tasks', element: <Screen title="Tasks"><p>tasks</p></Screen> }, // the real list has its own tests
         { path: '/guests', element: <Screen title="Guests"><p>guests</p></Screen> }, // the real list has its own tests
+        { path: '/workspaces', element: <Screen title="Workspace"><p>workspaces</p></Screen> },
         { path: '/more', element: <More /> },
         { path: '/money', element: <Money /> },
       ],
@@ -41,7 +42,7 @@ describe('bottom nav', () => {
     renderAt('/');
     const nav = screen.getByRole('navigation', { name: 'Main' });
     const links = within(nav).getAllByRole('link');
-    expect(links.map((l) => l.textContent)).toEqual(['Home', 'Calendar', 'Tasks', 'Guests', 'More']);
+    expect(links.map((l) => l.textContent)).toEqual(['Home', 'Calendar', 'Tasks', 'Workspace', 'More']); // 1.0.21: Workspace for everyone
   });
 
   test('active item has aria-current and bold label (not colour alone)', () => {
@@ -63,9 +64,9 @@ describe('bottom nav', () => {
   test('navigates between screens', async () => {
     const user = userEvent.setup();
     renderAt('/');
-    await user.click(screen.getByRole('link', { name: 'Guests' }));
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Guests');
-    expect(screen.getByText('guests')).toBeInTheDocument();
+    await user.click(screen.getByRole('link', { name: 'Workspace' }));
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Workspace');
+    expect(screen.getByText('workspaces')).toBeInTheDocument();
   });
 });
 

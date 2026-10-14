@@ -61,11 +61,13 @@ test('Ayush: Workspace → Mehndi → task in the strip, a link and a video in F
   expect(problems).toEqual([]);
 });
 
-test('Papa (Family): Guests stays in the bottom bar; no Workspace; the API refuses', async ({ page }) => {
+test('1.0.21: Papa (Family) sees Workspace too and opens Mehndi', async ({ page }) => {
   await login(page, 'papa');
   const nav = page.getByRole('navigation', { name: 'Main' });
-  await expect(nav.getByRole('link', { name: 'Guests' })).toBeVisible();
-  await expect(nav.getByRole('link', { name: 'Workspace' })).toHaveCount(0);
+  await nav.getByRole('link', { name: 'Workspace' }).click();
+  await page.getByRole('link', { name: /Mehndi/ }).first().click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Mehndi' })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Event timeline' })).toBeVisible();
   const status = await page.evaluate(async () => (await fetch('/api/v1/workspaces')).status);
-  expect(status).toBe(403);
+  expect(status).toBe(200);
 });

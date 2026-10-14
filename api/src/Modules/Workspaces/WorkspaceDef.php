@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace AM\Modules\Workspaces;
 
 use AM\Auth\Permissions;
+use AM\Auth\WorkspaceAccess;
 use AM\Db\Db;
 use AM\Kernel\App;
 use AM\Kernel\Strings;
@@ -43,7 +44,7 @@ final class WorkspaceDef extends EntityDef
 
     public static function canView(?array $viewer, array $row): bool
     {
-        return Permissions::isAdmin($viewer);
+        return \AM\Auth\WorkspaceAccess::canView($viewer);
     }
 
     public static function present(App $app, Db $db, Refs $refs, array $row, ?array $viewer): array
@@ -148,6 +149,6 @@ final class WorkspaceDef extends EntityDef
 
     public static function canWrite(): callable
     {
-        return static fn (?array $v, string $action, ?array $row) => Permissions::requireAdmin($v);
+        return static fn (?array $v, string $action, ?array $row) => WorkspaceAccess::requireWrite($v);
     }
 }

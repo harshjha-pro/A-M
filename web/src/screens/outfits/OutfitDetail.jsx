@@ -3,6 +3,7 @@
 // pick), accessories (each with notes, attachments, tasks), notes and tasks. Rename; delete
 // with Undo (tasks stay). Ayush and Mahi only. 1.0.19: also family outfits and decor items
 // (props instead of accessories), and the vendor (tailor / decorator).
+import { canSeeWorkspace } from '../../api/workspaceAccess.js';
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -150,11 +151,11 @@ export default function OutfitDetail() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const { permissions } = useSession();
-  const q = useQuery({ queryKey: ['outfit', id], queryFn: () => api('GET', `/outfits/${id}`).then((r) => r.data), enabled: Boolean(permissions?.admin) });
+  const q = useQuery({ queryKey: ['outfit', id], queryFn: () => api('GET', `/outfits/${id}`).then((r) => r.data), enabled: canSeeWorkspace(permissions) });
   const refresh = useRefresh(id);
   const [sheet, setSheet] = useState(null); // {kind, item}
   const [confirm, setConfirm] = useState(false);
-  if (!permissions?.admin) return <Screen title={t('workspace.title')} back="/workspaces"><Notice>{t('workspace.onlyAdmins')}</Notice></Screen>;
+  if (!canSeeWorkspace(permissions)) return <Screen title={t('workspace.title')} back="/workspaces"><Notice>{t('workspace.onlyAdmins')}</Notice></Screen>;
   if (q.isPending) return <Screen title={t('workspace.title')} back="/workspaces"><p aria-busy="true">…</p></Screen>;
   if (q.isError) return <Screen title={t('workspace.title')} back="/workspaces"><Notice kind="danger">{q.error.message || t('errors.loadFailed')}</Notice></Screen>;
   const o = q.data;

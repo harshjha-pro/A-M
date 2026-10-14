@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace AM\Modules\Vault;
 
 use AM\Auth\Permissions;
+use AM\Auth\WorkspaceAccess;
 use AM\Db\Db;
 use AM\Db\UnitOfWork;
 use AM\Kernel\App;
@@ -40,7 +41,7 @@ final class VaultController
     public static function startUpload(Request $request, App $app, array $params): Response
     {
         $viewer = $request->attr('user');
-        Permissions::requireAdmin($viewer);
+        WorkspaceAccess::requireWrite($viewer);
         $f = Fields::from($request->attr('json'));
         $f->only(['name', 'mime_type', 'size_bytes', 'sha256']);
         $name = $f->text('name', 255, true);
@@ -75,7 +76,7 @@ final class VaultController
     public static function chunk(Request $request, App $app, array $params): Response
     {
         $viewer = $request->attr('user');
-        Permissions::requireAdmin($viewer);
+        WorkspaceAccess::requireWrite($viewer);
         $file = $request->files['chunk'] ?? null;
         try {
             $seq = $request->form['seq'] ?? '';
@@ -103,7 +104,7 @@ final class VaultController
 
     public static function finish(Request $request, App $app, array $params): Response
     {
-        Permissions::requireAdmin($request->attr('user'));
+        WorkspaceAccess::requireWrite($request->attr('user'));
         $db = $app->db();
         $vf = $db->one('SELECT * FROM vault_files WHERE public_id = ?', [$params['id']]);
         if ($vf === null) {
@@ -182,10 +183,12 @@ final class VaultController
     public static function list(Request $request, App $app, array $params): Response
     {
         $viewer = $request->attr('user');
-        Permissions::requireAdmin($viewer);
+        WorkspaceAccess::requireView($viewer);
         $db = $app->db();
         $q = $request->query;
-        $where = ['a.deleted_at IS NULL', '(a.document_id IS NULL OR EXISTS (SELECT 1 FROM documents d WHERE d.id = a.document_id AND d.deleted_at IS NULL))'];
+        // 1.0.21: a document's attachment follows the document's rule (private: Ayush and Mahi; receipts: money users).
+        [$docSql] = \AM\Modules\Documents\DocumentDef::visibleSql($viewer, 'd');
+        $where = ['a.deleted_at IS NULL', "(a.document_id IS NULL OR EXISTS (SELECT 1 FROM documents d WHERE d.id = a.document_id AND d.deleted_at IS NULL AND $docSql))"];
         $args = [];
         if (($q['q'] ?? '') !== '') {
             $like = '%' . addcslashes(mb_substr(trim((string) $q['q']), 0, 100), '%_\\') . '%';
@@ -247,16 +250,19 @@ final class VaultController
     public static function get(Request $request, App $app, array $params): Response
     {
         $viewer = $request->attr('user');
-        Permissions::requireAdmin($viewer);
+        WorkspaceAccess::requireView($viewer);
         $db = $app->db();
         $row = BaseRepository::find($db, AttachmentDef::class, $params['id']);
+        if (!AttachmentDef::visibleTo($db, $viewer, $row)) {
+            throw HttpError::make(404, 'not_found');
+        }
         return self::reply($app, $db, $row, $viewer, 200);
     }
 
     /** GET /attachments/check-code?code=&except= — the editable ID, checked while typing. */
     public static function checkCode(Request $request, App $app, array $params): Response
     {
-        Permissions::requireAdmin($request->attr('user'));
+        WorkspaceAccess::requireView($request->attr('user'));
         $db = $app->db();
         $code = trim((string) ($request->query['code'] ?? ''));
         if (!preg_match(AttachmentDef::CODE_RE, $code)) {
@@ -274,7 +280,7 @@ final class VaultController
     public static function create(Request $request, App $app, array $params): Response
     {
         $viewer = $request->attr('user');
-        Permissions::requireAdmin($viewer);
+        WorkspaceAccess::requireWrite($viewer);
         $json = $request->attr('json');
         $f = Fields::from($json);
         $kind = $f->enum('kind', array_keys(AttachmentDef::KINDS), true);
@@ -327,7 +333,7 @@ final class VaultController
     public static function link(Request $request, App $app, array $params): Response
     {
         $viewer = $request->attr('user');
-        Permissions::requireAdmin($viewer);
+        WorkspaceAccess::requireWrite($viewer);
         $f = Fields::from($request->attr('json'));
         $f->only(['workspace_id', 'section', 'outfit_id', 'accessory_id', 'outfit_step_id', 'menu_item_id', 'timeline_step_id']);
         $db = $app->db();
@@ -388,9 +394,12 @@ final class VaultController
     /** GET /attachments/{id}/file — the bytes, with single byte ranges (videos on iPhone need them). */
     public static function file(Request $request, App $app, array $params): Response
     {
-        Permissions::requireAdmin($request->attr('user'));
+        WorkspaceAccess::requireView($request->attr('user'));
         $db = $app->db();
         $row = BaseRepository::find($db, AttachmentDef::class, $params['id']);
+        if (!AttachmentDef::visibleTo($db, $request->attr('user'), $row)) {
+            throw HttpError::make(404, 'not_found');
+        }
         $vf = $row['file_id'] !== null ? $db->one('SELECT * FROM vault_files WHERE id = ? AND is_complete = 1', [$row['file_id']]) : null;
         if ($vf === null) {
             throw HttpError::make(404, 'not_found');

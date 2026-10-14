@@ -44,6 +44,8 @@ final class Strings
         'rate_limited'             => 'Too many tries. Please wait {n} minutes.',
         'login_locked'             => 'Too many tries. Wait 15 minutes or ask Ayush or Mahi to reset your password.',
         'server_error'             => 'Something went wrong on our side. Nothing was saved. Please try again.',
+        'db_update_needed'         => 'The database needs an update before this works: import migrations {from} to {to} in phpMyAdmin, in order. Nothing was saved.',
+        'db_update_needed_any'     => 'The database needs an update before this works: import the newest migration files in phpMyAdmin, in order. Nothing was saved.',
         'app_updating'             => 'The app is being updated. Please try again in a few minutes.',
         'service_unavailable'      => 'The server is busy. Please try again in a minute.',
         'not_available_yet'        => 'This part of the app is not ready yet.',

@@ -30,7 +30,7 @@ final class NoteDef extends EntityDef
 
     public static function canView(?array $viewer, array $row): bool
     {
-        return Permissions::isAdmin($viewer);
+        return \AM\Auth\WorkspaceAccess::canView($viewer);
     }
 
     public static function present(App $app, Db $db, Refs $refs, array $row, ?array $viewer): array

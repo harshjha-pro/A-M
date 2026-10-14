@@ -237,7 +237,7 @@ final class Routes
         $r->add('POST', '/attachments/{id}/restore', static fn (Request $q, App $a, array $p) => BaseController::restore($q, $a, $p, AttachmentDef::class));
         $r->add('GET', '/attachments/{id}/file', VaultController::file(...), ['query' => ['v']]);
         $r->add('POST', '/attachments/{id}/links', VaultController::link(...));
-        $r->add('DELETE', '/attachment-links/{id}', static fn (Request $q, App $a, array $p) => BaseController::delete($q, $a, $p, AttachmentLinkDef::class, BaseController::adminOnly()[1]));
+        $r->add('DELETE', '/attachment-links/{id}', static fn (Request $q, App $a, array $p) => BaseController::delete($q, $a, $p, AttachmentLinkDef::class, static fn (?array $v) => \AM\Auth\WorkspaceAccess::requireWrite($v)));
         $r->add('POST', '/attachment-links/{id}/restore', static fn (Request $q, App $a, array $p) => BaseController::restore($q, $a, $p, AttachmentLinkDef::class));
 
         // Outfits (1.0.18, Workspace step B): Ayush and Mahi only.

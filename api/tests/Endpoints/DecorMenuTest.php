@@ -61,7 +61,7 @@ final class DecorMenuTest extends ApiTestCase
         $d = $c->patchJson("/outfits/{$d['id']}", ['vendor_id' => null], $d['version'])->assertStatus(200)->json('data');
         $this->assertNull($d['vendor']);
         $c->patchJson("/outfits/{$d['id']}", ['vendor_id' => '01JA6ZB0000000000000000999'], $d['version'])->assertStatus(422);
-        $this->loginAs('papa')->patchJson('/workspaces/' . self::MEHNDI, ['theme_name' => 'X'], $ws['version'])->assertStatus(403);
+        $this->loginAs('nani')->patchJson('/workspaces/' . self::MEHNDI, ['theme_name' => 'X'], $ws['version'])->assertStatus(403);
     }
 
     #[Endpoint('GET /workspaces/{id}/menu')]
@@ -93,10 +93,8 @@ final class DecorMenuTest extends ApiTestCase
         $ws = $c->get('/workspaces/' . self::RECEPTION)->json('data');
         $this->assertSame(['Shree Tent House', 'Shree Tent House', 'Live counters & starters'], [$ws['caterer']['name'], $ws['menu']['caterer']['name'], $ws['menu']['categories'][0]['name']]);
         $this->assertStringContainsString('changed Normal / Jain from Normal to Jain', implode("\n", array_column($c->get("/menu-items/{$items[0]['id']}/history")->json('data'), 'sentence')));
-        foreach (['papa', 'mummy'] as $who) {
-            $this->loginAs($who)->get('/workspaces/' . self::RECEPTION . '/menu')->assertStatus(403);
-            $this->loginAs($who)->postJson("/menu-categories/{$cat['id']}/items", ['name' => 'X'])->assertStatus(403);
-        }
+        $this->loginAs('nani')->get('/workspaces/' . self::RECEPTION . '/menu')->assertStatus(200); // 1.0.21: visible to all
+        $this->loginAs('nani')->postJson("/menu-categories/{$cat['id']}/items", ['name' => 'X'])->assertStatus(403);
     }
 
     #[Endpoint('DELETE /menu-categories/{id}')]

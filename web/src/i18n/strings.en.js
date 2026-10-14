@@ -1008,7 +1008,7 @@ export const strings = {
   },
   workspace: {
     title: 'Workspace',
-    intro: 'Everything for each function in one place. Only Ayush and Mahi see this.',
+    intro: 'Everything for each function in one place.',
     add: 'Add workspace',
     name: 'Name',
     event: 'Calendar event (optional)',
@@ -1027,7 +1027,7 @@ export const strings = {
     comingNext: 'Coming in the next update.',
     openWorkspace: 'Open workspace',
     badge: 'Workspace',
-    onlyAdmins: 'Only Ayush and Mahi can open workspaces.',
+    onlyAdmins: 'Log in to open workspaces.',
   },
   outfit: {
     add: 'Add outfit',
