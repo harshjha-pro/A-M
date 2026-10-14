@@ -43,3 +43,7 @@ Version 1.0.20 (Workspace step D: contacts, guest details, event timeline, "Sess
 Version 1.0.21 (Fix: Workspace error message + Workspace for everyone, "Session 14f"):
 
 - `deploy-session14f.zip` — Hostinger upload packages (no new migration; Workspace needs 004–008 imported)
+
+Version 1.0.22 (Task IDs + random attachment IDs, "Session 14g"):
+
+- `deploy-session14g.zip` — Hostinger upload packages **plus `migrations/009_task_codes.sql`** (run it first; run 004–008 first if you never did)
