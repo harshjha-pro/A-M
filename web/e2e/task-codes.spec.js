@@ -18,7 +18,8 @@ test('Ayush: a new task has a random ID; change it; search finds it by ID', asyn
   await expect(chip).toBeVisible();
 
   await page.getByRole('button', { name: 'Edit', exact: true }).click();
-  const field = page.getByLabel('Task ID');
+  await expect(page).toHaveURL(/\/edit$/);
+  const field = page.getByLabel('Task ID', { exact: true });
   await field.fill(`DHOL-${tag}`);
   await expect(page.getByText('This ID is free.')).toBeVisible();
   await page.getByRole('button', { name: 'Save task' }).click();

@@ -1,18 +1,18 @@
-# Test report — Fix: Workspace error + Workspace for everyone
+# Test report — IDs for tasks and attachments
 
-Date: 2026-10-14T04:45Z · App version: 1.0.21 · DB: **MySQL 8.0.46-0ubuntu0.24.04.4** (sandbox, same major as Hostinger) · PHP 8.3.6 · Node v22.22.0 · Web server for .htaccess tests: Apache/2.4.58 (Ubuntu)
+Date: 2026-10-14T06:23Z · App version: 1.0.22 · DB: **MySQL 8.0.46-0ubuntu0.24.04.4** (sandbox, same major as Hostinger) · PHP 8.3.6 · Node v22.22.0 · Web server for .htaccess tests: Apache/2.4.58 (Ubuntu)
 
-Overall: **GREEN — all suites passed**
+Overall: **RED — see failures**
 
 | Suite | Result |
 |---|---|
-| PHPUnit (unit, db, endpoints, security, static, coverage) | OK (1024 tests, 10439 assertions) |
-| Endpoint coverage | 173/173 operations built and tested (the rest arrive session by session) |
-| Vitest (formats, API client, shell, routes, axe) | Tests 289 passed (289) |
-| Build (staging + live) | JS 124.06 kB gz · CSS 7.23 kB gz |
+| PHPUnit (unit, db, endpoints, security, static, coverage) | OK (1030 tests, 10514 assertions) |
+| Endpoint coverage | 174/174 operations built and tested (the rest arrive session by session) |
+| Vitest (formats, API client, shell, routes, axe) | Tests 291 passed (291) |
+| Build (staging + live) | JS 124.14 kB gz · CSS 7.23 kB gz |
 | HTTP rules (real requests) | Apache 2.4.58 + real .htaccess: PASS · php -S + tools/router.php: PASS — OK (13 tests, 267 assertions) OK (13 tests, 263 assertions)  |
-| Playwright smoke (android, small-iphone, small-android; Chromium, not Safari) | 155 passed (7.9m) |
-| Lighthouse mobile, simulated slow 4G (budget: Perf ≥ 90, A11y ≥ 95, BP ≥ 95) | login: Performance 98 · Accessibility 100 · Best Practices 96 · LCP 2.01 s · TBT 0 ms · CLS 0.000 home: Performance 95 · Accessibility 100 · Best Practices 100 · LCP 2.72 s · TBT 6 ms · CLS 0.051 guests: Performance 92 · Accessibility 100 · Best Practices 100 · LCP 3.05 s · TBT 141 ms · CLS 0.018  |
+| Playwright smoke (android, small-iphone, small-android; Chromium, not Safari) | 3 failed 155 passed (8.5m) |
+| Lighthouse mobile, simulated slow 4G (budget: Perf ≥ 90, A11y ≥ 95, BP ≥ 95) | login: Performance 97 · Accessibility 100 · Best Practices 96 · LCP 2.15 s · TBT 0 ms · CLS 0.000 home: Performance 94 · Accessibility 100 · Best Practices 100 · LCP 2.88 s · TBT 47 ms · CLS 0.035 guests: Performance 94 · Accessibility 100 · Best Practices 100 · LCP 2.96 s · TBT 39 ms · CLS 0.018  |
 
 Database checks: 001 → 002 → 003 apply with finished_at set; second run of each stops at its guard with data unchanged (DS-28); seed_demo.sql loads (61 families, Devanagari intact) and its second run stops at user id 1.
 
