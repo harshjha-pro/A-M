@@ -172,7 +172,8 @@ public_html/api/index.php ──► private/app/bootstrap.php ──► App::han
    ErrorHandler     any exception → JSON envelope; 500 never shows paths, SQL or stack (SEC-29)
    MethodGuard      only GET/POST/PUT/PATCH/DELETE (SEC-31)
    JsonBody         size caps (1 MB; import 5 MB; upload 16 MB), JSON only for bodies (SEC-17)
-   MaintenanceGuard schema below EXPECTED_SCHEMA_VERSION → writes get 503 app_updating (DATABASE rule 14)
+   MaintenanceGuard schema below MIN_SCHEMA_VERSION → writes get 503 app_updating (DATABASE rule 14);
+   a newer feature's table missing (below EXPECTED_SCHEMA_VERSION) → that request gets 503 db_update_needed naming the migrations to import (1.0.21)
    ClientVersion    X-Min-Client-Version header; old app writing → 426 update_required
    RateLimit        anonymous / read buckets (API §10.1)
    Session          cookie → sessions.token_hash; user, role, money flag read fresh (API §3.1)

@@ -31,8 +31,13 @@ final class ErrorLeakTest extends ApiTestCase
     {
         foreach (['/test/boom', '/test/sql', '/test/warning'] as $path) {
             $res = $this->api->get($path);
-            $res->assertStatus(500)->assertEnvelope()->assertErrorCode('server_error');
-            $this->assertSame('Something went wrong on our side. Nothing was saved. Please try again.', $res->json('error.message'));
+            if ($path === '/test/sql') { // a missing table (1.0.21): says a database update is needed — still no SQL, path or version
+                $res->assertStatus(503)->assertEnvelope()->assertErrorCode('db_update_needed');
+                $this->assertStringStartsWith('The database needs an update before this works', (string) $res->json('error.message'));
+            } else {
+                $res->assertStatus(500)->assertEnvelope()->assertErrorCode('server_error');
+                $this->assertSame('Something went wrong on our side. Nothing was saved. Please try again.', $res->json('error.message'));
+            }
             foreach (['SQLSTATE', '/home', '.php', 'Stack', '#0', 'PHP', PHP_VERSION, 'no_such_table'] as $leak) {
                 $this->assertStringNotContainsString($leak, $res->body(), "Leaked '$leak' on $path");
             }
