@@ -33,14 +33,19 @@ final class TasksTest extends ApiTestCase
     #[Endpoint('POST /tasks')]
     public function test_ac_task_01_three_taps_assigned_to_me(): void
     {
-        $papa = $this->loginAs('papa');
+        // 1.0.16 (owner's rule): only Ayush and Mahi add tasks; Family and Viewers get 403 and nothing is saved
+        foreach (['papa', 'mummy', 'nani'] as $who) {
+            $this->loginAs($who)->postJson('/tasks', ['title' => 'Call tent wala'])->assertStatus(403)->assertErrorCode('forbidden');
+        }
+        $this->assertSame(0, $this->rows('tasks'));
+        $papa = $this->loginAs('mahi');
         $res = $papa->postJson('/tasks', ['title' => '  Call tent wala ']);
         $res->assertStatus(201)->assertEnvelope();
         $t = $res->json('data');
         $this->assertSame('"1"', $res->header('ETag'));
         $this->assertSame('Call tent wala', $t['title']);
         $this->assertSame(['todo', 'normal', 1], [$t['status'], $t['priority'], $t['version']]);
-        $this->assertSame([['id' => $this->pid('papa'), 'name' => 'Papa']], $t['assignees']);
+        $this->assertSame([['id' => $this->pid('mahi'), 'name' => 'Mahi']], $t['assignees']);
         $this->assertSame([], $t['items']);
         $this->assertFalse($t['overdue']);
         $this->assertSame(1, $this->rows('audit_log', "action = 'create' AND entity_type = 'task'"));
@@ -93,7 +98,7 @@ final class TasksTest extends ApiTestCase
     #[Endpoint('POST /tasks')]
     public function test_similar_open_task_is_flagged_unless_add_anyway(): void
     {
-        $c = $this->loginAs('mummy');
+        $c = $this->loginAs('mahi');
         $c->postJson('/tasks', ['title' => 'Book tent wala'])->assertStatus(201);
         $res = $c->postJson('/tasks', ['title' => 'book TENT wala'])->assertStatus(409)->assertErrorCode('duplicate_found');
         $this->assertSame('A similar task exists: Book tent wala', $res->json('error.message'));
@@ -218,7 +223,7 @@ final class TasksTest extends ApiTestCase
     public function test_ac_task_04_05_postpone_counts_only_later_dates(): void
     {
         $mummy = $this->loginAs('mummy');
-        $t = $this->add($mummy, ['title' => 'Book tent wala', 'due_date' => '2026-10-12']);
+        $t = $this->add($this->loginAs('ayush'), ['title' => 'Book tent wala', 'due_date' => '2026-10-12', 'assignee_ids' => [$this->pid('mummy')]]);
         $res = $mummy->patchJson('/tasks/' . $t['id'], ['due_date' => '2026-10-19'], 1)->assertStatus(200);
         $this->assertSame(1, $res->json('data.postpone_count'));
         $this->assertSame(2, $res->json('data.version'));
@@ -227,7 +232,7 @@ final class TasksTest extends ApiTestCase
         $lines = array_column($mummy->get('/tasks/' . $t['id'] . '/history')->json('data'), 'sentence');
         $this->assertSame('Mummy changed Due date from 19 Oct 2026 to 15 Oct 2026 for Book tent wala.', $lines[0]);
         $this->assertSame('Mummy postponed Book tent wala from 12 Oct to 19 Oct.', $lines[1]);
-        $this->assertSame('Mummy added Book tent wala.', $lines[2]);
+        $this->assertSame('Ayush added Book tent wala.', $lines[2]);
     }
 
     #[Endpoint('PATCH /tasks/{id}')]
@@ -262,7 +267,7 @@ final class TasksTest extends ApiTestCase
     {
         $papa = $this->loginAs('papa');
         $mummy = $this->loginAs('mummy');
-        $t = $this->add($papa, ['title' => 'Sweets']);
+        $t = $this->add($this->loginAs('ayush'), ['title' => 'Sweets', 'assignee_ids' => [$this->pid('papa')]]);
         $papa->patchJson('/tasks/' . $t['id'], ['priority' => 'urgent'], 1)->assertStatus(200);
         $before = $this->row('SELECT * FROM tasks');
         $audits = $this->rows('audit_log');
@@ -320,7 +325,7 @@ final class TasksTest extends ApiTestCase
     #[Endpoint('POST /tasks/{id}/done')]
     public function test_ds12_undo_skips_a_task_changed_since(): void
     {
-        $t = $this->add($this->loginAs('mummy'), ['title' => 'Flowers']);
+        $t = $this->add($this->loginAs('ayush'), ['title' => 'Flowers', 'assignee_ids' => [$this->pid('mummy')]]);
         $mummy = $this->loginAs('mummy');
         $batch = $mummy->postJson('/tasks/' . $t['id'] . '/done', new \stdClass(), [], ['ifMatch' => 1])->json('meta.undo.batch_id');
         $this->loginAs('papa')->patchJson('/tasks/' . $t['id'], ['notes' => 'Marigold'], 2)->assertStatus(200);
@@ -338,7 +343,8 @@ final class TasksTest extends ApiTestCase
         $theirs = $this->add($ayush, ['title' => 'Ayush only']);
         $assigned = $this->add($ayush, ['title' => 'For Mummy', 'assignee_ids' => [$this->pid('mummy')]]);
         $mummy = $this->loginAs('mummy');
-        $own = $this->add($mummy, ['title' => 'Mine']);
+        $own = $this->add($ayush, ['title' => 'Mine']);
+        $this->db()->run('UPDATE tasks SET created_by = 4 WHERE public_id = ?', [$own['id']]); // added by Mummy before 1.0.16
         $res = $mummy->request('DELETE', '/tasks/' . $theirs['id'], null, [], [], ['ifMatch' => 1])->assertStatus(403);
         $this->assertSame('You can delete only tasks you added or that are yours.', $res->json('error.message'));
         $mummy->request('DELETE', '/tasks/' . $assigned['id'], null, [], [], ['ifMatch' => 1])->assertStatus(200);
@@ -394,7 +400,7 @@ final class TasksTest extends ApiTestCase
     public function test_ds14_restore_after_11_minutes_admin_only(): void
     {
         $mummy = $this->loginAs('mummy');
-        $t = $this->add($mummy, ['title' => 'Gifts', 'items' => [['key' => Uuid::v4(), 'text' => 'Silver coins']]]);
+        $t = $this->add($this->loginAs('ayush'), ['title' => 'Gifts', 'assignee_ids' => [$this->pid('mummy')], 'items' => [['key' => Uuid::v4(), 'text' => 'Silver coins']]]);
         $mummy->request('DELETE', '/tasks/' . $t['id'], null, [], [], ['ifMatch' => 1])->assertStatus(200);
         $this->clock->advance('+11 minutes');
         $mummy->postJson('/tasks/' . $t['id'] . '/restore', new \stdClass(), [], ['ifMatch' => 2])->assertStatus(403);

@@ -33,6 +33,8 @@ final class Snapshot
     public const SKIP_TABLES = ['sessions', 'login_attempts', 'password_resets', 'idempotency_keys', 'rate_limits', 'push_subscriptions'];
     public const SECRET_COLUMNS = ['password_hash', 'token_hash', 'csrf_hash', 'download_token_hash', 'auth_secret', 'endpoint_hash', 'request_hash'];
     public const PART_BYTES = 200 * 1024 * 1024;
+    /** Binary columns (Home photos): base64 in all.json, a short note in the CSV. */
+    public const BINARY_TYPES = ['blob', 'tinyblob', 'mediumblob', 'longblob', 'binary', 'varbinary'];
 
     /**
      * @param string $dir an empty folder to fill
@@ -152,8 +154,15 @@ final class Snapshot
             $st = $pdo->query("SELECT $select FROM `$table` ORDER BY 1");
             $ist = new DateTimeZone('Asia/Kolkata');
             $utc = new DateTimeZone('UTC');
+            $binary = array_keys(array_filter($cols, static fn ($t) => in_array($t, self::BINARY_TYPES, true)));
             while (($row = $st->fetch(PDO::FETCH_ASSOC)) !== false) {
-                fwrite($json, ($n === 0 ? '' : ',') . json_encode(array_values($row), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR));
+                $jrow = $row;
+                foreach ($binary as $c) {
+                    if ($jrow[$c] !== null) {
+                        $jrow[$c] = base64_encode((string) $jrow[$c]);
+                    }
+                }
+                fwrite($json, ($n === 0 ? '' : ',') . json_encode(array_values($jrow), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR));
                 $out = [];
                 foreach ($row as $c => $v) {
                     $out[] = self::csvValue($c, $cols[$c], $v, $ist, $utc);
@@ -178,6 +187,9 @@ final class Snapshot
     {
         if ($v === null) {
             return null;
+        }
+        if (in_array($type, self::BINARY_TYPES, true)) {
+            return '(' . strlen((string) $v) . ' bytes, in json/all.json)';
         }
         if ($type === 'datetime' || $type === 'timestamp') {
             return (new DateTimeImmutable((string) $v, $utc))->setTimezone($ist)->format('Y-m-d H:i');

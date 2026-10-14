@@ -130,7 +130,7 @@ export default function TaskList() {
         </ul>
       )}
       {list.hasNextPage && <button type="button" className="tap font-bold text-primary" onClick={() => list.fetchNextPage()}>{t('history.more')}</button>}
-      <AddButton label={t('tasks.addTask')} onClick={() => navigate('/tasks/new')} />
+      {permissions?.admin && <AddButton label={t('tasks.addTask')} onClick={() => navigate('/tasks/new')} />}
     </Screen>
   );
 }

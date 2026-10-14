@@ -44,7 +44,10 @@ describe('Agenda', () => {
         { type: 'event', id: MEHNDI, title: 'Mehndi', date: `${month}-20`, time: '18:00', status: null, overdue: false, side: 'both', linked_event: null },
       ] }], undated }),
     });
+    const user = userEvent.setup();
     const { container } = renderAt('/calendar');
+    await user.click(await screen.findByRole('radio', { name: 'Agenda' })); // Month is the default (1.0.16); Agenda on selection
+    await screen.findByText('Engagement');
     const headings = await screen.findAllByRole('heading', { level: 2 });
     expect(headings[0]).toHaveTextContent('Date not set');
     expect(screen.getByText('Engagement')).toBeInTheDocument();
@@ -53,22 +56,43 @@ describe('Agenda', () => {
     expect(within(day).getAllByText('Event')[0]).toBeInTheDocument();
     expect(within(day).getByText('Task')).toBeInTheDocument();
     expect(await axe(container)).toHaveNoViolations();
-    const first = calls.mock.calls.find(([u]) => u.startsWith('/api/v1/calendar'))[0];
-    expect(first).toContain(`from=${today}`);
+    const first = calls.mock.calls.find(([u]) => u.startsWith('/api/v1/calendar') && u.includes(`from=${today}`))[0];
     expect(first).toContain('include_undated=true');
-    expect(first).toContain('types=event%2Ctask%2Cpayment');
+    expect(first).toContain('types=event%2Ctask&');
+    expect(first).toContain('mine=true');
   });
 
-  test('a non-money member never asks for payments; Only mine is sent', async () => {
-    signInAs('mummy');
+  test('1.0.16 defaults: Month view, Events and Tasks on, no Payments chip, Only mine chosen; All shows everyone\'s', async () => {
+    signInAs('papa'); // money user: still no Payments chip
     const user = userEvent.setup();
     const calls = fakeApi({ 'GET /calendar': () => ok({ days: [], undated: [] }) });
     renderAt('/calendar');
-    await screen.findByText('Nothing planned yet. Set your event dates.');
+    await screen.findByText('Nothing planned this month.');
+    expect(screen.getByRole('radio', { name: 'Month' })).toBeChecked();
+    expect(screen.getByRole('button', { name: /Events/ })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: /Tasks/ })).toHaveAttribute('aria-pressed', 'true');
     expect(screen.queryByRole('button', { name: /Payments/ })).toBeNull();
+    expect(screen.getByRole('radio', { name: 'Only mine' })).toBeChecked();
+    expect(screen.getByRole('radio', { name: 'All' })).not.toBeChecked();
     expect(calls.mock.calls[0][0]).toContain('types=event%2Ctask&');
-    await user.click(screen.getByRole('button', { name: 'Only mine' }));
-    await vi.waitFor(() => expect(calls.mock.calls.some(([u]) => u.includes('mine=true'))).toBe(true));
+    expect(calls.mock.calls[0][0]).toContain('mine=true');
+    expect(screen.queryByRole('button', { name: 'Add to calendar' })).toBeNull(); // Family: no +
+    const before = calls.mock.calls.length;
+    await user.click(screen.getByRole('radio', { name: 'All' }));
+    await vi.waitFor(() => expect(calls.mock.calls.length).toBeGreaterThan(before));
+    expect(calls.mock.calls.at(-1)[0]).not.toContain('mine=');
+  });
+
+  test('the + (Ayush and Mahi) offers Add event and Add task', async () => {
+    signInAs('mahi');
+    const user = userEvent.setup();
+    fakeApi({ 'GET /calendar': () => ok({ days: [], undated: [] }), 'GET /events': () => ok([]), 'GET /members': () => ok([]), 'GET /tags': () => ok([]) });
+    const { router } = renderAt('/calendar');
+    await user.click(await screen.findByRole('button', { name: 'Add to calendar' }));
+    const sheet = await screen.findByRole('dialog');
+    expect(within(sheet).getByRole('button', { name: /Add event/ })).toBeInTheDocument();
+    await user.click(within(sheet).getByRole('button', { name: /Add task/ }));
+    expect(router.state.location.pathname).toBe('/tasks/new');
   });
 });
 
@@ -78,9 +102,8 @@ describe('Month view', () => {
     const user = userEvent.setup();
     const items = ['A', 'B', 'C', 'D', 'E'].map((n, i) => ({ type: 'task', id: `01JA7Q3M2K8V5R1T9W4X6Y0T0${i}`, title: `Task ${n}`, date: `${month}-20`, time: null, status: 'todo', overdue: false, side: null, linked_event: null }));
     fakeApi({ 'GET /calendar': () => ok({ days: [{ date: `${month}-20`, items }] }) });
-    renderAt('/calendar');
-    await user.click(await screen.findByRole('radio', { name: 'Month' }));
-    const cell = await screen.findByRole('gridcell', { name: '20, 5 items' });
+    renderAt('/calendar'); // Month view is the default
+    const cell = await screen.findByRole('button', { name: '20, 5 items' });
     expect(within(cell).getByText('+2')).toBeInTheDocument();
     await user.click(cell);
     expect(await screen.findByText('Task E')).toBeInTheDocument();
@@ -176,7 +199,7 @@ describe('Event form', () => {
 
 describe('Task from an event (AC-QA-02)', () => {
   test('"Add a task for this event" fills in the event', async () => {
-    signInAs('papa');
+    signInAs('ayush');
     const user = userEvent.setup();
     const calls = fakeApi({
       'GET /events': () => ok([event()]), 'GET /members': () => ok([]), 'GET /tags': () => ok([]),

@@ -5,19 +5,34 @@ import { login, watchProblems } from './helpers.js';
 const MEHNDI = '01M4DK5T3E6QZBMNQ0V7KQWW23';
 const TRIAL = '01M1DHZQ8GTXAWSA70A2MPRBGF'; // "Bridal makeup trial", 5 Dec 2026 (demo data)
 
-test('E1: agenda by day with IST times; month view lists a tapped day', async ({ page }) => {
+test('E1: Month view first (1.0.16) lists a tapped day; Agenda by day with IST times; Only mine → All', async ({ page }) => {
   const problems = watchProblems(page);
   await login(page, 'papa');
   await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Calendar' }).click();
+  await expect(page.getByRole('radio', { name: 'Month' })).toBeChecked();
+  await expect(page.getByRole('radio', { name: 'Only mine' })).toBeChecked();
+  await expect(page.getByRole('button', { name: /Payments/ })).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: 'October 2026' })).toBeVisible();
+  await page.getByRole('button', { name: 'Next month' }).click();
+  await page.getByRole('button', { name: /^22, / }).click();
+  await expect(page.getByRole('region', { name: 'Sun, 22 Nov 2026' }).getByText('Engagement')).toBeVisible();
+  await page.getByRole('radio', { name: 'Agenda' }).click();
   const day = page.getByRole('region', { name: 'Sun, 22 Nov 2026' });
   await expect(day.getByText('Engagement')).toBeVisible();
   await expect(day.getByText(/6:00 PM/)).toBeVisible();
-  await page.getByRole('radio', { name: 'Month' }).click();
-  await expect(page.getByRole('heading', { name: 'October 2026' })).toBeVisible();
-  await page.getByRole('button', { name: 'Next month' }).click();
-  await page.getByRole('gridcell', { name: /^22, / }).click();
-  await expect(page.getByRole('region', { name: 'Sun, 22 Nov 2026' }).getByText('Engagement')).toBeVisible();
+  await page.getByRole('radio', { name: 'All' }).click();
+  await expect(page.getByRole('radio', { name: 'All' })).toBeChecked();
   expect(problems).toEqual([]);
+});
+
+test('Ayush: the + on Calendar offers Add event and Add task', async ({ page }) => {
+  await login(page, 'ayush');
+  await page.goto('/calendar');
+  await page.getByRole('button', { name: 'Add to calendar' }).click();
+  const sheet = page.getByRole('dialog');
+  await expect(sheet.getByRole('button', { name: /Add event/ })).toBeVisible();
+  await sheet.getByRole('button', { name: /Add task/ }).click();
+  await expect(page).toHaveURL(/\/tasks\/new$/);
 });
 
 test('E3: Ayush edits the Mehndi venue; Share on WhatsApp carries the new venue', async ({ page }, info) => {

@@ -35,8 +35,16 @@ final class DailyJobTest extends ApiTestCase
             $before[$t] = $this->rows($t);
         }
 
+        // 1.0.17: a Vault upload left unfinished for over a day goes, with its pieces; a finished one and a fresh one stay.
+        $db->run("INSERT INTO vault_files (public_id, sha256, mime_type, original_name, size_bytes, chunk_count, is_complete, created_at, completed_at) VALUES
+            ('01JC0VF0000000000000000001', ?, 'video/mp4', 'old.mp4', 10, 1, 0, '2026-10-06 09:00:00', NULL),
+            ('01JC0VF0000000000000000002', ?, 'video/mp4', 'new.mp4', 10, 1, 0, '2026-10-08 08:00:00', NULL),
+            ('01JC0VF0000000000000000003', ?, 'video/mp4', 'done.mp4', 10, 1, 1, '2026-10-01 09:00:00', '2026-10-01 09:01:00')", [str_repeat('a', 64), str_repeat('b', 64), str_repeat('c', 64)]);
+        $db->run("INSERT INTO vault_file_chunks (file_id, seq, data) SELECT id, 0, 'x' FROM vault_files WHERE public_id = '01JC0VF0000000000000000001'");
         $n = $this->job()->purgeTables();
-        $this->assertSame(['sessions' => 2, 'login_attempts' => 1, 'idempotency_keys' => 1, 'rate_limits' => 1], $n);
+        $this->assertSame(['sessions' => 2, 'login_attempts' => 1, 'idempotency_keys' => 1, 'rate_limits' => 1, 'vault_uploads' => 1], $n);
+        $this->assertSame(['new.mp4', 'done.mp4'], array_column($db->all('SELECT original_name FROM vault_files ORDER BY id'), 'original_name'));
+        $this->assertSame(0, $this->rows('vault_file_chunks'));
         $this->assertSame(2, $this->rows('sessions'));
         $this->assertSame(1, $this->rows('login_attempts'));
         $this->assertSame(1, $this->rows('rate_limits', "bucket = 'b'"));

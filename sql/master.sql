@@ -1,8 +1,8 @@
 -- =============================================================================
--- A&M Wedding Planner — master.sql  (version 1.0.15)
+-- A&M Wedding Planner — master.sql  (version 1.0.20)
 -- ONE file for a NEW, EMPTY database:
 --   phpMyAdmin → select the database → Import → this file → Character set utf-8 → Go.
--- Contains, in order: migrations/001_init.sql migrations/002_open_answers.sql migrations/003_api_support.sql
+-- Contains, in order: migrations/001_init.sql migrations/002_open_answers.sql migrations/003_api_support.sql migrations/004_home_photos.sql migrations/005_workspaces_vault.sql migrations/006_outfits.sql migrations/007_decor_menu.sql migrations/008_contacts_timeline.sql
 -- On a database that already has the tables it stops at the first line
 -- ("Table 'schema_migrations' already exists") and changes nothing.
 -- Made by tools/make-master-sql.sh — do not edit; edit the files listed above.
@@ -1109,4 +1109,687 @@ CREATE TABLE rate_limits (
 UPDATE task_items SET client_uuid = UUID(), updated_at = updated_at WHERE client_uuid IS NULL;
 
 UPDATE schema_migrations SET finished_at = CURRENT_TIMESTAMP WHERE version = 3;
+
+
+-- ##### migrations/004_home_photos.sql #####
+
+-- =============================================================================
+-- A&M Wedding Planner — migration 004_home_photos.sql
+-- Home screen photos (version 1.0.16). Run AFTER 003.
+-- Target: MySQL 8.0.16+ (also runs on MariaDB 10.4+).
+--
+--   1. photo_blobs: the image bytes, stored IN the database (owner's choice "b",
+--      so they survive on Vercel and go into every backup and export).
+--      Immutable: a row is never changed, only added. One row per distinct
+--      image (sha256 unique). Kept out of home_photos so the audit log, which
+--      copies a whole row, never holds image bytes.
+--   2. home_photos: which image shows where on Home — slot 'cover' (carousel,
+--      up to 8), 'couple' (up to 4) or 'monogram' (1). Normal versioned row
+--      with soft delete and Undo, like every other record.
+--
+-- Card tracking (planned as 004 in DATABASE.md) moves to 005.
+-- =============================================================================
+
+-- Fails here, changing nothing, if 004 already ran.
+INSERT INTO schema_migrations (version, name, applied_by)
+VALUES (4, '004_home_photos', 'phpMyAdmin');
+
+CREATE TABLE photo_blobs (
+  id          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  sha256      CHAR(64) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+  mime_type   VARCHAR(40) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+  size_bytes  INT UNSIGNED NOT NULL,
+  width_px    SMALLINT UNSIGNED NOT NULL,
+  height_px   SMALLINT UNSIGNED NOT NULL,
+  data        MEDIUMBLOB NOT NULL,
+  created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  created_by  BIGINT UNSIGNED NULL,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_photo_blobs_sha256 (sha256),
+  CONSTRAINT fk_photo_blobs_created_by FOREIGN KEY (created_by) REFERENCES users (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT ck_photo_blobs_size CHECK (size_bytes BETWEEN 1 AND 3145728),
+  CONSTRAINT ck_photo_blobs_mime CHECK (mime_type IN ('image/jpeg','image/png','image/webp'))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  COMMENT='Home photo bytes. Immutable. Up to 3 MB each (the phone compresses first).';
+
+CREATE TABLE home_photos (
+  id               BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  public_id        CHAR(26) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+  client_uuid      CHAR(36) CHARACTER SET ascii COLLATE ascii_general_ci NULL,
+  slot             ENUM('cover','couple','monogram') NOT NULL,
+  sort_order       SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+  blob_id          BIGINT UNSIGNED NOT NULL,
+  version          INT UNSIGNED NOT NULL DEFAULT 1,
+  created_at       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  created_by       BIGINT UNSIGNED NULL,
+  updated_at       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  updated_by       BIGINT UNSIGNED NULL,
+  deleted_at       DATETIME NULL,
+  deleted_by       BIGINT UNSIGNED NULL,
+  delete_batch_id  BIGINT UNSIGNED NULL,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_home_photos_public_id (public_id),
+  UNIQUE KEY uq_home_photos_client_uuid (client_uuid),
+  KEY ix_home_photos_live_slot (deleted_at, slot, sort_order),
+  CONSTRAINT fk_home_photos_blob       FOREIGN KEY (blob_id) REFERENCES photo_blobs (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT fk_home_photos_created_by FOREIGN KEY (created_by) REFERENCES users (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT fk_home_photos_updated_by FOREIGN KEY (updated_by) REFERENCES users (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT fk_home_photos_deleted_by FOREIGN KEY (deleted_by) REFERENCES users (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT fk_home_photos_batch      FOREIGN KEY (delete_batch_id) REFERENCES change_batches (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT ck_home_photos_version CHECK (version >= 1),
+  CONSTRAINT ck_home_photos_deleted CHECK ((deleted_at IS NULL) = (delete_batch_id IS NULL))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+UPDATE schema_migrations SET finished_at = CURRENT_TIMESTAMP WHERE version = 4;
+
+
+-- ##### migrations/005_workspaces_vault.sql #####
+
+-- =============================================================================
+-- A&M Wedding Planner — migration 005_workspaces_vault.sql
+-- Workspace step A + Attachment Vault (version 1.0.17). Run AFTER 004.
+-- Target: MySQL 8.0.16+ (also runs on MariaDB 10.4+).
+--
+--   1. workspaces: one per function (Engagement, Mehndi, …), optionally linked
+--      to one calendar event. The 7 owner's defaults are added at the end.
+--   2. vault_files + vault_file_chunks: file bytes IN the database, in 2 MB
+--      pieces, so any size uploads through hosts with small request limits
+--      (Vercel ~4.5 MB) and the bytes survive hosts without a lasting disk.
+--      A file row is complete only after every piece arrived and the SHA-256
+--      of the whole matched. Never changed afterwards.
+--   3. attachments: every attachment in the app (photo, video, document, link,
+--      text) with an editable ID ("code") that is UNIQUE across the app,
+--      capitals ignored (the column's collation). Deleted ones keep their ID.
+--   4. attachment_links: where an attachment is used (one attachment, many places).
+--   5. tasks.workspace_id / workspace_section: a task can belong to a workspace.
+--   6. Existing documents become Vault attachments (kind 'document', ATT-000001…).
+--
+-- Card tracking (planned) moves to 006.
+-- =============================================================================
+
+-- Fails here, changing nothing, if 005 already ran.
+INSERT INTO schema_migrations (version, name, applied_by)
+VALUES (5, '005_workspaces_vault', 'phpMyAdmin');
+
+CREATE TABLE workspaces (
+  id               BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  public_id        CHAR(26) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+  client_uuid      CHAR(36) CHARACTER SET ascii COLLATE ascii_general_ci NULL,
+  name             VARCHAR(80) NOT NULL,
+  event_id         BIGINT UNSIGNED NULL COMMENT 'The calendar event this workspace is for (optional)',
+  sort_order       SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+  notes            TEXT NULL,
+  version          INT UNSIGNED NOT NULL DEFAULT 1,
+  created_at       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  created_by       BIGINT UNSIGNED NULL,
+  updated_at       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  updated_by       BIGINT UNSIGNED NULL,
+  deleted_at       DATETIME NULL,
+  deleted_by       BIGINT UNSIGNED NULL,
+  delete_batch_id  BIGINT UNSIGNED NULL,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_workspaces_public_id (public_id),
+  UNIQUE KEY uq_workspaces_client_uuid (client_uuid),
+  KEY ix_workspaces_live_order (deleted_at, sort_order),
+  KEY ix_workspaces_event (event_id, deleted_at),
+  CONSTRAINT fk_workspaces_event      FOREIGN KEY (event_id) REFERENCES events (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT fk_workspaces_created_by FOREIGN KEY (created_by) REFERENCES users (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT fk_workspaces_updated_by FOREIGN KEY (updated_by) REFERENCES users (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT fk_workspaces_deleted_by FOREIGN KEY (deleted_by) REFERENCES users (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT fk_workspaces_batch      FOREIGN KEY (delete_batch_id) REFERENCES change_batches (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT ck_workspaces_version CHECK (version >= 1),
+  CONSTRAINT ck_workspaces_deleted CHECK ((deleted_at IS NULL) = (delete_batch_id IS NULL))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE vault_files (
+  id            BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  public_id     CHAR(26) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL COMMENT 'The upload id the phone uses',
+  sha256        CHAR(64) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+  mime_type     VARCHAR(100) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+  original_name VARCHAR(255) NOT NULL,
+  size_bytes    BIGINT UNSIGNED NOT NULL,
+  chunk_count   INT UNSIGNED NOT NULL,
+  width_px      SMALLINT UNSIGNED NULL,
+  height_px     SMALLINT UNSIGNED NULL,
+  is_complete   TINYINT UNSIGNED NOT NULL DEFAULT 0,
+  created_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  created_by    BIGINT UNSIGNED NULL,
+  completed_at  DATETIME NULL,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_vault_files_public_id (public_id),
+  KEY ix_vault_files_sha (sha256, is_complete),
+  KEY ix_vault_files_incomplete (is_complete, created_at),
+  CONSTRAINT fk_vault_files_created_by FOREIGN KEY (created_by) REFERENCES users (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT ck_vault_files_size CHECK (size_bytes >= 1),
+  CONSTRAINT ck_vault_files_complete CHECK ((is_complete = 1) = (completed_at IS NOT NULL))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  COMMENT='Vault file bytes live in vault_file_chunks. Unfinished uploads are removed after 1 day.';
+
+CREATE TABLE vault_file_chunks (
+  file_id   BIGINT UNSIGNED NOT NULL,
+  seq       INT UNSIGNED NOT NULL COMMENT '0-based; every piece is 2 MB except the last',
+  data      MEDIUMBLOB NOT NULL,
+  PRIMARY KEY (file_id, seq),
+  CONSTRAINT fk_vault_file_chunks_file FOREIGN KEY (file_id) REFERENCES vault_files (id) ON DELETE CASCADE ON UPDATE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE attachments (
+  id               BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  public_id        CHAR(26) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+  client_uuid      CHAR(36) CHARACTER SET ascii COLLATE ascii_general_ci NULL,
+  code             VARCHAR(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Editable ID, unique app-wide, capitals ignored',
+  kind             ENUM('photo','video','document','link','text') NOT NULL,
+  title            VARCHAR(160) NOT NULL,
+  note             TEXT NULL,
+  url              VARCHAR(2000) NULL COMMENT 'kind = link (or a video link)',
+  body             TEXT NULL COMMENT 'kind = text',
+  file_id          BIGINT UNSIGNED NULL COMMENT 'Uploaded bytes (vault_files)',
+  document_id      BIGINT UNSIGNED NULL COMMENT 'A Documents record shown in the Vault (bytes stay with the document)',
+  is_favourite     TINYINT UNSIGNED NOT NULL DEFAULT 0,
+  vendor_id        BIGINT UNSIGNED NULL,
+  task_id          BIGINT UNSIGNED NULL,
+  version          INT UNSIGNED NOT NULL DEFAULT 1,
+  created_at       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  created_by       BIGINT UNSIGNED NULL,
+  updated_at       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  updated_by       BIGINT UNSIGNED NULL,
+  deleted_at       DATETIME NULL,
+  deleted_by       BIGINT UNSIGNED NULL,
+  delete_batch_id  BIGINT UNSIGNED NULL,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_attachments_public_id (public_id),
+  UNIQUE KEY uq_attachments_client_uuid (client_uuid),
+  UNIQUE KEY uq_attachments_code (code),
+  UNIQUE KEY uq_attachments_document (document_id),
+  KEY ix_attachments_live_created (deleted_at, created_at),
+  KEY ix_attachments_kind (deleted_at, kind),
+  KEY ix_attachments_vendor (vendor_id, deleted_at),
+  KEY ix_attachments_task (task_id, deleted_at),
+  CONSTRAINT fk_attachments_file       FOREIGN KEY (file_id) REFERENCES vault_files (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT fk_attachments_document   FOREIGN KEY (document_id) REFERENCES documents (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT fk_attachments_vendor     FOREIGN KEY (vendor_id) REFERENCES vendors (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT fk_attachments_task       FOREIGN KEY (task_id) REFERENCES tasks (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT fk_attachments_created_by FOREIGN KEY (created_by) REFERENCES users (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT fk_attachments_updated_by FOREIGN KEY (updated_by) REFERENCES users (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT fk_attachments_deleted_by FOREIGN KEY (deleted_by) REFERENCES users (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT fk_attachments_batch      FOREIGN KEY (delete_batch_id) REFERENCES change_batches (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT ck_attachments_version CHECK (version >= 1),
+  CONSTRAINT ck_attachments_deleted CHECK ((deleted_at IS NULL) = (delete_batch_id IS NULL)),
+  CONSTRAINT ck_attachments_code CHECK (CHAR_LENGTH(code) BETWEEN 3 AND 30),
+  CONSTRAINT ck_attachments_link CHECK (kind <> 'link' OR url IS NOT NULL)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE attachment_links (
+  id               BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  public_id        CHAR(26) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+  client_uuid      CHAR(36) CHARACTER SET ascii COLLATE ascii_general_ci NULL,
+  attachment_id    BIGINT UNSIGNED NOT NULL,
+  workspace_id     BIGINT UNSIGNED NOT NULL,
+  section          VARCHAR(40) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL DEFAULT 'general' COMMENT 'general, bride_outfit, … (later steps add more)',
+  target_type      VARCHAR(40) CHARACTER SET ascii COLLATE ascii_general_ci NULL COMMENT 'A thing inside the section (later steps: accessory, menu item, …)',
+  target_id        BIGINT UNSIGNED NULL,
+  version          INT UNSIGNED NOT NULL DEFAULT 1,
+  created_at       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  created_by       BIGINT UNSIGNED NULL,
+  updated_at       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  updated_by       BIGINT UNSIGNED NULL,
+  deleted_at       DATETIME NULL,
+  deleted_by       BIGINT UNSIGNED NULL,
+  delete_batch_id  BIGINT UNSIGNED NULL,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_attachment_links_public_id (public_id),
+  UNIQUE KEY uq_attachment_links_client_uuid (client_uuid),
+  KEY ix_attachment_links_attachment (attachment_id, deleted_at),
+  KEY ix_attachment_links_place (workspace_id, section, deleted_at),
+  CONSTRAINT fk_attachment_links_attachment FOREIGN KEY (attachment_id) REFERENCES attachments (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT fk_attachment_links_workspace  FOREIGN KEY (workspace_id) REFERENCES workspaces (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT fk_attachment_links_created_by FOREIGN KEY (created_by) REFERENCES users (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT fk_attachment_links_updated_by FOREIGN KEY (updated_by) REFERENCES users (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT fk_attachment_links_deleted_by FOREIGN KEY (deleted_by) REFERENCES users (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT fk_attachment_links_batch      FOREIGN KEY (delete_batch_id) REFERENCES change_batches (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT ck_attachment_links_version CHECK (version >= 1),
+  CONSTRAINT ck_attachment_links_deleted CHECK ((deleted_at IS NULL) = (delete_batch_id IS NULL))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+ALTER TABLE tasks
+  ADD COLUMN workspace_id      BIGINT UNSIGNED NULL AFTER household_id,
+  ADD COLUMN workspace_section VARCHAR(40) CHARACTER SET ascii COLLATE ascii_general_ci NULL AFTER workspace_id,
+  ADD KEY ix_tasks_workspace (workspace_id, deleted_at, status),
+  ADD CONSTRAINT fk_tasks_workspace FOREIGN KEY (workspace_id) REFERENCES workspaces (id) ON DELETE RESTRICT ON UPDATE RESTRICT;
+
+-- The owner's 7 workspaces, linked to the matching calendar event where there is one.
+INSERT INTO workspaces (public_id, name, sort_order, event_id) VALUES
+  ('01JC0WS0000000000000000001', 'Engagement', 10, (SELECT MIN(id) FROM events WHERE type = 'engagement' AND deleted_at IS NULL)),
+  ('01JC0WS0000000000000000002', 'Mehndi', 20, (SELECT MIN(id) FROM events WHERE type = 'mehndi' AND deleted_at IS NULL)),
+  ('01JC0WS0000000000000000003', 'Carnival', 30, NULL),
+  ('01JC0WS0000000000000000004', 'DJ Night', 40, NULL),
+  ('01JC0WS0000000000000000005', 'Mayra', 50, (SELECT MIN(id) FROM events WHERE type = 'mayra' AND deleted_at IS NULL)),
+  ('01JC0WS0000000000000000006', 'Reception', 60, (SELECT MIN(id) FROM events WHERE type = 'reception' AND deleted_at IS NULL)),
+  ('01JC0WS0000000000000000007', 'Varmala & Phere', 70, (SELECT MIN(id) FROM events WHERE type = 'wedding' AND deleted_at IS NULL));
+
+-- Every existing document shows in the Vault with an ID (deleted ones too, so Undo brings both back).
+INSERT INTO attachments (public_id, code, kind, title, document_id, vendor_id, created_at, created_by, updated_at, updated_by)
+SELECT CONCAT('01JC0VA', LPAD(d.id, 19, '0')), CONCAT('ATT-', LPAD(d.id, 6, '0')), 'document', LEFT(d.title, 160), d.id, d.vendor_id,
+       d.created_at, d.created_by, d.created_at, d.created_by
+FROM documents d ORDER BY d.id;
+
+UPDATE schema_migrations SET finished_at = CURRENT_TIMESTAMP WHERE version = 5;
+
+
+-- ##### migrations/006_outfits.sql #####
+
+-- =============================================================================
+-- A&M Wedding Planner — migration 006_outfits.sql
+-- Workspace step B: outfits (version 1.0.18). Run AFTER 005.
+-- Target: MySQL 8.0.16+ (also runs on MariaDB 10.4+).
+--
+--   1. outfits: one row per outfit in a workspace, for the bride or groom
+--      (close / extended family, male / female, already allowed for step C).
+--   2. outfit_steps: the outfit's timeline (Selected → Stitched → Trial done →
+--      Final approved by default; steps can be added, renamed, reordered),
+--      each with the date it was done.
+--   3. accessories: things that go with an outfit (Maang tikka, Kaleere, …);
+--      also usable by a workspace section without an outfit (step C: decoration).
+--   4. notes: short notes on an outfit, an accessory or a timeline step.
+--   5. attachment_links: + outfit_id / accessory_id / outfit_step_id, so the
+--      moodboard and step / accessory attachments come from the Vault.
+--   6. tasks: + target_type / target_id (the outfit, accessory or step a task came from).
+--
+-- Card tracking (planned) moves to 007.
+-- =============================================================================
+
+-- Fails here, changing nothing, if 006 already ran.
+INSERT INTO schema_migrations (version, name, applied_by)
+VALUES (6, '006_outfits', 'phpMyAdmin');
+
+CREATE TABLE outfits (
+  id               BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  public_id        CHAR(26) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+  client_uuid      CHAR(36) CHARACTER SET ascii COLLATE ascii_general_ci NULL,
+  workspace_id     BIGINT UNSIGNED NOT NULL,
+  person           ENUM('bride','groom','close_male','close_female','extended_male','extended_female') NOT NULL,
+  title            VARCHAR(120) NOT NULL,
+  sort_order       SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+  version          INT UNSIGNED NOT NULL DEFAULT 1,
+  created_at       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  created_by       BIGINT UNSIGNED NULL,
+  updated_at       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  updated_by       BIGINT UNSIGNED NULL,
+  deleted_at       DATETIME NULL,
+  deleted_by       BIGINT UNSIGNED NULL,
+  delete_batch_id  BIGINT UNSIGNED NULL,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_outfits_public_id (public_id),
+  UNIQUE KEY uq_outfits_client_uuid (client_uuid),
+  KEY ix_outfits_place (workspace_id, person, deleted_at, sort_order),
+  CONSTRAINT fk_outfits_workspace  FOREIGN KEY (workspace_id) REFERENCES workspaces (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT fk_outfits_created_by FOREIGN KEY (created_by) REFERENCES users (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT fk_outfits_updated_by FOREIGN KEY (updated_by) REFERENCES users (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT fk_outfits_deleted_by FOREIGN KEY (deleted_by) REFERENCES users (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT fk_outfits_batch      FOREIGN KEY (delete_batch_id) REFERENCES change_batches (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT ck_outfits_version CHECK (version >= 1),
+  CONSTRAINT ck_outfits_deleted CHECK ((deleted_at IS NULL) = (delete_batch_id IS NULL))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE outfit_steps (
+  id               BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  public_id        CHAR(26) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+  client_uuid      CHAR(36) CHARACTER SET ascii COLLATE ascii_general_ci NULL,
+  outfit_id        BIGINT UNSIGNED NOT NULL,
+  name             VARCHAR(60) NOT NULL,
+  sort_order       SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+  done_on          DATE NULL COMMENT 'IST date the step was done; NULL = not yet',
+  version          INT UNSIGNED NOT NULL DEFAULT 1,
+  created_at       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  created_by       BIGINT UNSIGNED NULL,
+  updated_at       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  updated_by       BIGINT UNSIGNED NULL,
+  deleted_at       DATETIME NULL,
+  deleted_by       BIGINT UNSIGNED NULL,
+  delete_batch_id  BIGINT UNSIGNED NULL,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_outfit_steps_public_id (public_id),
+  UNIQUE KEY uq_outfit_steps_client_uuid (client_uuid),
+  KEY ix_outfit_steps_outfit (outfit_id, deleted_at, sort_order),
+  CONSTRAINT fk_outfit_steps_outfit     FOREIGN KEY (outfit_id) REFERENCES outfits (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT fk_outfit_steps_created_by FOREIGN KEY (created_by) REFERENCES users (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT fk_outfit_steps_updated_by FOREIGN KEY (updated_by) REFERENCES users (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT fk_outfit_steps_deleted_by FOREIGN KEY (deleted_by) REFERENCES users (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT fk_outfit_steps_batch      FOREIGN KEY (delete_batch_id) REFERENCES change_batches (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT ck_outfit_steps_version CHECK (version >= 1),
+  CONSTRAINT ck_outfit_steps_deleted CHECK ((deleted_at IS NULL) = (delete_batch_id IS NULL))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE accessories (
+  id               BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  public_id        CHAR(26) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+  client_uuid      CHAR(36) CHARACTER SET ascii COLLATE ascii_general_ci NULL,
+  workspace_id     BIGINT UNSIGNED NOT NULL,
+  section          VARCHAR(40) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+  outfit_id        BIGINT UNSIGNED NULL COMMENT 'NULL = belongs to the section (step C: decoration)',
+  name             VARCHAR(120) NOT NULL,
+  sort_order       SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+  version          INT UNSIGNED NOT NULL DEFAULT 1,
+  created_at       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  created_by       BIGINT UNSIGNED NULL,
+  updated_at       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  updated_by       BIGINT UNSIGNED NULL,
+  deleted_at       DATETIME NULL,
+  deleted_by       BIGINT UNSIGNED NULL,
+  delete_batch_id  BIGINT UNSIGNED NULL,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_accessories_public_id (public_id),
+  UNIQUE KEY uq_accessories_client_uuid (client_uuid),
+  KEY ix_accessories_outfit (outfit_id, deleted_at, sort_order),
+  KEY ix_accessories_place (workspace_id, section, deleted_at),
+  CONSTRAINT fk_accessories_workspace  FOREIGN KEY (workspace_id) REFERENCES workspaces (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT fk_accessories_outfit     FOREIGN KEY (outfit_id) REFERENCES outfits (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT fk_accessories_created_by FOREIGN KEY (created_by) REFERENCES users (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT fk_accessories_updated_by FOREIGN KEY (updated_by) REFERENCES users (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT fk_accessories_deleted_by FOREIGN KEY (deleted_by) REFERENCES users (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT fk_accessories_batch      FOREIGN KEY (delete_batch_id) REFERENCES change_batches (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT ck_accessories_version CHECK (version >= 1),
+  CONSTRAINT ck_accessories_deleted CHECK ((deleted_at IS NULL) = (delete_batch_id IS NULL))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE notes (
+  id               BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  public_id        CHAR(26) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+  client_uuid      CHAR(36) CHARACTER SET ascii COLLATE ascii_general_ci NULL,
+  workspace_id     BIGINT UNSIGNED NOT NULL,
+  outfit_id        BIGINT UNSIGNED NULL,
+  accessory_id     BIGINT UNSIGNED NULL,
+  outfit_step_id   BIGINT UNSIGNED NULL,
+  body             TEXT NOT NULL,
+  version          INT UNSIGNED NOT NULL DEFAULT 1,
+  created_at       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  created_by       BIGINT UNSIGNED NULL,
+  updated_at       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  updated_by       BIGINT UNSIGNED NULL,
+  deleted_at       DATETIME NULL,
+  deleted_by       BIGINT UNSIGNED NULL,
+  delete_batch_id  BIGINT UNSIGNED NULL,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_notes_public_id (public_id),
+  UNIQUE KEY uq_notes_client_uuid (client_uuid),
+  KEY ix_notes_outfit (outfit_id, deleted_at),
+  KEY ix_notes_accessory (accessory_id, deleted_at),
+  KEY ix_notes_step (outfit_step_id, deleted_at),
+  CONSTRAINT fk_notes_workspace  FOREIGN KEY (workspace_id) REFERENCES workspaces (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT fk_notes_outfit     FOREIGN KEY (outfit_id) REFERENCES outfits (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT fk_notes_accessory  FOREIGN KEY (accessory_id) REFERENCES accessories (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT fk_notes_step       FOREIGN KEY (outfit_step_id) REFERENCES outfit_steps (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT fk_notes_created_by FOREIGN KEY (created_by) REFERENCES users (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT fk_notes_updated_by FOREIGN KEY (updated_by) REFERENCES users (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT fk_notes_deleted_by FOREIGN KEY (deleted_by) REFERENCES users (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT fk_notes_batch      FOREIGN KEY (delete_batch_id) REFERENCES change_batches (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT ck_notes_version CHECK (version >= 1),
+  CONSTRAINT ck_notes_deleted CHECK ((deleted_at IS NULL) = (delete_batch_id IS NULL)),
+  CONSTRAINT ck_notes_one_place CHECK ((outfit_id IS NOT NULL) + (accessory_id IS NOT NULL) + (outfit_step_id IS NOT NULL) = 1)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+ALTER TABLE attachment_links
+  ADD COLUMN outfit_id      BIGINT UNSIGNED NULL AFTER target_id,
+  ADD COLUMN accessory_id   BIGINT UNSIGNED NULL AFTER outfit_id,
+  ADD COLUMN outfit_step_id BIGINT UNSIGNED NULL AFTER accessory_id,
+  ADD KEY ix_attachment_links_outfit (outfit_id, deleted_at),
+  ADD KEY ix_attachment_links_accessory (accessory_id, deleted_at),
+  ADD KEY ix_attachment_links_step (outfit_step_id, deleted_at),
+  ADD CONSTRAINT fk_attachment_links_outfit    FOREIGN KEY (outfit_id) REFERENCES outfits (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  ADD CONSTRAINT fk_attachment_links_accessory FOREIGN KEY (accessory_id) REFERENCES accessories (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  ADD CONSTRAINT fk_attachment_links_step      FOREIGN KEY (outfit_step_id) REFERENCES outfit_steps (id) ON DELETE RESTRICT ON UPDATE RESTRICT;
+
+ALTER TABLE tasks
+  ADD COLUMN target_type VARCHAR(20) CHARACTER SET ascii COLLATE ascii_general_ci NULL COMMENT 'outfit, accessory or outfit_step' AFTER workspace_section,
+  ADD COLUMN target_id   BIGINT UNSIGNED NULL AFTER target_type,
+  ADD KEY ix_tasks_target (target_type, target_id, deleted_at);
+
+-- Demo data fix (1.0.17 seed): an id with a letter outside the ID alphabet could not be unlinked.
+-- Changes nothing on a database without the demo data.
+UPDATE attachment_links SET public_id = '01JC0VN0000000000000000001' WHERE public_id = '01JC0VL0000000000000000001';
+
+UPDATE schema_migrations SET finished_at = CURRENT_TIMESTAMP WHERE version = 6;
+
+
+-- ##### migrations/007_decor_menu.sql #####
+
+-- =============================================================================
+-- A&M Wedding Planner — migration 007_decor_menu.sql
+-- Workspace step C: family outfits, theme & decoration, menu (version 1.0.19). Run AFTER 006.
+-- Target: MySQL 8.0.16+ (also runs on MariaDB 10.4+).
+--
+--   1. outfits: person + 'decor' (a decor item — Stage, Entry gate, Mandap — has the
+--      same page as an outfit: timeline, moodboard, accessories/props, notes, tasks),
+--      and + vendor_id (the decorator / tailor). Family outfits need no change.
+--   2. workspaces: + theme_name, theme_colours (Theme & decoration) and caterer_id (Menu).
+--   3. menu_categories / menu_items: the menu of a workspace; each item Normal or Jain,
+--      ⭐ must-have, a short note.
+--   4. attachment_links: + menu_item_id (a dish photo or menu PDF from the Vault).
+--   tasks.target_type also takes 'menu_item' (no column change).
+--
+-- Card tracking (planned) moves to 008.
+-- =============================================================================
+
+-- Fails here, changing nothing, if 007 already ran.
+INSERT INTO schema_migrations (version, name, applied_by)
+VALUES (7, '007_decor_menu', 'phpMyAdmin');
+
+ALTER TABLE outfits
+  MODIFY COLUMN person ENUM('bride','groom','close_male','close_female','extended_male','extended_female','decor') NOT NULL,
+  ADD COLUMN vendor_id BIGINT UNSIGNED NULL AFTER title,
+  ADD CONSTRAINT fk_outfits_vendor FOREIGN KEY (vendor_id) REFERENCES vendors (id) ON DELETE RESTRICT ON UPDATE RESTRICT;
+
+ALTER TABLE workspaces
+  ADD COLUMN theme_name    VARCHAR(80) NULL AFTER notes,
+  ADD COLUMN theme_colours VARCHAR(120) NULL AFTER theme_name,
+  ADD COLUMN caterer_id    BIGINT UNSIGNED NULL AFTER theme_colours,
+  ADD CONSTRAINT fk_workspaces_caterer FOREIGN KEY (caterer_id) REFERENCES vendors (id) ON DELETE RESTRICT ON UPDATE RESTRICT;
+
+CREATE TABLE menu_categories (
+  id               BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  public_id        CHAR(26) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+  client_uuid      CHAR(36) CHARACTER SET ascii COLLATE ascii_general_ci NULL,
+  workspace_id     BIGINT UNSIGNED NOT NULL,
+  name             VARCHAR(80) NOT NULL,
+  sort_order       SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+  version          INT UNSIGNED NOT NULL DEFAULT 1,
+  created_at       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  created_by       BIGINT UNSIGNED NULL,
+  updated_at       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  updated_by       BIGINT UNSIGNED NULL,
+  deleted_at       DATETIME NULL,
+  deleted_by       BIGINT UNSIGNED NULL,
+  delete_batch_id  BIGINT UNSIGNED NULL,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_menu_categories_public_id (public_id),
+  UNIQUE KEY uq_menu_categories_client_uuid (client_uuid),
+  KEY ix_menu_categories_ws (workspace_id, deleted_at, sort_order),
+  CONSTRAINT fk_menu_categories_workspace  FOREIGN KEY (workspace_id) REFERENCES workspaces (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT fk_menu_categories_created_by FOREIGN KEY (created_by) REFERENCES users (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT fk_menu_categories_updated_by FOREIGN KEY (updated_by) REFERENCES users (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT fk_menu_categories_deleted_by FOREIGN KEY (deleted_by) REFERENCES users (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT fk_menu_categories_batch      FOREIGN KEY (delete_batch_id) REFERENCES change_batches (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT ck_menu_categories_version CHECK (version >= 1),
+  CONSTRAINT ck_menu_categories_deleted CHECK ((deleted_at IS NULL) = (delete_batch_id IS NULL))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE menu_items (
+  id               BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  public_id        CHAR(26) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+  client_uuid      CHAR(36) CHARACTER SET ascii COLLATE ascii_general_ci NULL,
+  workspace_id     BIGINT UNSIGNED NOT NULL,
+  category_id      BIGINT UNSIGNED NOT NULL,
+  name             VARCHAR(120) NOT NULL,
+  diet             ENUM('normal','jain') NOT NULL DEFAULT 'normal',
+  is_must_have     TINYINT(1) NOT NULL DEFAULT 0,
+  note             VARCHAR(500) NULL,
+  sort_order       SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+  version          INT UNSIGNED NOT NULL DEFAULT 1,
+  created_at       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  created_by       BIGINT UNSIGNED NULL,
+  updated_at       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  updated_by       BIGINT UNSIGNED NULL,
+  deleted_at       DATETIME NULL,
+  deleted_by       BIGINT UNSIGNED NULL,
+  delete_batch_id  BIGINT UNSIGNED NULL,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_menu_items_public_id (public_id),
+  UNIQUE KEY uq_menu_items_client_uuid (client_uuid),
+  KEY ix_menu_items_category (category_id, deleted_at, sort_order),
+  KEY ix_menu_items_ws (workspace_id, deleted_at),
+  CONSTRAINT fk_menu_items_workspace  FOREIGN KEY (workspace_id) REFERENCES workspaces (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT fk_menu_items_category   FOREIGN KEY (category_id) REFERENCES menu_categories (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT fk_menu_items_created_by FOREIGN KEY (created_by) REFERENCES users (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT fk_menu_items_updated_by FOREIGN KEY (updated_by) REFERENCES users (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT fk_menu_items_deleted_by FOREIGN KEY (deleted_by) REFERENCES users (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT fk_menu_items_batch      FOREIGN KEY (delete_batch_id) REFERENCES change_batches (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT ck_menu_items_version CHECK (version >= 1),
+  CONSTRAINT ck_menu_items_deleted CHECK ((deleted_at IS NULL) = (delete_batch_id IS NULL)),
+  CONSTRAINT ck_menu_items_must CHECK (is_must_have IN (0, 1))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+ALTER TABLE attachment_links
+  ADD COLUMN menu_item_id BIGINT UNSIGNED NULL AFTER outfit_step_id,
+  ADD KEY ix_attachment_links_menu_item (menu_item_id, deleted_at),
+  ADD CONSTRAINT fk_attachment_links_menu_item FOREIGN KEY (menu_item_id) REFERENCES menu_items (id) ON DELETE RESTRICT ON UPDATE RESTRICT;
+
+ALTER TABLE tasks
+  MODIFY COLUMN target_type VARCHAR(20) CHARACTER SET ascii COLLATE ascii_general_ci NULL COMMENT 'outfit, accessory, outfit_step or menu_item';
+
+UPDATE schema_migrations SET finished_at = CURRENT_TIMESTAMP WHERE version = 7;
+
+
+-- ##### migrations/008_contacts_timeline.sql #####
+
+-- =============================================================================
+-- A&M Wedding Planner — migration 008_contacts_timeline.sql
+-- Workspace step D: contacts, guest details, event timeline (version 1.0.20). Run AFTER 007.
+-- Target: MySQL 8.0.16+ (also runs on MariaDB 10.4+).
+--
+--   1. workspace_contacts: vendors linked to a workspace (one vendor in many workspaces),
+--      with an optional role ("Stage & lights").
+--   2. workspaces: + guest_notes (Guest details: seating, VIPs, pickups).
+--   3. timeline_steps: the event timeline — purpose, time (optional), duration in minutes,
+--      a note; the 7 default workspaces get suggested steps (edit or delete them).
+--   4. attachment_links: + timeline_step_id.
+--   tasks.target_type also takes 'timeline_step' (no column change).
+--
+-- Card tracking (planned) moves to 009.
+-- =============================================================================
+
+-- Fails here, changing nothing, if 008 already ran.
+INSERT INTO schema_migrations (version, name, applied_by)
+VALUES (8, '008_contacts_timeline', 'phpMyAdmin');
+
+CREATE TABLE workspace_contacts (
+  id               BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  public_id        CHAR(26) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+  client_uuid      CHAR(36) CHARACTER SET ascii COLLATE ascii_general_ci NULL,
+  workspace_id     BIGINT UNSIGNED NOT NULL,
+  vendor_id        BIGINT UNSIGNED NOT NULL,
+  role             VARCHAR(120) NULL,
+  sort_order       SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+  version          INT UNSIGNED NOT NULL DEFAULT 1,
+  created_at       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  created_by       BIGINT UNSIGNED NULL,
+  updated_at       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  updated_by       BIGINT UNSIGNED NULL,
+  deleted_at       DATETIME NULL,
+  deleted_by       BIGINT UNSIGNED NULL,
+  delete_batch_id  BIGINT UNSIGNED NULL,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_workspace_contacts_public_id (public_id),
+  UNIQUE KEY uq_workspace_contacts_client_uuid (client_uuid),
+  KEY ix_workspace_contacts_ws (workspace_id, deleted_at, sort_order),
+  KEY ix_workspace_contacts_vendor (vendor_id, deleted_at),
+  CONSTRAINT fk_workspace_contacts_workspace FOREIGN KEY (workspace_id) REFERENCES workspaces (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT fk_workspace_contacts_vendor    FOREIGN KEY (vendor_id) REFERENCES vendors (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT fk_workspace_contacts_created_by FOREIGN KEY (created_by) REFERENCES users (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT fk_workspace_contacts_updated_by FOREIGN KEY (updated_by) REFERENCES users (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT fk_workspace_contacts_deleted_by FOREIGN KEY (deleted_by) REFERENCES users (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT fk_workspace_contacts_batch      FOREIGN KEY (delete_batch_id) REFERENCES change_batches (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT ck_workspace_contacts_version CHECK (version >= 1),
+  CONSTRAINT ck_workspace_contacts_deleted CHECK ((deleted_at IS NULL) = (delete_batch_id IS NULL))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+ALTER TABLE workspaces
+  ADD COLUMN guest_notes TEXT NULL AFTER caterer_id;
+
+CREATE TABLE timeline_steps (
+  id               BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  public_id        CHAR(26) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+  client_uuid      CHAR(36) CHARACTER SET ascii COLLATE ascii_general_ci NULL,
+  workspace_id     BIGINT UNSIGNED NOT NULL,
+  purpose          VARCHAR(120) NOT NULL,
+  start_time       TIME NULL COMMENT 'IST clock time; NULL = follows the step before',
+  duration_min     SMALLINT UNSIGNED NOT NULL,
+  note             TEXT NULL,
+  sort_order       SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+  version          INT UNSIGNED NOT NULL DEFAULT 1,
+  created_at       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  created_by       BIGINT UNSIGNED NULL,
+  updated_at       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  updated_by       BIGINT UNSIGNED NULL,
+  deleted_at       DATETIME NULL,
+  deleted_by       BIGINT UNSIGNED NULL,
+  delete_batch_id  BIGINT UNSIGNED NULL,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_timeline_steps_public_id (public_id),
+  UNIQUE KEY uq_timeline_steps_client_uuid (client_uuid),
+  KEY ix_timeline_steps_ws (workspace_id, deleted_at, sort_order),
+  CONSTRAINT fk_timeline_steps_workspace FOREIGN KEY (workspace_id) REFERENCES workspaces (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT fk_timeline_steps_created_by FOREIGN KEY (created_by) REFERENCES users (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT fk_timeline_steps_updated_by FOREIGN KEY (updated_by) REFERENCES users (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT fk_timeline_steps_deleted_by FOREIGN KEY (deleted_by) REFERENCES users (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT fk_timeline_steps_batch      FOREIGN KEY (delete_batch_id) REFERENCES change_batches (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT ck_timeline_steps_version CHECK (version >= 1),
+  CONSTRAINT ck_timeline_steps_deleted CHECK ((deleted_at IS NULL) = (delete_batch_id IS NULL)),
+  CONSTRAINT ck_timeline_steps_duration CHECK (duration_min BETWEEN 1 AND 1440)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+ALTER TABLE attachment_links
+  ADD COLUMN timeline_step_id BIGINT UNSIGNED NULL AFTER menu_item_id,
+  ADD KEY ix_attachment_links_timeline_step (timeline_step_id, deleted_at),
+  ADD CONSTRAINT fk_attachment_links_timeline_step FOREIGN KEY (timeline_step_id) REFERENCES timeline_steps (id) ON DELETE RESTRICT ON UPDATE RESTRICT;
+
+ALTER TABLE tasks
+  MODIFY COLUMN target_type VARCHAR(20) CHARACTER SET ascii COLLATE ascii_general_ci NULL COMMENT 'outfit, accessory, outfit_step, menu_item or timeline_step';
+
+-- Suggested steps for the 7 default workspaces (only where the workspace is still there).
+INSERT INTO timeline_steps (public_id, workspace_id, purpose, duration_min, sort_order)
+SELECT s.public_id, w.id, s.purpose, s.duration_min, s.sort_order
+FROM (
+  SELECT '01JE0TS0000000000000000001' AS public_id, '01JC0WS0000000000000000001' AS ws, 'Guests arrive' AS purpose, 30 AS duration_min, 10 AS sort_order
+  UNION ALL SELECT '01JE0TS0000000000000000002', '01JC0WS0000000000000000001', 'Ganesh puja', 20, 20
+  UNION ALL SELECT '01JE0TS0000000000000000003', '01JC0WS0000000000000000001', 'Ring ceremony', 20, 30
+  UNION ALL SELECT '01JE0TS0000000000000000004', '01JC0WS0000000000000000001', 'Blessings and photos', 40, 40
+  UNION ALL SELECT '01JE0TS0000000000000000005', '01JC0WS0000000000000000001', 'Lunch', 60, 50
+  UNION ALL SELECT '01JE0TS0000000000000000006', '01JC0WS0000000000000000002', 'Guests arrive', 30, 10
+  UNION ALL SELECT '01JE0TS0000000000000000007', '01JC0WS0000000000000000002', 'Bride''s mehndi', 120, 20
+  UNION ALL SELECT '01JE0TS0000000000000000008', '01JC0WS0000000000000000002', 'Music and dance', 60, 30
+  UNION ALL SELECT '01JE0TS0000000000000000009', '01JC0WS0000000000000000002', 'Lunch', 60, 40
+  UNION ALL SELECT '01JE0TS0000000000000000010', '01JC0WS0000000000000000003', 'Guests arrive', 30, 10
+  UNION ALL SELECT '01JE0TS0000000000000000011', '01JC0WS0000000000000000003', 'Games and stalls', 120, 20
+  UNION ALL SELECT '01JE0TS0000000000000000012', '01JC0WS0000000000000000003', 'Dinner', 60, 30
+  UNION ALL SELECT '01JE0TS0000000000000000013', '01JC0WS0000000000000000004', 'Guests arrive', 30, 10
+  UNION ALL SELECT '01JE0TS0000000000000000014', '01JC0WS0000000000000000004', 'Family performances', 60, 20
+  UNION ALL SELECT '01JE0TS0000000000000000015', '01JC0WS0000000000000000004', 'DJ and dance', 120, 30
+  UNION ALL SELECT '01JE0TS0000000000000000016', '01JC0WS0000000000000000004', 'Dinner', 60, 40
+  UNION ALL SELECT '01JE0TS0000000000000000017', '01JC0WS0000000000000000005', 'Mayra party arrives', 20, 10
+  UNION ALL SELECT '01JE0TS0000000000000000018', '01JC0WS0000000000000000005', 'Mayra rasam', 45, 20
+  UNION ALL SELECT '01JE0TS0000000000000000019', '01JC0WS0000000000000000005', 'Blessings and gifts', 30, 30
+  UNION ALL SELECT '01JE0TS0000000000000000020', '01JC0WS0000000000000000005', 'Lunch', 60, 40
+  UNION ALL SELECT '01JE0TS0000000000000000021', '01JC0WS0000000000000000006', 'Couple entry', 15, 10
+  UNION ALL SELECT '01JE0TS0000000000000000022', '01JC0WS0000000000000000006', 'Stage greetings and photos', 120, 20
+  UNION ALL SELECT '01JE0TS0000000000000000023', '01JC0WS0000000000000000006', 'Dinner', 90, 30
+  UNION ALL SELECT '01JE0TS0000000000000000024', '01JC0WS0000000000000000006', 'Send-off', 15, 40
+  UNION ALL SELECT '01JE0TS0000000000000000025', '01JC0WS0000000000000000007', 'Baraat arrival', 60, 10
+  UNION ALL SELECT '01JE0TS0000000000000000026', '01JC0WS0000000000000000007', 'Varmala', 30, 20
+  UNION ALL SELECT '01JE0TS0000000000000000027', '01JC0WS0000000000000000007', 'Dinner', 60, 30
+  UNION ALL SELECT '01JE0TS0000000000000000028', '01JC0WS0000000000000000007', 'Phere', 120, 40
+  UNION ALL SELECT '01JE0TS0000000000000000029', '01JC0WS0000000000000000007', 'Vidaai', 30, 50
+) s
+JOIN workspaces w ON w.public_id = s.ws AND w.deleted_at IS NULL;
+
+UPDATE schema_migrations SET finished_at = CURRENT_TIMESTAMP WHERE version = 8;
 

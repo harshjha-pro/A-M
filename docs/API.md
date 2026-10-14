@@ -607,9 +607,9 @@ All paths are under `/api/v1`. To keep the tables short:
 |-|-|-|-|-|-|
 |Members|List names + phones|Edit own name, own password|—|Add, edit, deactivate, reset|Can't be demoted or deactivated|
 |Settings|Read facts|—|See total budget|Edit facts, Safety, Activity, Imports, Trash, Export|—|
-|Dashboard / Calendar|Countdown, headcount, events, tasks|My tasks, overdue|Payments, budget, payment items|Safety, recent activity|—|
+|Dashboard / Calendar|Countdown, upcoming events, headcount, events, tasks; Home photos|My tasks, overdue|Payments, budget, payment items|Safety, recent activity; add / reorder / remove Home photos|—|
 |Events|Read|—|—|Create, edit, delete|—|
-|Tasks|Read|Create, edit, tick any task; delete own tasks (created by or assigned to them)|—|Delete any task; rename / delete tags|—|
+|Tasks|Read|Edit, tick any task; delete own tasks (created by or assigned to them). Creating: Adm only since 1.0.16|—|Create; delete any task; rename / delete tags|—|
 |Guests|Read (incl. phones)|Create, edit, RSVP, delete one family; bulk invite / uninvite / RSVP / side|—|Import, bulk delete, export CSV|—|
 |Vendors|Read contacts|Create, edit (no amount unless $)|Agreed amount, balances|Delete|—|
 |Payments, categories|—|—|Full (Family+$ can't delete categories)|Delete categories|—|
@@ -798,6 +798,90 @@ Details of upload and download are in §8.
 |POST|`/documents/{id}/restore`|Restore|Adm|If-Match|`200 Document`|403, 404|
 
 Visibility (FEATURES B7): private → Adm only; linked to a payment → $ only; else everyone. A document a user may not see returns `403` (AC-DOC-02/03).
+
+### 6.9a Home photos (version 1.0.16)
+
+Cover slideshow (up to 8), couple photos (up to 4), monogram (1). The bytes are stored in the database (`photo_blobs`, DATABASE §6 `004`).
+
+|Method|Path|Purpose|Who|Request|Response|Errors|
+|-|-|-|-|-|-|-|
+|GET|`/home-photos`|Every live photo, by place then order; `meta.max` = limits|All|—|`200 \[HomePhoto]`|—|
+|POST|`/home-photos`|Add one photo|Adm|`multipart/form-data`: `file` (JPEG/PNG/WebP ≤ 3 MB), `slot`, `sha256`|`201 HomePhoto`|403, 413, 415, 422 (`slot` full, `checksum\_mismatch`)|
+|PATCH|`/home-photos/{id}`|Change `sort\_order` only|Adm|If-Match|`200 HomePhoto`|403, 409, 422|
+|GET|`/home-photos/{id}/image`|The bytes (`?v=` hash in the URL; `private, no-store`, kept by the service worker)|All (deleted: Adm)|`?v=`|`200` image, `304` on If-None-Match|401, 404|
+|DELETE|`/home-photos/{id}`|Soft delete (bytes stay for Undo)|Adm|If-Match|`200 {}` + `meta.undo`|403, 409|
+|POST|`/home-photos/{id}/restore`|Restore|Adm|If-Match|`200 HomePhoto`|403, 422 (place full)|
+
+`GET /dashboard` (1.0.16) also returns `upcoming_events` (next 5 dated events, everyone) and `countdown.wedding_starts_at` (midnight IST on the first day). `POST /tasks` is **Adm only** since 1.0.16 (CONTEXT decision 41).
+
+### 6.9b Workspaces and the Attachment Vault (version 1.0.17)
+
+Ayush and Mahi only (403 for everyone else). Online only. Full shapes: `openapi.yaml` (tags Workspaces, Vault).
+
+|Method|Path|Purpose|
+|-|-|-|
+|GET / POST|`/workspaces`|List (in order) / add (name unique; one workspace per calendar event)|
+|GET / PATCH / DELETE|`/workspaces/{id}`|One with its tasks / rename, link event, reorder / soft delete with its attachment links (tasks stay)|
+|POST|`/workspaces/{id}/restore`|Restore|
+|POST|`/attachment-uploads`|Start a file of any size: `{name, mime_type, size_bytes, sha256}` → `{upload_id, chunk_size: 2097152, chunk_count, received, complete}`. Same SHA-256 + size already in the Vault → `complete: true`, nothing to send.|
+|POST|`/attachment-uploads/{id}/chunks`|multipart `seq`, `chunk` (2 MB except the last). Sending a piece twice stores it once.|
+|POST|`/attachment-uploads/{id}/finish`|Checks every piece and the whole SHA-256: 422 `upload_incomplete` (+`received`) or `checksum_mismatch` (pieces dropped; send again).|
+|GET / POST|`/attachments`|The Vault (filters `q`, `workspace`, `section`, `kind`, `favourite=1`, `vendor`, `unlinked=1`; `meta.storage`) / add from an upload, link or text, optionally used in a workspace section at once|
+|GET|`/attachments/check-code?code=&except=`|Is this ID free? (`available`, `message`)|
+|GET / PATCH / DELETE|`/attachments/{id}`|One with `used_in` / edit ID (unique, capitals ignored), title, note, link, text, favourite, vendor, task / delete everywhere (links in the same batch; a Documents record → 422, delete it in Documents)|
+|POST|`/attachments/{id}/restore`|Restore|
+|GET|`/attachments/{id}/file`|Bytes streamed piece by piece; single byte ranges (206) so videos play on iPhone; `private, no-store`|
+|POST|`/attachments/{id}/links`|Use it in one more place `{workspace_id, section}`|
+|DELETE / POST|`/attachment-links/{id}` · `/restore`|Remove from one place only (Undo) / restore|
+
+`POST /tasks` and `PATCH /tasks/{id}` accept `workspace_id` and `workspace_section` (Adm only); `GET /tasks?workspace=`; tasks carry `workspace` and `workspace_section`. Events and calendar event items carry `workspace` for admins. A new document also gets a Vault attachment.
+
+### 6.9c Outfits (version 1.0.18, Workspace step B)
+
+Ayush and Mahi only. `GET /workspaces/{id}` also returns `outfits` (cards).
+
+|Method|Path|Purpose|
+|-|-|-|
+|POST|`/outfits`|`{workspace_id, person, title}` → the outfit with the default timeline (Selected, Stitched, Trial done, Final approved)|
+|GET / PATCH / DELETE|`/outfits/{id}`|The outfit page (steps each with notes / attachments / tasks, `moodboard`, `accessories` each with notes / attachments / tasks, `notes`, `tasks`) / rename, reorder / delete with steps, accessories, notes and links (one Undo; tasks stay)|
+|POST|`/outfits/{id}/steps` · `/outfits/{id}/accessories`|Add a timeline step / an accessory|
+|PATCH / DELETE / POST restore|`/outfit-steps/{id}` · `/accessories/{id}` · `/notes/{id}`|Edit (`done_on` = the date a step was done; not in the future) / delete with Undo / restore|
+|POST|`/notes`|`{outfit_id | accessory_id | outfit_step_id, body}`|
+
+`POST /attachments` and `POST /attachments/{id}/links` accept `outfit_id`, `accessory_id` or `outfit_step_id` (workspace and section are set from it); "where it is used" reads "Mehndi › Bride outfit › Mehndi lehenga › Maang tikka". `POST /tasks` accepts the same three; tasks carry `target {type, id, name, outfit_id}`.
+
+### 6.9d Family outfits, Theme & decoration, Menu (version 1.0.19, Workspace step C)
+
+Ayush and Mahi only. `GET /workspaces/{id}` also returns `theme_name`, `theme_colours`, `caterer`, `menu` and `boards {decor, menu}` (attachments of those sections themselves, not of a decor item or a dish).
+
+|Method|Path|Purpose|
+|-|-|-|
+|POST|`/outfits`|`person` also takes `close_female`, `close_male`, `extended_female`, `extended_male` (Family outfits) and `decor` (a decor item: timeline Booked, Sample seen, Final approved, Set up; accessories are its props); `vendor_id` optional|
+|PATCH|`/outfits/{id}`|+ `vendor_id` (null to clear)|
+|PATCH|`/workspaces/{id}`|+ `theme_name`, `theme_colours`, `caterer_id`|
+|GET|`/workspaces/{id}/menu`|`{caterer, counts {items, jain}, categories [{id, version, name, items [{id, version, name, diet normal/jain, is_must_have, note, attachments, tasks}]}]}`|
+|POST|`/workspaces/{id}/menu-categories` · `/menu-categories/{id}/items`|Add a category / a dish; reply = the whole menu|
+|PATCH / DELETE / POST restore|`/menu-categories/{id}` · `/menu-items/{id}`|Edit / delete with Undo (a category takes its dishes) / restore|
+|POST|`/workspaces/{id}/menu/copy`|`{from_workspace_id}`: same-named categories get the dishes they lack (by name, capitals ignored), the rest come as new categories; notes, Normal / Jain and ⭐ come along, attachments and tasks stay. Reply = the menu + `copied`; `meta.undo` takes it all back.|
+
+`POST /attachments`, `POST /attachments/{id}/links` and `POST /tasks` also accept `menu_item_id` ("Reception › Menu › Paneer tikka"; task `target {type: menu_item, id, name, outfit_id: null, workspace_id}`). Notes are not for dishes (a dish has its own `note`).
+
+### 6.9e Contacts, Guest details, Event timeline (version 1.0.20, Workspace step D)
+
+Ayush and Mahi only. `GET /workspaces/{id}` also returns `guest_notes` and `planning`:
+`{contacts [{id, version, role, vendor {id, name, category, category_label, contact_person, phone, alt_phone}}], also_used [{vendor, where [..]}], guests {event, families_invited, families_coming, families_not_coming, families_waiting, people_coming, adults_coming, children_coming, jain_coming, people_waiting, people_up_to} | null, timeline {total_min, steps [{id, version, purpose, start_time, duration_min, note, attachments, tasks, starts, estimated, ends}]}}`.
+
+|Method|Path|Purpose|
+|-|-|-|
+|POST|`/workspaces/{id}/contacts`|`{vendor_id, role?}`; 422 if the vendor is already a contact here; reply = `planning`|
+|PATCH / DELETE / POST restore|`/workspace-contacts/{id}`|Role / unlink with Undo (the vendor stays) / restore|
+|PATCH|`/workspaces/{id}`|+ `guest_notes`|
+|POST|`/workspaces/{id}/timeline`|`{purpose, duration_min (1–1440), start_time? "HH:MM", note?}`; reply = `planning`|
+|POST|`/workspaces/{id}/timeline/suggested`|Suggested steps for the workspace's name (or general ones) into an empty timeline; 409 when it has steps|
+|POST|`/timeline-steps/{id}/move`|`{direction: up | down}` — swaps with the neighbour (orders renumbered 10, 20, …)|
+|PATCH / DELETE / POST restore|`/timeline-steps/{id}`|Edit / delete with its attachment links (Undo) / restore|
+
+A step with no `start_time` starts when the one before ends (`estimated: true`); times past midnight wrap. `POST /attachments`, `POST /attachments/{id}/links` and `POST /tasks` accept `timeline_step_id` ("Reception › Event timeline › Couple entry"). `GET /vendors/{id}` (admins) adds `workspaces [{id, name, role}]`.
 
 ### 6.10 History and activity
 

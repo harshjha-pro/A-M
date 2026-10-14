@@ -1,72 +1,44 @@
-# Release notes — Session 14 · Saving without internet · version 1.0.15
+# Release notes — Workspace step D: contacts, guest details, event timeline · version 1.0.20
 
-**Goes to:** **STAGING only.** Live waits until the offline tests OC-01 … OC-22 pass on two real phones (plan: by Thu 22 Oct). One duplicate or lost change blocks live.
-**Migrations:** none. Nothing to run in phpMyAdmin.
+**Goes to:** STAGING (and the Vercel test copy) first. Live after the phone checks below pass.
+**Migrations:** **`008_contacts_timeline.sql` — run it in phpMyAdmin BEFORE uploading the server files.** (If you skipped earlier ones, run them first in order: `004_home_photos.sql`, `005_workspaces_vault.sql`, `006_outfits.sql`, `007_decor_menu.sql`.)
 **.env / hPanel / `.htaccess`:** no change.
 
-## Upload order (same as Session 12 and 13)
-1. `1-server.zip` → extract in the site folder
-2. `2-assets.zip` → extract into `public_html`
-3. `3-shell.zip` → extract into `public_html`
-4. **`version.json`** → upload into `public_html`, **always last**
+## Run the migration first (≈ 2 minutes)
+1. phpMyAdmin → your database → **Export** → Quick → SQL → Go (keep the file).
+2. **Import** → `migrations/008_contacts_timeline.sql` → Character set **utf-8** → **Go**.
+3. Check: `SELECT version FROM schema_migrations ORDER BY version DESC LIMIT 1;` → **8**.
 
-Keep old files in `public_html/assets/` for 14 days.
+The Vercel test copy uses the same database: this one import covers it. Until it is run, opening a workspace shows an error.
 
-## What's new
-- **Small changes can now be made with no internet.** They wait on the phone and are sent by themselves when the internet is back:
-  - tick a task;
-  - add or edit a task;
-  - add, tick or rename a checklist item;
-  - add or edit a family;
-  - set Coming? for a family that is already invited.
-- **Each change is sent exactly once.** Closing the app, a weak signal or a lost reply never makes a second copy, and nothing is lost.
-- **You always see what's waiting:**
-  - 🕒 **Waiting to send** on the task or family;
-  - a yellow bar "3 changes waiting to send." with **Send now**;
-  - it goes away once everything has landed.
-- **When someone else changed the same thing:** the bar turns red, "1 change needs your choice." → **Open**. Each field shows **Yours** and **Theirs** (e.g. "Mummy's"); pick, then **Save my choices** — or **Keep theirs**. If they changed other fields only, it's sent by itself with no question.
-- **A family that looks like one already on the list** (found when it's sent): **Add anyway** or **Discard**.
-- **Discard** always asks first, because Undo can't bring it back.
-- **Still need internet** (greyed out, with "Needs internet" under them):
-  - deletes, Undo and restore;
-  - bulk actions and import;
-  - everything about money;
-  - events, settings and members;
-  - uploads;
-  - Coming? on a family added offline ("Send the new family first").
-- **Log out with changes waiting:** "3 changes haven't been sent. If you log out now, they are lost." — **Send now**, **Show changes**, or **Log out and lose them** (asks twice).
-- **Settings → This phone:** shows how many changes are waiting. If someone else's unsent changes are on the phone: "2 changes from Papa's login are on this phone. Papa must log in here to send them."
-- **Bug fixed:** if airplane mode was switched on while the app was open, new screens could stay on "…". They now open from the copy saved on the phone.
+## Upload order (same as before)
+`1-server.zip` → `2-assets.zip` → `3-shell.zip` → **`version.json` last**.
 
-## Staging (≈ 10 minutes)
-Upload in the order above from **`staging/`** → `/api/v1/health` = `{"status":"ok"}` → the phone checks below.
+## What's new (Ayush and Mahi) — every workspace section is now built
+- **Contacts:** **+ Add contact** picks one of your vendors, with a role here (e.g. "Stage lights"). Each shows category, role and phone with **Call** and **WhatsApp**. One vendor can be a contact in many workspaces; the vendor's page shows **Contact in: Mehndi, Reception…**. Tap › to change the role or **Remove from this workspace** (the vendor stays; Undo).
+  **Also used here** lists vendors already connected to the workspace (caterer, decor item, outfit tailor, attachments, tasks) with **+** to add them as contacts.
+- **Guest details:** for the linked calendar event — families invited, coming, not coming, waiting; people coming (adults, children, Jain) and "up to" with those still waiting. **Open in Guests** opens that event's guest list. **Guest notes** for seating, VIPs, pickups.
+- **Event timeline:** each workspace starts with **suggested steps** (e.g. Varmala & Phere: Baraat arrival → Varmala → Dinner → Phere → Vidaai). Each step has a **purpose**, a **duration** and an optional **time**; give the first step a time and the rest show **≈ times** automatically, with the total length on top. Tap a step to edit it, add a note, attachments and tasks, **Move up / Move down** or **Delete** (Undo). **+ Add step**; a new workspace gets **Add suggested steps**.
 
 ## Phone checks on staging — Android and iPhone, from the Home Screen icon
-Staging logins (password `demo-1234`): Ayush 98290 00001 · Papa 98290 00004 · Mummy/Kavita 98290 00005.
+Logins (password `demo-1234`): Mahi 98290 00002 · Ayush 98290 00001 · Papa 98290 00004.
 
 | # | Do | Pass when |
 |---|---|---|
-| S1 | Airplane mode → Tasks → tick a task | 🕒 "Waiting to send" on it; yellow bar "1 change waiting to send." |
-| S2 | Still offline: add a task, edit a family, set Coming? on two events | The bar says "5 changes waiting to send." |
-| S3 | Close the app fully, open it again (still offline) | Still 5 waiting; the changes still show |
-| S4 | Airplane mode off | Within a minute (or tap **Send now**) the bar goes. On another phone each change is there **once** |
-| S5 | Two phones: both open the same task. Phone A offline edits the title; phone B (online) edits the title differently. Phone A back online | Red bar "1 change needs your choice." → Open → Yours / Theirs → Save my choices → both phones show your pick |
-| S6 | Offline: add a family with a phone number already on the list; go online | "Looks like a family already on the list" → Add anyway or Discard |
-| S7 | Offline: open a task | Delete is greyed out with "Needs internet" under it |
-| S8 | Offline with 1 change waiting → Settings → My account → Log out | "1 change hasn't been sent." Cancel. Go online, tap Send now, then log out normally |
-| R9 / T16–T22 | PWA §10 device checklist rows for offline saving | As written there |
+| D1 | Workspace → Mehndi → Contacts | Rekha Mehndi Art · Bride's mehndi; Call opens the dialer, WhatsApp opens the chat |
+| D2 | Add contact → Fresh Flowers Co. → role "Flowers" → Save | It shows; Money › Vendors › Fresh Flowers Co. says "Contact in: Mehndi · Flowers" |
+| D3 | Tap › on it → Remove from this workspace → Undo | It comes back |
+| D4 | Reception → Also used here shows Annapurna Caterers (Caterer) → + | It moves up into Contacts |
+| D5 | Mehndi → Guest details | Counts show; the demo guest notes show; Open in Guests opens the Mehndi list |
+| D6 | Reception → Event timeline | Couple entry 7:30 PM, next steps ≈ 7:45 PM …; Total 4 h |
+| D7 | Tap Dinner → Time 22:00 → Save | Dinner 10:00 PM; Send-off ≈ 11:30 PM |
+| D8 | Add step "Cake cutting", 10 min → open it → Add task → Save task | Back on Reception; the step shows ✓ 1 |
+| D9 | Cake cutting → Move up, then Delete step → Undo | Moves; comes back |
+| D10 | Workspace list → Add workspace "Haldi" → Event timeline → Add suggested steps | Guests arrive, Main ceremony, Food |
+| D11 | Papa → Workspace | Not visible (as before) |
 
-## Before live — the offline tests (TESTING §3, OC-01 … OC-22)
-Two phones and a helper, about 2 hours, by **Thu 22 Oct**. Write down each result. **Any duplicate or lost change blocks live** (TESTING §3.2).
-
-## Live (only after the offline tests pass) — release checklist
-1. Live Settings → Safety all green.
-2. **Backup now** — SSH: `php ~/domains/wedding.lumorrahouse.com/private/backup/backup.php --kind=manual_db` → `Done in … s.`
-3. Save `deploy-session14.zip` to Drive `deploys/`.
-4. Upload in the order above from **`live/`**, `version.json` last.
-5. Within 10 minutes: health `ok`; the open app shows "New version available" → tap → Settings → This phone says 1.0.15.
-6. If anything fails: upload `deploy-session13.zip` (`live/`) the same way, `version.json` last.
-   Changes waiting on phones are kept on the phone: 1.0.14 can't read them (or the offline copy), and 1.0.15 sends them once it is back.
-
-## Old files to delete later
-After 14 days: files in `public_html/assets/` that are not in this ZIP's `2-assets.zip`.
+## Live — release checklist
+1. Settings → Safety all green. 2. **Backup now**. 3. Save `deploy-session14e.zip` to Drive.
+4. **Run `008_contacts_timeline.sql` on live**. 5. Upload `live/` in order, `version.json` last.
+6. Health `ok`; "New version available" → This phone says 1.0.20.
+7. If anything fails: upload `deploy-session14d.zip` (`live/`). The new tables and column can stay.

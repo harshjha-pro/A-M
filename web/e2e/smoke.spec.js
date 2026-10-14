@@ -9,7 +9,7 @@ test.afterEach(() => { expect(problems, 'no console errors or CSP violations').t
 
 test('Home shows the person, the version and a live server connection', async ({ page }, info) => {
   await expect(page.getByText('Namaste, Ayush Porwal')).toBeVisible();
-  await expect(page.getByText('A&M Wedding — version 1.0.15')).toBeVisible();
+  await expect(page.getByText('A&M Wedding — version 1.0.20')).toBeVisible();
   await expect(page.getByText(/^Connected · Updated/)).toBeVisible();
   await expect(page).toHaveTitle('A&M Staging');
   await page.screenshot({ path: `test-results/home-${info.project.name}.png`, fullPage: true });
@@ -17,7 +17,7 @@ test('Home shows the person, the version and a live server connection', async ({
 
 test('bottom nav goes everywhere, with ≥ 48 px targets and 17 px text', async ({ page }) => {
   const nav = page.getByRole('navigation', { name: 'Main' });
-  for (const name of ['Calendar', 'Tasks', 'Guests', 'More', 'Home']) {
+  for (const name of ['Calendar', 'Tasks', 'Workspace', 'More', 'Home']) { // Ayush: Workspace in place of Guests (1.0.18)
     const link = nav.getByRole('link', { name });
     const box = await link.boundingBox();
     expect(box.height).toBeGreaterThanOrEqual(48);

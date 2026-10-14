@@ -18,3 +18,24 @@ Session 14 (version 1.0.15, offline saving):
 - `AM-Wedding-master-v1.0.15.zip` — everything in one file (source + deploy)
 - `deploy-session14.zip` — the Hostinger upload packages (staging/ and live/)
 - The source-only ZIP is not stored here: it is this repository.
+
+Version 1.0.16 (Home & Calendar redesign, "Session 14a"):
+
+- `deploy-session14a.zip` — the Hostinger upload packages (staging/ and live/) **plus `migrations/004_home_photos.sql`** (run it first)
+- The master ZIP (77 MB, because it carries the whole git history) is not stored here, to keep the repository small (too big for chat too). Build it any time with `tools/make-deploy.sh 14a out && tools/make-master-zip.sh 14a out`. The source is this repository.
+
+Version 1.0.17 (Workspace step A + Attachment Vault, "Session 14b"):
+
+- `deploy-session14b.zip` — Hostinger upload packages **plus `migrations/005_workspaces_vault.sql`** (run it first; run 004 first if you never did)
+
+Version 1.0.18 (Workspace step B: bride and groom outfits, "Session 14c"):
+
+- `deploy-session14c.zip` — Hostinger upload packages **plus `migrations/006_outfits.sql`** (run it first; run 004 and 005 first if you never did)
+
+Version 1.0.19 (Workspace step C: family outfits, decoration, menu, "Session 14d"):
+
+- `deploy-session14d.zip` — Hostinger upload packages **plus `migrations/007_decor_menu.sql`** (run it first; run 004, 005 and 006 first if you never did)
+
+Version 1.0.20 (Workspace step D: contacts, guest details, event timeline, "Session 14e"):
+
+- `deploy-session14e.zip` — Hostinger upload packages **plus `migrations/008_contacts_timeline.sql`** (run it first; run 004–007 first if you never did)

@@ -37,7 +37,7 @@ final class Refs
     /** {id, name} of a row in a named table (invitation lines name the family and event). */
     public function row(string $table, ?int $id): ?array
     {
-        if ($id === null || !in_array($table, ['households', 'events'], true)) {
+        if ($id === null || !in_array($table, ['households', 'events', 'workspaces', 'vendors'], true)) {
             return null;
         }
         $r = $this->rows[$table][$id] ??= $this->db->one("SELECT public_id, name FROM `$table` WHERE id = ?", [$id]) ?? [];

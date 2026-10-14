@@ -65,6 +65,8 @@ final class DailyJob
             'login_attempts' => $this->db->run('DELETE FROM login_attempts WHERE attempted_at < ?', [$d30])->rowCount(),
             'idempotency_keys' => $this->db->run('DELETE FROM idempotency_keys WHERE expires_at < ?', [$nowDb])->rowCount(),
             'rate_limits' => $this->db->run('DELETE FROM rate_limits WHERE window_start < ?', [$d1])->rowCount(),
+            // Vault uploads that never finished (1.0.17); their pieces go with them (ON DELETE CASCADE).
+            'vault_uploads' => $this->db->run('DELETE FROM vault_files WHERE is_complete = 0 AND created_at < ?', [$d1])->rowCount(),
         ];
         $this->say('Cleared: ' . implode(', ', array_map(static fn ($t, $c) => "$t $c", array_keys($n), $n)) . '.');
         return $n;

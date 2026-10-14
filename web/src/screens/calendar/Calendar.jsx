@@ -1,10 +1,13 @@
-// Calendar (FEATURES B4): Agenda (default) from today, grouped by IST day, "Date not
-// set" events on top, 60 days at a time with Show past / Show later; Month view with up
-// to 3 dots per day and "+n"; filters Events / Tasks / Payments ($) and Only mine.
+// Calendar (FEATURES B4; defaults changed in 1.0.16, owner's request): Month view first,
+// with up to 3 dots per day and "+n"; Agenda from today, grouped by IST day, "Date not
+// set" events on top, 60 days at a time with Show past / Show later. Filters Events and
+// Tasks (both on); Only mine / All (Only mine first). The + (Ayush and Mahi) offers
+// Add event or Add task.
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { ChevronLeft, ChevronRight, CalendarDays } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CalendarDays, PartyPopper, ListChecks } from 'lucide-react';
+import Sheet from '../../components/Sheet.jsx';
 import Screen from '../../components/Screen.jsx';
 import ChipFilter from '../../components/ChipFilter.jsx';
 import EmptyState from '../../components/EmptyState.jsx';
@@ -27,8 +30,8 @@ function useCalendar(from, to, types, mine, undated) {
   });
 }
 
-function Toggles({ types, setTypes, mine, setMine, money }) {
-  const all = ['event', 'task', ...(money ? ['payment'] : [])];
+function Toggles({ types, setTypes }) {
+  const all = ['event', 'task'];
   const toggle = (k) => setTypes(types.includes(k) ? types.filter((x) => x !== k) : [...types, k]);
   return (
     <div className="flex flex-wrap gap-2" role="group" aria-label={t('calendar.show')}>
@@ -38,10 +41,6 @@ function Toggles({ types, setTypes, mine, setMine, money }) {
           {types.includes(k) && <span aria-hidden="true">✓</span>}{t(`calendar.${k}s`)}
         </button>
       ))}
-      <button type="button" aria-pressed={mine} onClick={() => setMine(!mine)}
-        className={`tap inline-flex items-center gap-1 rounded-sm border-[1.5px] px-3 ${mine ? 'border-primary bg-primary-soft font-bold text-primary' : 'border-border-strong bg-surface'}`}>
-        {mine && <span aria-hidden="true">✓</span>}{t('calendar.onlyMine')}
-      </button>
     </div>
   );
 }
@@ -108,15 +107,15 @@ function Month({ types, mine }) {
         <h2 className="text-xl font-bold">{formatMonth(ym)}</h2>
         <button type="button" className="tap inline-flex items-center px-2 text-primary" aria-label={t('calendar.nextMonth')} onClick={() => { setYm(shiftMonth(ym, 1)); setPicked(null); }}><ChevronRight aria-hidden="true" /></button>
       </div>
-      <div className="grid grid-cols-7 gap-1 text-center" role="grid" aria-label={formatMonth(ym)}>
-        {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((d) => <div key={d} className="text-sm font-bold text-text-muted" role="columnheader">{d}</div>)}
+      <div className="grid grid-cols-7 gap-1 text-center" role="group" aria-label={formatMonth(ym)}>
+        {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((d) => <div key={d} className="text-sm font-bold text-text-muted" aria-hidden="true">{d}</div>)}
         {Array.from({ length: g.lead }).map((_, i) => <div key={`x${i}`} aria-hidden="true" />)}
         {Array.from({ length: g.days }).map((_, i) => {
           const date = `${ym}-${String(i + 1).padStart(2, '0')}`;
           const items = byDate[date]?.items ?? [];
           const label = `${i + 1}${items.length ? `, ${t('calendar.dayItems', { n: items.length })}` : ''}`;
           return (
-            <button key={date} type="button" role="gridcell" aria-label={label} aria-pressed={picked === date} onClick={() => setPicked(date)}
+            <button key={date} type="button" aria-label={label} aria-pressed={picked === date} onClick={() => setPicked(date)}
               className={`flex min-h-14 flex-col items-center justify-start rounded-sm border-[1.5px] p-1 ${picked === date ? 'border-primary bg-primary-soft' : date === today ? 'border-primary' : 'border-transparent'}`}>
               <span className={date === today ? 'font-bold' : ''}>{i + 1}</span>
               <span className="flex items-center gap-0.5" aria-hidden="true">
@@ -134,19 +133,39 @@ function Month({ types, mine }) {
   );
 }
 
+function AddSheet({ onClose }) {
+  const navigate = useNavigate();
+  const item = (to, Icon, label) => (
+    <li>
+      <button type="button" onClick={() => navigate(to)} className="tap flex w-full items-center gap-3 rounded-md border-[1.5px] border-border px-4 text-lg">
+        <Icon aria-hidden="true" size={24} className="text-primary" /> {label}
+      </button>
+    </li>
+  );
+  return (
+    <Sheet title={t('calendar.add')} onClose={onClose}>
+      <ul className="flex flex-col gap-2">
+        {item('/calendar/events/new', PartyPopper, t('calendar.addEvent'))}
+        {item('/tasks/new', ListChecks, t('calendar.addTask'))}
+      </ul>
+    </Sheet>
+  );
+}
+
 export default function Calendar() {
   const { permissions } = useSession();
-  const navigate = useNavigate();
-  const [view, setView] = useState('agenda');
-  const [types, setTypes] = useState(['event', 'task', 'payment']);
-  const [mine, setMine] = useState(false);
-  const shown = types.filter((x) => x !== 'payment' || permissions?.money);
+  const [view, setView] = useState('month');
+  const [types, setTypes] = useState(['event', 'task']);
+  const [mine, setMine] = useState(true);
+  const [adding, setAdding] = useState(false);
   return (
     <Screen title={t('calendar.title')}>
-      <ChipFilter label={t('calendar.view')} options={[{ value: 'agenda', label: t('calendar.agenda') }, { value: 'month', label: t('calendar.month') }]} value={view} onChange={setView} />
-      <Toggles types={types} setTypes={setTypes} mine={mine} setMine={setMine} money={permissions?.money} />
-      {view === 'agenda' ? <Agenda types={shown} mine={mine} /> : <Month types={shown} mine={mine} />}
-      {permissions?.admin && <AddButton label={t('calendar.addEvent')} onClick={() => navigate('/calendar/events/new')} />}
+      <ChipFilter label={t('calendar.view')} options={[{ value: 'month', label: t('calendar.month') }, { value: 'agenda', label: t('calendar.agenda') }]} value={view} onChange={setView} />
+      <Toggles types={types} setTypes={setTypes} />
+      <ChipFilter label={t('calendar.whose')} options={[{ value: 'mine', label: t('calendar.onlyMine') }, { value: 'all', label: t('calendar.all') }]} value={mine ? 'mine' : 'all'} onChange={(v) => setMine(v === 'mine')} />
+      {view === 'agenda' ? <Agenda types={types} mine={mine} /> : <Month types={types} mine={mine} />}
+      {permissions?.admin && <AddButton label={t('calendar.add')} onClick={() => setAdding(true)} />}
+      {adding && <AddSheet onClose={() => setAdding(false)} />}
     </Screen>
   );
 }

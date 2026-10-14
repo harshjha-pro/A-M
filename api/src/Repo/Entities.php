@@ -7,6 +7,7 @@ use AM\Modules\Events\EventDef;
 use AM\Modules\Events\InvitationDef;
 use AM\Modules\Documents\DocumentDef;
 use AM\Modules\Guests\HouseholdDef;
+use AM\Modules\HomePhotos\HomePhotoDef;
 use AM\Modules\Guests\ImportDef;
 use AM\Modules\Members\UserDef;
 use AM\Modules\Money\BudgetCategoryDef;
@@ -15,6 +16,13 @@ use AM\Modules\Money\VendorDef;
 use AM\Modules\Safety\RestoreDrillDef;
 use AM\Modules\Settings\SettingsDef;
 use AM\Modules\Tasks\TagDef;
+use AM\Modules\Outfits\AccessoryDef;
+use AM\Modules\Outfits\NoteDef;
+use AM\Modules\Outfits\OutfitDef;
+use AM\Modules\Outfits\OutfitStepDef;
+use AM\Modules\Vault\AttachmentDef;
+use AM\Modules\Vault\AttachmentLinkDef;
+use AM\Modules\Workspaces\WorkspaceDef;
 use AM\Modules\Tasks\TaskAssigneeDef;
 use AM\Modules\Tasks\TaskDef;
 use AM\Modules\Tasks\TaskItemDef;
@@ -41,6 +49,18 @@ final class Entities
         'vendor' => VendorDef::class,
         'payment' => PaymentDef::class,
         'document' => DocumentDef::class,
+        'home_photo' => HomePhotoDef::class,
+        'workspace' => WorkspaceDef::class,
+        'attachment' => AttachmentDef::class,
+        'attachment_link' => AttachmentLinkDef::class,
+        'outfit' => OutfitDef::class,
+        'outfit_step' => OutfitStepDef::class,
+        'accessory' => AccessoryDef::class,
+        'note' => NoteDef::class,
+        'menu_category' => \AM\Modules\Menu\MenuCategoryDef::class,
+        'menu_item' => \AM\Modules\Menu\MenuItemDef::class,
+        'workspace_contact' => \AM\Modules\Planning\WorkspaceContactDef::class,
+        'timeline_step' => \AM\Modules\Planning\TimelineStepDef::class,
     ];
 
     /** URL segment for /{resource}/{id}/history => definition */
@@ -55,6 +75,14 @@ final class Entities
         'vendors' => VendorDef::class,
         'payments' => PaymentDef::class,
         'documents' => DocumentDef::class,
+        'home-photos' => HomePhotoDef::class,
+        'workspaces' => WorkspaceDef::class,
+        'attachments' => AttachmentDef::class,
+        'outfits' => OutfitDef::class,
+        'menu-categories' => \AM\Modules\Menu\MenuCategoryDef::class,
+        'menu-items' => \AM\Modules\Menu\MenuItemDef::class,
+        'workspace-contacts' => \AM\Modules\Planning\WorkspaceContactDef::class,
+        'timeline-steps' => \AM\Modules\Planning\TimelineStepDef::class,
     ];
 
     /** The value that names a row (public id or checklist key); null for link rows. */

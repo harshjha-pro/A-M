@@ -104,12 +104,12 @@ final class Restore
         return $out;
     }
 
-    /** @return array<string, array<string, array{nullable:bool, default:?string}>> */
+    /** @return array<string, array<string, array{nullable:bool, default:?string, binary:bool}>> */
     private function columns(): array
     {
         $out = [];
-        foreach ($this->db->all('SELECT TABLE_NAME AS t, COLUMN_NAME AS c, IS_NULLABLE AS n, COLUMN_DEFAULT AS d FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE()') as $r) {
-            $out[$r['t']][$r['c']] = ['nullable' => $r['n'] === 'YES', 'default' => $r['d']];
+        foreach ($this->db->all('SELECT TABLE_NAME AS t, COLUMN_NAME AS c, IS_NULLABLE AS n, COLUMN_DEFAULT AS d, DATA_TYPE AS dt FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE()') as $r) {
+            $out[$r['t']][$r['c']] = ['nullable' => $r['n'] === 'YES', 'default' => $r['d'], 'binary' => in_array(strtolower((string) $r['dt']), Snapshot::BINARY_TYPES, true)];
         }
         return $out;
     }
@@ -127,6 +127,21 @@ final class Restore
             if (isset($dbCols[$c]) && !in_array($c, $cols, true) && !$dbCols[$c]['nullable'] && $dbCols[$c]['default'] === null) {
                 $extra[$c] = $c === 'password_hash' ? '!restored-set-a-new-password' : '';
             }
+        }
+        // Binary columns (Home photos) are base64 in all.json.
+        $binary = array_keys(array_filter($cols, static fn ($c) => $dbCols[$c]['binary']));
+        if ($binary !== []) {
+            foreach ($rows as &$r) {
+                foreach ($binary as $i) {
+                    if ($r[$i] !== null) {
+                        $r[$i] = base64_decode((string) $r[$i], true);
+                        if ($r[$i] === false) {
+                            throw new RuntimeException("Column $table.{$cols[$i]} is damaged (not base64).");
+                        }
+                    }
+                }
+            }
+            unset($r);
         }
         $all = [...$cols, ...array_keys($extra)];
         $list = implode(', ', array_map(static fn ($c) => "`$c`", $all));

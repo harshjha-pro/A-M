@@ -24,12 +24,20 @@ use AM\Modules\Guests\ImportsController;
 use AM\Modules\Guests\InvitationsController;
 use AM\Modules\Health\HealthController;
 use AM\Modules\Members\MembersController;
+use AM\Modules\Menu\MenuCategoryDef;
+use AM\Modules\Menu\MenuController;
+use AM\Modules\Menu\MenuItemDef;
+use AM\Modules\Planning\PlanningController;
+use AM\Modules\Planning\TimelineStepDef;
+use AM\Modules\Planning\WorkspaceContactDef;
 use AM\Modules\Money\BudgetCategoryDef;
 use AM\Modules\Money\MoneyController;
 use AM\Modules\Money\PaymentDef;
 use AM\Modules\Money\PaymentsController;
 use AM\Modules\Money\VendorDef;
 use AM\Modules\Money\VendorsController;
+use AM\Modules\HomePhotos\HomePhotoDef;
+use AM\Modules\HomePhotos\HomePhotosController;
 use AM\Modules\Settings\SettingsController;
 use AM\Modules\History\HistoryController;
 use AM\Modules\Safety\RestoreDrillDef;
@@ -39,6 +47,16 @@ use AM\Modules\Sync\SyncController;
 use AM\Modules\Trash\TrashController;
 use AM\Modules\Undo\UndoController;
 use AM\Modules\Tasks\TagDef;
+use AM\Modules\Outfits\AccessoryDef;
+use AM\Modules\Outfits\NoteDef;
+use AM\Modules\Outfits\OutfitDef;
+use AM\Modules\Outfits\OutfitStepDef;
+use AM\Modules\Outfits\OutfitsController;
+use AM\Modules\Vault\AttachmentDef;
+use AM\Modules\Vault\AttachmentLinkDef;
+use AM\Modules\Vault\VaultController;
+use AM\Modules\Workspaces\WorkspaceDef;
+use AM\Modules\Workspaces\WorkspacesController;
 use AM\Modules\Tasks\TaskDef;
 use AM\Modules\Tasks\TaskItemsController;
 use AM\Modules\Tasks\TasksController;
@@ -199,6 +217,70 @@ final class Routes
         $r->add('GET', '/exports/{id}/download', ExportsController::download(...), ['anon' => true, 'query' => ['part', 't']]);
         $r->add('GET', '/exports/{id}/summary', ExportsController::summary(...), ['anon' => true, 'query' => ['t']]);
         $r->add('POST', '/documents/{id}/restore', static fn (Request $q, App $a, array $p) => BaseController::restore($q, $a, $p, DocumentDef::class));
+
+        // Workspaces and the Attachment Vault (1.0.17): Ayush and Mahi only.
+        $r->add('GET', '/workspaces', WorkspacesController::list(...));
+        $r->add('POST', '/workspaces', static fn (Request $q, App $a, array $p) => BaseController::create($q, $a, WorkspaceDef::class, WorkspaceDef::canWrite()));
+        $r->add('GET', '/workspaces/{id}', WorkspacesController::get(...));
+        $r->add('PATCH', '/workspaces/{id}', static fn (Request $q, App $a, array $p) => BaseController::update($q, $a, $p, WorkspaceDef::class, WorkspaceDef::canWrite()));
+        $r->add('DELETE', '/workspaces/{id}', static fn (Request $q, App $a, array $p) => BaseController::delete($q, $a, $p, WorkspaceDef::class, WorkspaceDef::canWrite()));
+        $r->add('POST', '/workspaces/{id}/restore', static fn (Request $q, App $a, array $p) => BaseController::restore($q, $a, $p, WorkspaceDef::class));
+        $r->add('POST', '/attachment-uploads', VaultController::startUpload(...));
+        $r->add('POST', '/attachment-uploads/{id}/chunks', VaultController::chunk(...), ['max_body' => 3 * 1024 * 1024]);
+        $r->add('POST', '/attachment-uploads/{id}/finish', VaultController::finish(...));
+        $r->add('GET', '/attachments', VaultController::list(...), ['query' => VaultController::LIST_QUERY]);
+        $r->add('POST', '/attachments', VaultController::create(...));
+        $r->add('GET', '/attachments/check-code', VaultController::checkCode(...), ['query' => ['code', 'except']]);
+        $r->add('GET', '/attachments/{id}', VaultController::get(...));
+        $r->add('PATCH', '/attachments/{id}', static fn (Request $q, App $a, array $p) => BaseController::update($q, $a, $p, AttachmentDef::class, AttachmentDef::canWrite()));
+        $r->add('DELETE', '/attachments/{id}', static fn (Request $q, App $a, array $p) => BaseController::delete($q, $a, $p, AttachmentDef::class, AttachmentDef::canWrite()));
+        $r->add('POST', '/attachments/{id}/restore', static fn (Request $q, App $a, array $p) => BaseController::restore($q, $a, $p, AttachmentDef::class));
+        $r->add('GET', '/attachments/{id}/file', VaultController::file(...), ['query' => ['v']]);
+        $r->add('POST', '/attachments/{id}/links', VaultController::link(...));
+        $r->add('DELETE', '/attachment-links/{id}', static fn (Request $q, App $a, array $p) => BaseController::delete($q, $a, $p, AttachmentLinkDef::class, BaseController::adminOnly()[1]));
+        $r->add('POST', '/attachment-links/{id}/restore', static fn (Request $q, App $a, array $p) => BaseController::restore($q, $a, $p, AttachmentLinkDef::class));
+
+        // Outfits (1.0.18, Workspace step B): Ayush and Mahi only.
+        $r->add('POST', '/outfits', OutfitsController::create(...));
+        $r->add('GET', '/outfits/{id}', OutfitsController::get(...));
+        foreach ([['outfits', OutfitDef::class], ['outfit-steps', OutfitStepDef::class], ['accessories', AccessoryDef::class], ['notes', NoteDef::class]] as [$res, $def]) {
+            $r->add('PATCH', "/$res/{id}", static fn (Request $q, App $a, array $p) => BaseController::update($q, $a, $p, $def, OutfitsController::canWrite()));
+            $r->add('DELETE', "/$res/{id}", static fn (Request $q, App $a, array $p) => BaseController::delete($q, $a, $p, $def, OutfitsController::canWrite()));
+            $r->add('POST', "/$res/{id}/restore", static fn (Request $q, App $a, array $p) => BaseController::restore($q, $a, $p, $def));
+        }
+        $r->add('POST', '/outfits/{id}/steps', OutfitsController::addStep(...));
+        $r->add('POST', '/outfits/{id}/accessories', OutfitsController::addAccessory(...));
+        $r->add('POST', '/notes', OutfitsController::addNote(...));
+
+        // Menu (1.0.19, Workspace step C): Ayush and Mahi only.
+        $r->add('GET', '/workspaces/{id}/menu', MenuController::get(...));
+        $r->add('POST', '/workspaces/{id}/menu-categories', MenuController::addCategory(...));
+        $r->add('POST', '/workspaces/{id}/menu/copy', MenuController::copy(...));
+        $r->add('POST', '/menu-categories/{id}/items', MenuController::addItem(...));
+        foreach ([['menu-categories', MenuCategoryDef::class], ['menu-items', MenuItemDef::class]] as [$res, $def]) {
+            $r->add('PATCH', "/$res/{id}", static fn (Request $q, App $a, array $p) => BaseController::update($q, $a, $p, $def, MenuController::canWrite()));
+            $r->add('DELETE', "/$res/{id}", static fn (Request $q, App $a, array $p) => BaseController::delete($q, $a, $p, $def, MenuController::canWrite()));
+            $r->add('POST', "/$res/{id}/restore", static fn (Request $q, App $a, array $p) => BaseController::restore($q, $a, $p, $def));
+        }
+
+        // Contacts, Guest details, Event timeline (1.0.20, Workspace step D): Ayush and Mahi only.
+        $r->add('POST', '/workspaces/{id}/contacts', PlanningController::addContact(...));
+        $r->add('POST', '/workspaces/{id}/timeline', PlanningController::addStep(...));
+        $r->add('POST', '/workspaces/{id}/timeline/suggested', PlanningController::suggested(...));
+        $r->add('POST', '/timeline-steps/{id}/move', PlanningController::move(...));
+        foreach ([['workspace-contacts', WorkspaceContactDef::class], ['timeline-steps', TimelineStepDef::class]] as [$res, $def]) {
+            $r->add('PATCH', "/$res/{id}", static fn (Request $q, App $a, array $p) => BaseController::update($q, $a, $p, $def, PlanningController::canWrite()));
+            $r->add('DELETE', "/$res/{id}", static fn (Request $q, App $a, array $p) => BaseController::delete($q, $a, $p, $def, PlanningController::canWrite()));
+            $r->add('POST', "/$res/{id}/restore", static fn (Request $q, App $a, array $p) => BaseController::restore($q, $a, $p, $def));
+        }
+
+        // Home photos (1.0.16): stored in the database, admins add and remove.
+        $r->add('GET', '/home-photos', HomePhotosController::list(...));
+        $r->add('POST', '/home-photos', HomePhotosController::upload(...), ['max_body' => 4 * 1024 * 1024]);
+        $r->add('GET', '/home-photos/{id}/image', HomePhotosController::image(...), ['query' => ['v']]);
+        $r->add('PATCH', '/home-photos/{id}', static fn (Request $q, App $a, array $p) => BaseController::update($q, $a, $p, HomePhotoDef::class, HomePhotoDef::canWrite()));
+        $r->add('DELETE', '/home-photos/{id}', static fn (Request $q, App $a, array $p) => BaseController::delete($q, $a, $p, HomePhotoDef::class, HomePhotoDef::canWrite()));
+        $r->add('POST', '/home-photos/{id}/restore', static fn (Request $q, App $a, array $p) => BaseController::restore($q, $a, $p, HomePhotoDef::class));
 
         // Home (Session 7)
         $r->add('GET', '/dashboard', DashboardController::show(...), ['query' => ['payments_window_days']]);

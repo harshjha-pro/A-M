@@ -5,7 +5,7 @@
 // even if this file is broken. Updates only when the page asks (the user tapped Refresh).
 import { precacheAndRoute, cleanupOutdatedCaches, createHandlerBoundToURL } from 'workbox-precaching';
 import { registerRoute, NavigationRoute } from 'workbox-routing';
-import { NetworkOnly, StaleWhileRevalidate } from 'workbox-strategies';
+import { CacheFirst, NetworkOnly, StaleWhileRevalidate } from 'workbox-strategies';
 import { ExpirationPlugin } from 'workbox-expiration';
 
 // 1. App shell: hashed JS/CSS, index.html, fonts, icons. Injected at build time.
@@ -17,6 +17,16 @@ cleanupOutdatedCaches();
 registerRoute(new NavigationRoute(createHandlerBoundToURL('/index.html'), {
   denylist: [/^\/api\//, /^\/reset(\.html|\.js|\.css)?$/, /^\/templates\//, /^\/version\.json$/],
 }));
+
+// 3a. Home photos (1.0.16): the one API read kept on the phone. The URL carries the
+//     image's hash (?v=), so a cached copy is never out of date; a new photo has a new URL.
+registerRoute(
+  ({ url, request }) => request.method === 'GET' && /^\/api\/v1\/home-photos\/[0-9A-Z]{26}\/image$/.test(url.pathname) && url.searchParams.has('v'),
+  new CacheFirst({
+    cacheName: 'home-photos',
+    plugins: [new ExpirationPlugin({ maxEntries: 40, maxAgeSeconds: 365 * 24 * 3600 })],
+  }),
+);
 
 // 3. API: always the network. Writes are not routed at all (the browser sends them straight on).
 registerRoute(({ url }) => url.pathname.startsWith('/api/'), new NetworkOnly());

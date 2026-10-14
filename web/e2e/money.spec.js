@@ -5,7 +5,7 @@ import { login, watchProblems } from './helpers.js';
 
 const inDays = (n) => new Date(Date.now() + n * 86400000 + 5.5 * 3600000).toISOString().slice(0, 10); // IST date
 
-test('M1: + → Payment → new vendor, ₹1.25 lakh, due in 3 days → ₹1,25,000; Home Payments card lists it', async ({ page }, info) => {
+test('M1: + → Payment → new vendor, ₹1.25 lakh, due in 3 days → ₹1,25,000; listed under Money › Due', async ({ page }, info) => {
   const problems = watchProblems(page);
   const title = `Tent advance ${info.project.name} ${Date.now()}`;
   await login(page, 'papa');
@@ -21,10 +21,7 @@ test('M1: + → Payment → new vendor, ₹1.25 lakh, due in 3 days → ₹1,25,
   await expect(page.getByText('Payment added.')).toBeVisible();
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(title);
   await expect(page.getByText('₹1,25,000')).toBeVisible();
-  await page.getByRole('link', { name: 'Home' }).click();
-  // The card shows the 5 earliest and counts all of them (the demo already has 5 due in 14 days).
-  const card = page.getByRole('region', { name: 'Payments due' });
-  await expect.poll(async () => Number(((await card.getByText(/due in 14 days/).textContent()) ?? '0').match(/^(\d+) due/)?.[1] ?? 0)).toBeGreaterThanOrEqual(6);
+  // 1.0.16: payments are no longer on Home; the Money list shows it.
   await page.goto('/money/payments');
   await page.getByRole('radio', { name: 'Due', exact: true }).click();
   await expect(page.getByRole('listitem').filter({ hasText: title })).toContainText('₹1,25,000');
@@ -52,7 +49,7 @@ test('M3: pay ₹40,000 of ₹1,00,000 → "Paid ₹40,000. ₹60,000 still due.
   await expect(rows).toContainText('₹1,00,000');
 });
 
-test('M4: Kavita (no money) → no Money in More, no Payments card; vendor contacts still there', async ({ page }) => {
+test('M4: Kavita (no money) → no Money in More, no Payments card on Home; vendor contacts still there', async ({ page }) => {
   await login(page, 'kavita');
   await expect(page.getByRole('region', { name: 'Payments due' })).toHaveCount(0);
   await page.getByRole('link', { name: 'More' }).click();

@@ -1,12 +1,14 @@
 // Home cards 2–8 (FEATURES B2). Each shows at most 5 items and links to the full list.
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { TriangleAlert, CircleCheck, CircleAlert, CircleMinus, Users } from 'lucide-react';
+import { TriangleAlert, CircleCheck, CircleAlert, CircleMinus, Users, PartyPopper, ChevronDown, ChevronUp } from 'lucide-react';
 import Card from './Card.jsx';
+import HistoryList from '../../components/HistoryList.jsx';
 import { TaskRow, markDone } from '../tasks/TaskList.jsx';
 import { useSession } from '../../api/session.js';
 import { formatInr, formatInrCompact } from '../../format/inr.js';
-import { formatDateOnly } from '../../format/ist.js';
+import { formatDate, formatDateOnly, istParts, timeLabel } from '../../format/ist.js';
 import { t } from '../../i18n/strings.en.js';
 
 export function MyTasksCard({ data }) {
@@ -116,12 +118,50 @@ export function SafetyCard({ data }) {
   );
 }
 
+/** Home (1.0.16): the next dated events, soonest first; tap one to open it. */
+export function UpcomingEventsCard({ data }) {
+  return (
+    <Card title={t('home.upcomingEvents')} to="/calendar">
+      {data.length === 0 ? <p className="text-text-muted">{t('home.noUpcoming')}</p> : (
+        <ul className="-mx-4 border-t border-border">
+          {data.map((e) => (
+            <li key={e.id} className="border-b border-border last:border-b-0">
+              <Link to={`/calendar/events/${e.id}`} className="flex min-h-16 items-center gap-3 px-4 py-2">
+                <PartyPopper aria-hidden="true" size={22} className="shrink-0 text-primary" />
+                <span className="flex min-w-0 flex-col">
+                  <span className="font-bold">{e.name}</span>
+                  <span className="text-sm text-text-muted">
+                    {formatDate(e.startAt)}{!e.allDay && ` · ${timeLabel(istParts(e.startAt).time)}`}{e.venueName && ` · ${e.venueName}`}
+                  </span>
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Card>
+  );
+}
+
+/** Ayush and Mahi only: the last 3 changes; Show more opens a scrolling list with older ones. */
 export function ActivityCard({ data }) {
+  const [open, setOpen] = useState(false);
   return (
     <Card title={t('home.recent')} to="/settings/activity">
-      <ul className="flex flex-col gap-2">
-        {data.slice(0, 5).map((l, i) => <li key={`${l.at}-${i}`} className="text-sm">{l.sentence}</li>)}
-      </ul>
+      {!open && (
+        <ul className="flex flex-col gap-2">
+          {data.slice(0, 3).map((l, i) => <li key={`${l.at}-${i}`} className="text-sm">{l.sentence}</li>)}
+        </ul>
+      )}
+      {open && (
+        <div className="-mx-1 max-h-96 overflow-y-auto overscroll-contain px-1" data-testid="activity-scroll" tabIndex={0} aria-label={t('home.recent')}>
+          <HistoryList path="/activity" />
+        </div>
+      )}
+      <button type="button" className="tap inline-flex items-center gap-1 self-start font-bold text-primary" aria-expanded={open} onClick={() => setOpen((v) => !v)}>
+        {open ? <ChevronUp aria-hidden="true" size={20} /> : <ChevronDown aria-hidden="true" size={20} />}
+        {open ? t('home.showLess') : t('home.showMore')}
+      </button>
     </Card>
   );
 }

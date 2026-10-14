@@ -20,10 +20,10 @@ final class DashboardTest extends ApiTestCase
     public function test_cards_per_role(): void
     {
         $cards = fn (string $who) => array_keys($this->loginAs($who)->get('/dashboard')->assertStatus(200)->assertEnvelope()->json('data'));
-        $this->assertSame(['countdown', 'my_tasks', 'overdue', 'payments_due', 'budget', 'headcount', 'safety', 'recent_activity', 'start_here'], $cards('ayush'));
-        $this->assertSame(['countdown', 'my_tasks', 'overdue', 'payments_due', 'budget', 'headcount'], $cards('papa'));
-        $this->assertSame(['countdown', 'my_tasks', 'overdue', 'headcount'], $cards('mummy'), 'AC-DASH-03: no money cards at all');
-        $this->assertSame(['countdown', 'headcount'], $cards('nani'), 'Viewer: countdown and headcount only');
+        $this->assertSame(['countdown', 'upcoming_events', 'my_tasks', 'overdue', 'payments_due', 'budget', 'headcount', 'safety', 'recent_activity', 'start_here'], $cards('ayush'));
+        $this->assertSame(['countdown', 'upcoming_events', 'my_tasks', 'overdue', 'payments_due', 'budget', 'headcount'], $cards('papa'));
+        $this->assertSame(['countdown', 'upcoming_events', 'my_tasks', 'overdue', 'headcount'], $cards('mummy'), 'AC-DASH-03: no money cards at all');
+        $this->assertSame(['countdown', 'upcoming_events', 'headcount'], $cards('nani'), 'Viewer: countdown, upcoming events and headcount only');
         $body = $this->loginAs('mummy')->get('/dashboard')->body();
         $this->assertStringNotContainsString('_paise', $body);
         $this->loginAs('papa')->get('/dashboard', ['payments_window_days' => '91'])->assertStatus(400);
@@ -36,6 +36,7 @@ final class DashboardTest extends ApiTestCase
     {
         $c = $this->loginAs('nani');
         $this->assertSame(129, $c->get('/dashboard')->json('data.countdown.days_to_wedding'));
+        $this->assertSame('2027-02-13T18:30:00Z', $c->get('/dashboard')->json('data.countdown.wedding_starts_at'), 'midnight IST on 14 Feb (Months : Days : Hours)');
         $this->clock->set('2026-10-08T18:29:00Z'); // 11:59 PM IST, still 8 Oct
         $this->assertSame(129, $c->get('/dashboard')->json('data.countdown.days_to_wedding'));
         $this->clock->set('2026-10-08T18:31:00Z'); // 00:01 on 9 Oct in India (still 8 Oct in UTC)
@@ -58,6 +59,8 @@ final class DashboardTest extends ApiTestCase
         $a->postJson('/events', ['name' => 'Makeup trial', 'type' => 'other', 'start_at' => '2026-10-08T14:00:00+05:30'])->assertStatus(201); // already started: not "next"
         $next = $a->get('/dashboard')->json('data.countdown.next_event');
         $this->assertSame(['Mehndi', 'Porwal Niwas'], [$next['name'], $next['venue_name']]);
+        $a->postJson('/events', ['name' => 'Tilak', 'type' => 'other', 'start_at' => '2027-02-13T11:00:00+05:30'])->assertStatus(201);
+        $this->assertSame(['Tilak', 'Mehndi'], array_column($this->loginAs('nani')->get('/dashboard')->json('data.upcoming_events'), 'name'), 'Home: upcoming events, soonest first, for everyone');
     }
 
     #[Endpoint('GET /dashboard')]

@@ -56,10 +56,11 @@ test('E2E-07: offline → 2 ticks, a family edit, 3 Coming? → close → reopen
     // No internet (routing: see offline.spec.js for why not setOffline).
     await context.route('**/*', (route) => route.abort('internetdisconnected'));
     await page.goto('/tasks?view=mine');
-    for (const tk of tasks) {
+    for (const [i, tk] of tasks.entries()) {
       await page.getByLabel('Search tasks').fill(tk.title);
       await page.getByRole('button', { name: `Mark done: ${tk.title}` }).click();
-      await expect(page.getByText(/Kept on this phone/).first()).toBeVisible();
+      // Wait for this tick to be on the phone (the toast from the first tick may still show).
+      await expect(page.getByText(i === 0 ? '1 change waiting to send.' : `${i + 1} changes waiting to send.`)).toBeVisible();
     }
     await page.goto(`/guests/${fam.id}/edit`);
     await page.getByLabel('Notes').fill(`Edited offline ${tag}`);
@@ -179,7 +180,7 @@ test('E2E-10: no reply in 15 s → kept on the phone → Send now → saved once
 test('E2E-11: the login ends mid-form → login sheet → the form is kept → saved once', async ({ browser, page }, info) => {
   test.setTimeout(60000);
   const title = `Relogin task ${info.project.name} ${Date.now()}`;
-  await login(page, 'papa');
+  await login(page, 'mahi'); // 1.0.16: only Ayush and Mahi add tasks
   await page.goto('/tasks/new');
   await page.getByLabel('What needs doing?').fill(title);
 
@@ -187,7 +188,7 @@ test('E2E-11: the login ends mid-form → login sheet → the form is kept → s
   const other = await phone(browser, info, 2);
   const p2 = await other.newPage();
   try {
-    await login(p2, 'papa');
+    await login(p2, 'mahi');
     await p2.goto('/settings/account');
     await p2.getByRole('button', { name: 'Log out everywhere' }).click();
     await p2.getByRole('alertdialog').getByRole('button', { name: /Log out everywhere/ }).click();

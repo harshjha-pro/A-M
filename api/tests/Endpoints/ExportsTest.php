@@ -186,8 +186,15 @@ final class ExportsTest extends ApiTestCase
     {
         $ayush = $this->loginAs('ayush');
         $this->fill($ayush);
+        // A Home photo (1.0.16): its bytes are in the database, base64 in all.json, a note in the CSV
+        $im = imagecreatetruecolor(30, 20);
+        ob_start();
+        imagejpeg($im, null, 80);
+        $photo = (string) ob_get_clean();
+        $ayush->upload('/home-photos', $photo, 'cover.jpg', ['slot' => 'cover'])->assertStatus(201);
         $e = $this->export($ayush)->assertStatus(201)->json('data');
         $zip = $this->unzip($this->fetch($e['download_urls'][0])->body());
+        $this->assertStringContainsString('(' . strlen($photo) . ' bytes, in json/all.json)', $zip['csv/photo_blobs.csv']);
         $dir = $this->logDir . '/unzipped';
         foreach ($zip as $name => $bytes) {
             @mkdir(dirname("$dir/$name"), 0700, true);
@@ -205,7 +212,9 @@ final class ExportsTest extends ApiTestCase
             $src = $this->db();
             foreach ($counts as $t => $n) {
                 $cols = array_column($src->all("SELECT column_name AS c FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = ? AND extra NOT IN ('VIRTUAL GENERATED', 'STORED GENERATED') ORDER BY ordinal_position", [$t]), 'c');
-                $this->assertContains('id', $cols);
+                if ($t !== 'vault_file_chunks') { // keyed by (file_id, seq)
+                    $this->assertContains('id', $cols);
+                }
                 $cols = array_values(array_diff($cols, Snapshot::SECRET_COLUMNS));
                 $list = implode(', ', array_map(static fn ($c) => "`$c`", $cols));
                 $before = $src->all("SELECT $list FROM `$t`" . match ($t) {
@@ -215,6 +224,7 @@ final class ExportsTest extends ApiTestCase
                 } . ' ORDER BY 1');
                 $this->assertSame($before, $tdb->all("SELECT $list FROM `$t` ORDER BY 1"), "every row of $t matches (AC-EXP-05)");
             }
+            $this->assertSame($photo, $tdb->value('SELECT data FROM photo_blobs'), 'the Home photo comes back byte for byte');
             $this->assertSame('!restored-set-a-new-password-0', $tdb->value('SELECT password_hash FROM users ORDER BY id LIMIT 1'), 'nobody can log in until a new password is set');
             $this->assertFalse(password_verify('test-1234', (string) $tdb->value('SELECT password_hash FROM users ORDER BY id LIMIT 1')));
             // A second run refuses: the database is no longer empty

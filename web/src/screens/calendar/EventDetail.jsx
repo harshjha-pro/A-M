@@ -65,6 +65,11 @@ export default function EventDetail() {
   const h = e.headcount;
   return (
     <Screen title={e.name} back="/calendar">
+      {e.workspace && (
+        <Link to={`/workspaces/${e.workspace.id}`} className="tap inline-flex items-center gap-2 self-start rounded-md bg-primary-soft px-4 font-bold text-primary">
+          {t('workspace.openWorkspace')}: {e.workspace.name} →
+        </Link>
+      )}
       <section className="flex flex-col gap-3 rounded-md bg-surface p-4 shadow-card">
         <p className="flex flex-wrap gap-2">
           <span className="rounded-full bg-primary-soft px-3 py-1 font-bold text-primary">{t(`events.types.${e.type}`)}</span>
