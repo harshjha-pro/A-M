@@ -39,3 +39,7 @@ Version 1.0.19 (Workspace step C: family outfits, decoration, menu, "Session 14d
 Version 1.0.20 (Workspace step D: contacts, guest details, event timeline, "Session 14e"):
 
 - `deploy-session14e.zip` — Hostinger upload packages **plus `migrations/008_contacts_timeline.sql`** (run it first; run 004–007 first if you never did)
+
+Version 1.0.21 (Fix: Workspace error message + Workspace for everyone, "Session 14f"):
+
+- `deploy-session14f.zip` — Hostinger upload packages (no new migration; Workspace needs 004–008 imported)

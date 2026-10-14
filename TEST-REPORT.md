@@ -1,18 +1,18 @@
 # Test report — Fix: Workspace error + Workspace for everyone
 
-Date: 2026-10-14T04:28Z · App version: 1.0.21 · DB: **MySQL 8.0.46-0ubuntu0.24.04.4** (sandbox, same major as Hostinger) · PHP 8.3.6 · Node v22.22.0 · Web server for .htaccess tests: Apache/2.4.58 (Ubuntu)
+Date: 2026-10-14T04:45Z · App version: 1.0.21 · DB: **MySQL 8.0.46-0ubuntu0.24.04.4** (sandbox, same major as Hostinger) · PHP 8.3.6 · Node v22.22.0 · Web server for .htaccess tests: Apache/2.4.58 (Ubuntu)
 
-Overall: **RED — see failures**
+Overall: **GREEN — all suites passed**
 
 | Suite | Result |
 |---|---|
-| PHPUnit (unit, db, endpoints, security, static, coverage) | Tests: 1024, Assertions: 10378, Failures: 1. |
+| PHPUnit (unit, db, endpoints, security, static, coverage) | OK (1024 tests, 10439 assertions) |
 | Endpoint coverage | 173/173 operations built and tested (the rest arrive session by session) |
 | Vitest (formats, API client, shell, routes, axe) | Tests 289 passed (289) |
-| Build (staging + live) | JS 124.05 kB gz · CSS 7.23 kB gz |
+| Build (staging + live) | JS 124.06 kB gz · CSS 7.23 kB gz |
 | HTTP rules (real requests) | Apache 2.4.58 + real .htaccess: PASS · php -S + tools/router.php: PASS — OK (13 tests, 267 assertions) OK (13 tests, 263 assertions)  |
-| Playwright smoke (android, small-iphone, small-android; Chromium, not Safari) | 155 passed (8.0m) |
-| Lighthouse mobile, simulated slow 4G (budget: Perf ≥ 90, A11y ≥ 95, BP ≥ 95) | login: Performance 97 · Accessibility 100 · Best Practices 96 · LCP 2.10 s · TBT 0 ms · CLS 0.000 home: Performance 93 · Accessibility 100 · Best Practices 100 · LCP 2.76 s · TBT 151 ms · CLS 0.051 guests: Performance 94 · Accessibility 100 · Best Practices 100 · LCP 2.85 s · TBT 36 ms · CLS 0.034  |
+| Playwright smoke (android, small-iphone, small-android; Chromium, not Safari) | 155 passed (7.9m) |
+| Lighthouse mobile, simulated slow 4G (budget: Perf ≥ 90, A11y ≥ 95, BP ≥ 95) | login: Performance 98 · Accessibility 100 · Best Practices 96 · LCP 2.01 s · TBT 0 ms · CLS 0.000 home: Performance 95 · Accessibility 100 · Best Practices 100 · LCP 2.72 s · TBT 6 ms · CLS 0.051 guests: Performance 92 · Accessibility 100 · Best Practices 100 · LCP 3.05 s · TBT 141 ms · CLS 0.018  |
 
 Database checks: 001 → 002 → 003 apply with finished_at set; second run of each stops at its guard with data unchanged (DS-28); seed_demo.sql loads (61 families, Devanagari intact) and its second run stops at user id 1.
 
@@ -107,7 +107,7 @@ Endpoint Coverage (Tests\Coverage\EndpointCoverage)
  ✔ Every built route is documented and tested
  ✔ Every endpoint attribute points at a real operation
 Error Leak (Tests\Security\ErrorLeak)
- ✘ Exception becomes plain 500
+ ✔ Exception becomes plain 500
  ✔ Details go to the server log with request id
 Events Calendar (Tests\Endpoints\EventsCalendar)
  ✔ Ac evt 01 seven events with date not set
