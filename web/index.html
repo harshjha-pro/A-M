@@ -9,9 +9,9 @@
     <link rel="manifest" href="/manifest.webmanifest">
     <link rel="icon" href="/icons/favicon-48.png" type="image/png">
 
-    <!-- Status bar / Android task switcher colours (DESIGN §2.6) -->
-    <meta name="theme-color" content="#FBF7F0" media="(prefers-color-scheme: light)">
-    <meta name="theme-color" content="#17120F" media="(prefers-color-scheme: dark)">
+    <!-- Keep browser chrome and installed-PWA surfaces in the warm ivory brand palette. -->
+    <meta name="theme-color" content="#F8F2EB" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#F8F2EB" media="(prefers-color-scheme: dark)">
 
     <!-- iPhone -->
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon-180.png">
@@ -19,10 +19,9 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <!-- Stop iOS turning amounts like 1250000 into phone links; we make tel: links ourselves -->
     <meta name="format-detection" content="telephone=no">
 
-    <!-- Adds class="ios" for Dynamic Type (DESIGN §2.7). A file, not inline: the CSP blocks inline scripts. -->
+    <!-- Adds class="ios" for Dynamic Type. External scripts are required by the CSP. -->
     <script src="/ios-class.js"></script>
     <script src="/theme.js"></script>
   </head>
