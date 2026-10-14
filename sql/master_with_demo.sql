@@ -1,8 +1,8 @@
 -- =============================================================================
--- A&M Wedding Planner — master_with_demo.sql  (version 1.0.20)
+-- A&M Wedding Planner — master_with_demo.sql  (version 1.0.22)
 -- ONE file for a NEW, EMPTY database:
 --   phpMyAdmin → select the database → Import → this file → Character set utf-8 → Go.
--- Contains, in order: migrations/001_init.sql migrations/002_open_answers.sql migrations/003_api_support.sql migrations/004_home_photos.sql migrations/005_workspaces_vault.sql migrations/006_outfits.sql migrations/007_decor_menu.sql migrations/008_contacts_timeline.sql dev/seed_demo.sql
+-- Contains, in order: migrations/001_init.sql migrations/002_open_answers.sql migrations/003_api_support.sql migrations/004_home_photos.sql migrations/005_workspaces_vault.sql migrations/006_outfits.sql migrations/007_decor_menu.sql migrations/008_contacts_timeline.sql migrations/009_task_codes.sql dev/seed_demo.sql
 -- On a database that already has the tables it stops at the first line
 -- ("Table 'schema_migrations' already exists") and changes nothing.
 -- Made by tools/make-master-sql.sh — do not edit; edit the files listed above.
@@ -1794,6 +1794,48 @@ JOIN workspaces w ON w.public_id = s.ws AND w.deleted_at IS NULL;
 UPDATE schema_migrations SET finished_at = CURRENT_TIMESTAMP WHERE version = 8;
 
 
+-- ##### migrations/009_task_codes.sql #####
+
+-- =============================================================================
+-- A&M Wedding Planner — migration 009_task_codes.sql
+-- Unique IDs for tasks; random IDs for attachments (version 1.0.22). Run AFTER 008.
+-- Target: MySQL 8.0.16+ (also runs on MariaDB 10.4+).
+--
+--   1. tasks + code: an editable ID unique across tasks (capitals ignored), like TSK-4M8Q2D.
+--      Every existing task gets a random one, oldest first.
+--   2. attachments: the numbered IDs (ATT-000001 …) become random ones (ATT-7K3F9Q), oldest
+--      first. IDs typed by hand (MEHNDI-DECOR-01) are kept.
+--   New tasks and attachments get a random ID from the app; it can be changed any time.
+--   (tasks.code stays NULL-able so rows written outside the app, e.g. demo data, can be filled after.)
+--   Letters and digits that look alike (0/O, 1/I/L, U) are not used.
+--
+-- Card tracking (planned) moves to 010.
+-- =============================================================================
+
+-- Fails here, changing nothing, if 009 already ran.
+INSERT INTO schema_migrations (version, name, applied_by)
+VALUES (9, '009_task_codes', 'phpMyAdmin');
+
+ALTER TABLE tasks
+  ADD COLUMN code VARCHAR(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL COMMENT 'Editable ID, unique across tasks, capitals ignored' AFTER public_id;
+
+UPDATE tasks SET code = CONCAT('TSK-', CONCAT(SUBSTRING('23456789ABCDEFGHJKMNPQRSTVWXYZ', 1 + MOD(CONV(SUBSTRING(MD5(public_id), 1, 2), 16, 10), 30), 1), SUBSTRING('23456789ABCDEFGHJKMNPQRSTVWXYZ', 1 + MOD(CONV(SUBSTRING(MD5(public_id), 3, 2), 16, 10), 30), 1), SUBSTRING('23456789ABCDEFGHJKMNPQRSTVWXYZ', 1 + MOD(CONV(SUBSTRING(MD5(public_id), 5, 2), 16, 10), 30), 1), SUBSTRING('23456789ABCDEFGHJKMNPQRSTVWXYZ', 1 + MOD(CONV(SUBSTRING(MD5(public_id), 7, 2), 16, 10), 30), 1), SUBSTRING('23456789ABCDEFGHJKMNPQRSTVWXYZ', 1 + MOD(CONV(SUBSTRING(MD5(public_id), 9, 2), 16, 10), 30), 1), SUBSTRING('23456789ABCDEFGHJKMNPQRSTVWXYZ', 1 + MOD(CONV(SUBSTRING(MD5(public_id), 11, 2), 16, 10), 30), 1))) WHERE code IS NULL ORDER BY id;
+
+-- The rare clash (two tasks drew the same letters): the later one draws again.
+UPDATE tasks t JOIN (SELECT b.id FROM tasks a JOIN tasks b ON b.code = a.code AND b.id > a.id) d ON d.id = t.id
+SET t.code = CONCAT('TSK-', CONCAT(SUBSTRING('23456789ABCDEFGHJKMNPQRSTVWXYZ', 1 + MOD(CONV(SUBSTRING(MD5(CONCAT(t.public_id, '-again')), 1, 2), 16, 10), 30), 1), SUBSTRING('23456789ABCDEFGHJKMNPQRSTVWXYZ', 1 + MOD(CONV(SUBSTRING(MD5(CONCAT(t.public_id, '-again')), 3, 2), 16, 10), 30), 1), SUBSTRING('23456789ABCDEFGHJKMNPQRSTVWXYZ', 1 + MOD(CONV(SUBSTRING(MD5(CONCAT(t.public_id, '-again')), 5, 2), 16, 10), 30), 1), SUBSTRING('23456789ABCDEFGHJKMNPQRSTVWXYZ', 1 + MOD(CONV(SUBSTRING(MD5(CONCAT(t.public_id, '-again')), 7, 2), 16, 10), 30), 1), SUBSTRING('23456789ABCDEFGHJKMNPQRSTVWXYZ', 1 + MOD(CONV(SUBSTRING(MD5(CONCAT(t.public_id, '-again')), 9, 2), 16, 10), 30), 1), SUBSTRING('23456789ABCDEFGHJKMNPQRSTVWXYZ', 1 + MOD(CONV(SUBSTRING(MD5(CONCAT(t.public_id, '-again')), 11, 2), 16, 10), 30), 1)));
+
+ALTER TABLE tasks
+  ADD UNIQUE KEY uq_tasks_code (code),
+  ADD CONSTRAINT ck_tasks_code CHECK (CHAR_LENGTH(code) BETWEEN 3 AND 30);
+
+-- Attachments: numbered IDs → random ones (one at a time, so the unique key never clashes).
+UPDATE attachments SET code = CONCAT('ATT-', CONCAT(SUBSTRING('23456789ABCDEFGHJKMNPQRSTVWXYZ', 1 + MOD(CONV(SUBSTRING(MD5(public_id), 1, 2), 16, 10), 30), 1), SUBSTRING('23456789ABCDEFGHJKMNPQRSTVWXYZ', 1 + MOD(CONV(SUBSTRING(MD5(public_id), 3, 2), 16, 10), 30), 1), SUBSTRING('23456789ABCDEFGHJKMNPQRSTVWXYZ', 1 + MOD(CONV(SUBSTRING(MD5(public_id), 5, 2), 16, 10), 30), 1), SUBSTRING('23456789ABCDEFGHJKMNPQRSTVWXYZ', 1 + MOD(CONV(SUBSTRING(MD5(public_id), 7, 2), 16, 10), 30), 1), SUBSTRING('23456789ABCDEFGHJKMNPQRSTVWXYZ', 1 + MOD(CONV(SUBSTRING(MD5(public_id), 9, 2), 16, 10), 30), 1), SUBSTRING('23456789ABCDEFGHJKMNPQRSTVWXYZ', 1 + MOD(CONV(SUBSTRING(MD5(public_id), 11, 2), 16, 10), 30), 1)))
+WHERE code REGEXP '^ATT-[0-9]{6}$' ORDER BY id;
+
+UPDATE schema_migrations SET finished_at = CURRENT_TIMESTAMP WHERE version = 9;
+
+
 -- ##### dev/seed_demo.sql #####
 
 -- =============================================================================
@@ -2388,6 +2430,10 @@ SELECT '01JE0CT0000000000000000002', w.id, (SELECT id FROM vendors WHERE name = 
 FROM workspaces w WHERE w.public_id = '01JC0WS0000000000000000006';
 UPDATE workspaces SET guest_notes = 'Nani ji and Dadi ji: front row, near the fan.\nPickup from Bhilwara station at 4 pm (Shree Ganesh Travels).' WHERE public_id = '01JC0WS0000000000000000002';
 UPDATE timeline_steps SET start_time = '19:30:00' WHERE public_id = '01JE0TS0000000000000000021';
+
+-- Task IDs (migration 009, version 1.0.22): the demo tasks get theirs like the migration does.
+UPDATE tasks SET code = CONCAT('TSK-', CONCAT(SUBSTRING('23456789ABCDEFGHJKMNPQRSTVWXYZ', 1 + MOD(CONV(SUBSTRING(MD5(public_id), 1, 2), 16, 10), 30), 1), SUBSTRING('23456789ABCDEFGHJKMNPQRSTVWXYZ', 1 + MOD(CONV(SUBSTRING(MD5(public_id), 3, 2), 16, 10), 30), 1), SUBSTRING('23456789ABCDEFGHJKMNPQRSTVWXYZ', 1 + MOD(CONV(SUBSTRING(MD5(public_id), 5, 2), 16, 10), 30), 1), SUBSTRING('23456789ABCDEFGHJKMNPQRSTVWXYZ', 1 + MOD(CONV(SUBSTRING(MD5(public_id), 7, 2), 16, 10), 30), 1), SUBSTRING('23456789ABCDEFGHJKMNPQRSTVWXYZ', 1 + MOD(CONV(SUBSTRING(MD5(public_id), 9, 2), 16, 10), 30), 1), SUBSTRING('23456789ABCDEFGHJKMNPQRSTVWXYZ', 1 + MOD(CONV(SUBSTRING(MD5(public_id), 11, 2), 16, 10), 30), 1))) WHERE code IS NULL ORDER BY id;
+UPDATE attachments SET code = CONCAT('ATT-', CONCAT(SUBSTRING('23456789ABCDEFGHJKMNPQRSTVWXYZ', 1 + MOD(CONV(SUBSTRING(MD5(public_id), 1, 2), 16, 10), 30), 1), SUBSTRING('23456789ABCDEFGHJKMNPQRSTVWXYZ', 1 + MOD(CONV(SUBSTRING(MD5(public_id), 3, 2), 16, 10), 30), 1), SUBSTRING('23456789ABCDEFGHJKMNPQRSTVWXYZ', 1 + MOD(CONV(SUBSTRING(MD5(public_id), 5, 2), 16, 10), 30), 1), SUBSTRING('23456789ABCDEFGHJKMNPQRSTVWXYZ', 1 + MOD(CONV(SUBSTRING(MD5(public_id), 7, 2), 16, 10), 30), 1), SUBSTRING('23456789ABCDEFGHJKMNPQRSTVWXYZ', 1 + MOD(CONV(SUBSTRING(MD5(public_id), 9, 2), 16, 10), 30), 1), SUBSTRING('23456789ABCDEFGHJKMNPQRSTVWXYZ', 1 + MOD(CONV(SUBSTRING(MD5(public_id), 11, 2), 16, 10), 30), 1))) WHERE code REGEXP '^ATT-[0-9]{6}$' ORDER BY id;
 
 -- End of DEV ONLY demo data.
 

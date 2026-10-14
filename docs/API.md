@@ -883,6 +883,10 @@ Ayush and Mahi only. `GET /workspaces/{id}` also returns `guest_notes` and `plan
 
 A step with no `start_time` starts when the one before ends (`estimated: true`); times past midnight wrap. `POST /attachments`, `POST /attachments/{id}/links` and `POST /tasks` accept `timeline_step_id` ("Reception › Event timeline › Couple entry"). `GET /vendors/{id}` (admins) adds `workspaces [{id, name, role}]`.
 
+### 6.9f IDs for tasks and attachments (version 1.0.22)
+
+Every task carries `code` (random when made, `TSK-` + 6 of `23456789ABCDEFGHJKMNPQRSTVWXYZ`). `POST /tasks` and `PATCH /tasks/{id}` accept `code` (3–30 of A–Z a–z 0–9 - _; unique across tasks, capitals ignored; 422 `fields.code` names the task that has it). `GET /tasks/check-code?code=&except=` → `{available, message}`. `GET /tasks?q=` also matches the ID. New attachments get a random `ATT-` ID (was the next number); still editable as before.
+
 ### 6.10 History and activity
 
 |Method|Path|Purpose|Who|Request|Response|Errors|

@@ -99,6 +99,7 @@ export default function TaskDetail() {
     <Screen title={task.title} back="/tasks">
       <section className="flex flex-col gap-3 rounded-md bg-surface p-4 shadow-card">
         <p className="flex flex-wrap gap-2">
+          {task.code && <span className="rounded-full bg-bg px-3 py-1 font-mono" aria-label={`${t('tasks.codeLabel')} ${task.code}`}>{task.code}</span>}
           <span className="rounded-full bg-bg px-3 py-1 font-bold">{t(`tasks.status.${task.status}`)}</span>
           {task.priority !== 'normal' && <span className={`rounded-full px-3 py-1 ${task.priority === 'urgent' ? 'bg-danger-soft text-danger' : 'bg-bg text-text-muted'}`}>{t(`tasks.priority.${task.priority}`)}</span>}
           {task.overdue && <span className="rounded-full bg-danger-soft px-3 py-1 font-bold text-danger">{t('tasks.overdue')}</span>}
