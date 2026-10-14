@@ -133,7 +133,8 @@ final class TasksController
             $a[] = $q['assignee'];
         }
         if (isset($q['q']) && trim($q['q']) !== '') {
-            $w[] = 't.title LIKE ?';
+            $w[] = '(t.title LIKE ? OR t.code LIKE ?)'; // 1.0.22: the task ID finds it too
+            $a[] = '%' . addcslashes(trim($q['q']), '%_\\') . '%';
             $a[] = '%' . addcslashes(trim($q['q']), '%_\\') . '%';
         }
         return [$w, $a];
@@ -147,6 +148,20 @@ final class TasksController
         $row = BaseRepository::find($db, TaskDef::class, $params['id'], false, false);
         $view = TaskView::full($app, $db, new Refs($db, $app->clock->todayIst()), $row);
         return Response::ok($view)->withHeader('ETag', '"' . $view['version'] . '"');
+    }
+
+    /** GET /tasks/check-code?code=&except= — the task ID, checked while typing (1.0.22). */
+    public static function checkCode(Request $request, App $app, array $params): Response
+    {
+        $db = $app->db();
+        $code = trim((string) ($request->query['code'] ?? ''));
+        if (!preg_match(\AM\Kernel\Codes::FORMAT, $code)) {
+            return Response::ok(['available' => false, 'message' => Strings::get('attachment_code_format')]);
+        }
+        $except = isset($request->query['except']) ? (int) ($db->value('SELECT id FROM tasks WHERE public_id = ?', [(string) $request->query['except']]) ?? 0) : 0;
+        $taken = $db->one('SELECT title FROM tasks WHERE code = ? AND id <> ?', [$code, $except]);
+        return Response::ok($taken === null ? ['available' => true, 'message' => null]
+            : ['available' => false, 'message' => Strings::get('task_code_taken', ['code' => $code, 'title' => $taken['title']])]);
     }
 
     /* -------------------------------------------------------------- create */
@@ -173,6 +188,7 @@ final class TasksController
                 ]);
             }
             $c = $in['columns'];
+            $c['code'] ??= \AM\Kernel\Codes::random($db, 'TSK', 'tasks'); // 1.0.22
             if (($c['status'] ?? 'todo') === 'done') {
                 $c['completed_at'] = $app->clock->dbNow();
                 $c['completed_by'] = $viewer['id'];

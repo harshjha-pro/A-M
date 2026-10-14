@@ -24,7 +24,7 @@ use DateTimeImmutable;
  */
 final class TaskWriter
 {
-    public const FIELDS = ['title', 'notes', 'status', 'priority', 'due_date', 'due_time', 'event_id', 'vendor_id', 'household_id', 'workspace_id', 'workspace_section', 'outfit_id', 'accessory_id', 'outfit_step_id', 'menu_item_id', 'timeline_step_id',
+    public const FIELDS = ['code', 'title', 'notes', 'status', 'priority', 'due_date', 'due_time', 'event_id', 'vendor_id', 'household_id', 'workspace_id', 'workspace_section', 'outfit_id', 'accessory_id', 'outfit_step_id', 'menu_item_id', 'timeline_step_id',
         'assignee_ids', 'tag_ids', 'new_tags', 'items', 'allow_duplicate'];
     public const MAX_LINKS = 10;
     public const MAX_ITEMS = 100;
@@ -39,6 +39,18 @@ final class TaskWriter
         $c = [];
         if ($create || $f->has('title')) {
             $c['title'] = $f->text('title', 200, true);
+        }
+        // 1.0.22: the task's own ID (random when made; editable, unique across tasks, capitals ignored).
+        if ($f->has('code') && !($create && ($f->value('code') === null || $f->value('code') === ''))) {
+            $code = is_string($f->value('code')) ? trim($f->value('code')) : '';
+            $taken = $code !== '' ? $db->one('SELECT title FROM tasks WHERE code = ? AND id <> ?', [$code, (int) ($current['id'] ?? 0)]) : null;
+            if (!preg_match(\AM\Kernel\Codes::FORMAT, $code)) {
+                $f->error('code', \AM\Kernel\Strings::get('attachment_code_format'));
+            } elseif ($taken !== null) {
+                $f->error('code', \AM\Kernel\Strings::get('task_code_taken', ['code' => $code, 'title' => $taken['title']]));
+            } else {
+                $c['code'] = $code;
+            }
         }
         if ($create || $f->has('notes')) {
             $c['notes'] = $f->text('notes', 5000);

@@ -224,11 +224,7 @@ final class AttachmentDef extends EntityDef
     /** The next free ATT-000001-style ID. */
     public static function nextCode(Db $db): string
     {
-        $max = (int) ($db->value("SELECT MAX(CAST(SUBSTRING(code, 5) AS UNSIGNED)) FROM attachments WHERE code LIKE 'ATT-%' AND SUBSTRING(code, 5) REGEXP '^[0-9]+$'") ?? 0);
-        do {
-            $code = sprintf('ATT-%06d', ++$max);
-        } while ($db->value('SELECT 1 FROM attachments WHERE code = ?', [$code]) !== null);
-        return $code;
+        return \AM\Kernel\Codes::random($db, 'ATT', 'attachments'); // 1.0.22: random (was ATT-000001, ATT-000002…)
     }
 
     public static function formatValue(string $field, mixed $value): string

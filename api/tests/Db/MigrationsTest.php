@@ -27,7 +27,7 @@ final class MigrationsTest extends TestCase
     {
         $pdo = TestDb::connect(self::SCRATCH);
         $rows = $pdo->query('SELECT version, name, finished_at FROM schema_migrations ORDER BY version')->fetchAll();
-        $this->assertSame([1, 2, 3, 4, 5, 6, 7, 8], array_map(static fn ($r) => (int) $r['version'], $rows));
+        $this->assertSame([1, 2, 3, 4, 5, 6, 7, 8, 9], array_map(static fn ($r) => (int) $r['version'], $rows));
         foreach ($rows as $r) {
             $this->assertNotNull($r['finished_at'], "{$r['name']} has finished_at NULL (stopped part-way)");
         }

@@ -50,6 +50,7 @@ final class TaskView
             return [
                 'id' => $r['public_id'],
                 'version' => (int) $r['version'],
+                'code' => $r['code'] ?? null,
                 'title' => $r['title'],
                 'status' => $r['status'],
                 'priority' => $r['priority'],

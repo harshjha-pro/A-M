@@ -134,7 +134,8 @@ final class WorkspacesVaultTest extends ApiTestCase
         $this->assertTrue($done['complete']);
         $this->assertSame(3, $this->rows('vault_file_chunks'));
         $a = $this->add($mahi, ['kind' => 'video', 'upload_id' => $id, 'title' => 'Lehenga trial', 'workspace_id' => self::MEHNDI_WS, 'section' => 'bride_outfit'])->assertStatus(201)->json('data');
-        $this->assertSame(['ATT-000001', 'video', 'Mehndi › Bride outfit'], [$a['code'], $a['kind'], $a['used_in'][0]['path']]);
+        $this->assertMatchesRegularExpression('/^ATT-[23456789A-HJKMNP-TV-Z]{6}$/', $a['code']); // 1.0.22: random
+        $this->assertSame(['video', 'Mehndi › Bride outfit'], [$a['kind'], $a['used_in'][0]['path']]);
         $file = $mahi->get("/attachments/{$a['id']}/file");
         $file->assertStatus(200);
         $this->assertSame($video, $file->body());
@@ -187,7 +188,7 @@ final class WorkspacesVaultTest extends ApiTestCase
         $c->request('DELETE', "/attachments/{$photo['id']}", null, [], [], ['ifMatch' => 2])->assertStatus(200);
         $this->assertStringContainsString('(Deleted items)', $c->patchJson("/attachments/{$link['id']}", ['code' => 'BRIDE-LEHENGA-01'], 1)->assertStatus(422)->json('error.fields.code'));
         // History says it in plain words.
-        $this->assertStringContainsString('changed ID from ATT-000001 to BRIDE-LEHENGA-01', implode("\n", array_column($c->get("/attachments/{$photo['id']}/history")->json('data'), 'sentence')));
+        $this->assertMatchesRegularExpression('/changed ID from ATT-[23456789A-HJKMNP-TV-Z]{6} to BRIDE-LEHENGA-01/', implode("\n", array_column($c->get("/attachments/{$photo['id']}/history")->json('data'), 'sentence')));
     }
 
     #[Endpoint('GET /attachments')]
@@ -239,7 +240,8 @@ final class WorkspacesVaultTest extends ApiTestCase
         $pdf = "%PDF-1.4\n1 0 obj << /Type /Catalog >> endobj\ntrailer << /Root 1 0 R >>\n%%EOF\n";
         $doc = $c->upload('/documents', $pdf, 'contract.pdf', ['type' => 'contract', 'title' => 'Tent contract'])->assertStatus(201)->json('data');
         $v = array_values(array_filter($c->get('/attachments', ['kind' => 'document'])->json('data'), static fn ($x) => $x['title'] === 'Tent contract'))[0];
-        $this->assertSame(['ATT-000002', $doc['id'], "/api/v1/documents/{$doc['id']}/file", 'Documents'], [$v['code'], $v['document']['id'], $v['file_url'], $v['used_in'][0]['path']]);
+        $this->assertMatchesRegularExpression('/^ATT-[23456789A-HJKMNP-TV-Z]{6}$/', $v['code']);
+        $this->assertSame([$v['code'], $doc['id'], "/api/v1/documents/{$doc['id']}/file", 'Documents'], [$v['code'], $v['document']['id'], $v['file_url'], $v['used_in'][0]['path']]);
         $this->assertSame('This is a document. Change or delete it in Documents.', $c->request('DELETE', "/attachments/{$v['id']}", null, [], [], ['ifMatch' => 1])->assertStatus(422)->json('error.message'));
         $c->patchJson("/attachments/{$v['id']}", ['code' => 'TENT-CONTRACT', 'is_favourite' => true], 1)->assertStatus(200);
         $c->request('DELETE', "/documents/{$doc['id']}", null, [], [], ['ifMatch' => 1])->assertStatus(200);

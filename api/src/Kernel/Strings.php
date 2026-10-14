@@ -142,6 +142,7 @@ final class Strings
         'field_bad_url'            => 'Paste a full link starting with https://',
         'attachment_code_format'   => 'Use 3 to 30 letters, numbers, - or _ (no spaces).',
         'attachment_code_taken'    => "ID {code} is already used by '{title}' ({where}).",
+        'task_code_taken'          => "ID {code} is already used by the task '{title}'.",
         'attachment_needs_file'    => 'Add the file first.',
         'attachment_doc_in_documents' => 'This is a document. Change or delete it in Documents.',
         'upload_not_complete'      => "The file didn't arrive whole. Please try again.",

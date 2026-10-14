@@ -20,22 +20,21 @@ final class WorkspaceAccessTest extends ApiTestCase
     {
         $pdo = TestDb::connect();
         $pdo->exec('RENAME TABLE timeline_steps TO timeline_steps_hidden');
-        $pdo->exec('UPDATE schema_migrations SET finished_at = NULL WHERE version = 8'); // as if 008 was never run
-        $pdo->exec('DELETE FROM schema_migrations WHERE version = 8');
+        $pdo->exec('DELETE FROM schema_migrations WHERE version >= 8'); // as if 008 and 009 were never run
         try {
             $r = $this->loginAs('mahi')->get('/workspaces/' . self::MEHNDI)->assertStatus(503);
             $this->assertSame('db_update_needed', $r->json('error.code'));
-            $this->assertSame('The database needs an update before this works: import migrations 008 to 008 in phpMyAdmin, in order. Nothing was saved.', $r->json('error.message'));
+            $this->assertSame('The database needs an update before this works: import migrations 008 to 009 in phpMyAdmin, in order. Nothing was saved.', $r->json('error.message'));
             $this->loginAs('ayush')->postJson('/tasks', ['title' => 'Still works'])->assertStatus(201); // the rest of the app keeps working
         } finally {
             $pdo->exec('RENAME TABLE timeline_steps_hidden TO timeline_steps');
-            $pdo->exec("INSERT INTO schema_migrations (version, name, applied_by, finished_at) VALUES (8, '008_contacts_timeline', 'test', CURRENT_TIMESTAMP)");
+            $pdo->exec("INSERT INTO schema_migrations (version, name, applied_by, finished_at) VALUES (8, '008_contacts_timeline', 'test', CURRENT_TIMESTAMP), (9, '009_task_codes', 'test', CURRENT_TIMESTAMP)");
         }
     }
 
     public function test_health_expects_the_newest_migration(): void
     {
-        $this->assertSame(8, \AM\Kernel\AppInfo::EXPECTED_SCHEMA_VERSION, 'bump this with every new migration');
+        $this->assertSame(9, \AM\Kernel\AppInfo::EXPECTED_SCHEMA_VERSION, 'bump this with every new migration');
         $files = glob(TestDb::root() . '/db/migrations/*.sql');
         $this->assertSame(sprintf('%03d', \AM\Kernel\AppInfo::EXPECTED_SCHEMA_VERSION), substr(basename(end($files)), 0, 3));
     }

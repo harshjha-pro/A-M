@@ -1640,6 +1640,18 @@ paths:
         '409': { $ref: '#/components/responses/Conflict' }
         '422': { $ref: '#/components/responses/Unprocessable' }
         default: { $ref: '#/components/responses/Error' }
+  /tasks/check-code:
+    get:
+      tags: [Tasks]
+      operationId: checkTaskCode
+      summary: Is this task ID free? (3–30 letters, numbers, - or _; unique across tasks, capitals ignored)
+      x-permission: All
+      parameters:
+        - { name: code, in: query, required: true, schema: { type: string } }
+        - { name: except, in: query, schema: { $ref: '#/components/schemas/Ulid' } }
+      responses:
+        '200': { description: Answer, content: { application/json: { schema: { allOf: [ { $ref: '#/components/schemas/Ok' }, { properties: { data: { type: object, properties: { available: { type: boolean }, message: { type: [string, 'null'] } } } } } ] } } } }
+        default: { $ref: '#/components/responses/Error' }
   /tasks/{id}:
     parameters: [ { $ref: '#/components/parameters/Id' } ]
     get:
@@ -3819,6 +3831,7 @@ components:
         - $ref: '#/components/schemas/Standard'
         - type: object
           properties:
+            code: { type: string, description: 'The task ID (1.0.22): random when made (TSK-4M8Q2D), editable, unique across tasks (capitals ignored)' }
             title: { type: string }
             notes: { $ref: '#/components/schemas/Notes' }
             status: { $ref: '#/components/schemas/TaskStatus' }

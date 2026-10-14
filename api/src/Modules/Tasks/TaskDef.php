@@ -19,6 +19,7 @@ final class TaskDef extends EntityDef
     public const LABEL = 'task';
     public const LABEL_PLURAL = 'tasks';
     public const FIELD_LABELS = [
+        'code' => 'ID',
         'title' => 'Title',
         'notes' => 'Notes',
         'status' => 'Status',
