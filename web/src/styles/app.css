@@ -1,4 +1,4 @@
-/* A&M Wedding — design tokens (DESIGN.md §2.7, Tailwind v4 CSS-first). */
+/* A&M Wedding — editorial wedding palette inspired by the provided reference. */
 @import "tailwindcss";
 @import "@fontsource/atkinson-hyperlegible/400.css";
 @import "@fontsource/atkinson-hyperlegible/700.css";
@@ -6,52 +6,65 @@
 @import "@fontsource/noto-sans-devanagari/700.css";
 
 :root {
-  --c-bg:#FBF7F0; --c-surface:#FFFFFF; --c-surface-2:#F3ECE1;
-  --c-text:#2A1F1A; --c-text-muted:#5E5048;
-  --c-border:#E2D6C4; --c-border-strong:#8C7A68;
-  --c-primary:#8A1C2B; --c-on-primary:#FFFFFF; --c-primary-soft:#F7E4E6;
-  --c-accent:#E8A317; --c-on-accent:#2A1F1A;
-  --c-success:#2F6B3A; --c-success-soft:#E3F0E3;
-  --c-warning:#8A5300; --c-warning-soft:#FFF0D4;
-  --c-danger:#B3261E;  --c-danger-soft:#FBE4E2;
-  --c-info:#1F5A8A;    --c-info-soft:#E2EEF8;
-  --c-focus:#1A4F8B;
-  --shadow-card-v: 0 1px 2px rgb(42 31 26/.06), 0 2px 8px rgb(42 31 26/.06);
-  --shadow-sheet-v: 0 -8px 24px rgb(42 31 26/.14);
-  --shadow-fab-v: 0 6px 16px rgb(138 28 43/.30);
-  color-scheme: light;
+  --c-bg:#F8F2EB;
+  --c-surface:#FFFCFA;
+  --c-surface-2:#F1E6DD;
+  --c-text:#352D2D;
+  --c-text-muted:#786C68;
+  --c-border:#E8DCD3;
+  --c-border-strong:#B9A39A;
+  --c-primary:#A86F7B;
+  --c-on-primary:#FFFFFF;
+  --c-primary-soft:#F2E1E3;
+  --c-accent:#D6B99C;
+  --c-on-accent:#352D2D;
+  --c-success:#477653;
+  --c-success-soft:#E4EFE5;
+  --c-warning:#8A6540;
+  --c-warning-soft:#F7EBDD;
+  --c-danger:#B4474D;
+  --c-danger-soft:#F7E5E4;
+  --c-info:#526F83;
+  --c-info-soft:#E7EEF1;
+  --c-focus:#8D5362;
+  --shadow-card-v:0 2px 6px rgb(68 45 43/.045),0 8px 24px rgb(68 45 43/.035);
+  --shadow-sheet-v:0 -8px 28px rgb(68 45 43/.13);
+  --shadow-fab-v:0 6px 18px rgb(141 83 98/.25);
+  color-scheme:light;
 }
 
-/* Dark: follows the phone unless My account forces light (DESIGN D4). */
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --c-bg:#17120F; --c-surface:#211A16; --c-surface-2:#2B231E;
-    --c-text:#F5EEE4; --c-text-muted:#C9BBAA;
-    --c-border:#3D332C; --c-border-strong:#8A7A6A;
-    --c-primary:#F2A7AF; --c-on-primary:#3A0B12; --c-primary-soft:#3D1D22;
-    --c-accent:#F2B84B; --c-on-accent:#17120F;
-    --c-success:#86C991; --c-success-soft:#1D3322;
-    --c-warning:#FFC266; --c-warning-soft:#3A2C12;
-    --c-danger:#FF8A80;  --c-danger-soft:#3D1B19;
-    --c-info:#93C5F0;    --c-info-soft:#16293A;
-    --c-focus:#93C5F0;
-    --shadow-card-v:none; --shadow-sheet-v:none; --shadow-fab-v:none;
-    color-scheme: dark;
-  }
-}
+/* Keep the requested wedding palette consistent even when the phone is in dark mode. */
 :root[data-theme="dark"] {
-  --c-bg:#17120F; --c-surface:#211A16; --c-surface-2:#2B231E;
-  --c-text:#F5EEE4; --c-text-muted:#C9BBAA;
-  --c-border:#3D332C; --c-border-strong:#8A7A6A;
-  --c-primary:#F2A7AF; --c-on-primary:#3A0B12; --c-primary-soft:#3D1D22;
-  --c-accent:#F2B84B; --c-on-accent:#17120F;
-  --c-success:#86C991; --c-success-soft:#1D3322;
-  --c-warning:#FFC266; --c-warning-soft:#3A2C12;
-  --c-danger:#FF8A80;  --c-danger-soft:#3D1B19;
-  --c-info:#93C5F0;    --c-info-soft:#16293A;
-  --c-focus:#93C5F0;
-  --shadow-card-v:none; --shadow-sheet-v:none; --shadow-fab-v:none;
-  color-scheme: dark;
+  --c-bg:#F8F2EB; --c-surface:#FFFCFA; --c-surface-2:#F1E6DD;
+  --c-text:#352D2D; --c-text-muted:#786C68;
+  --c-border:#E8DCD3; --c-border-strong:#B9A39A;
+  --c-primary:#A86F7B; --c-on-primary:#FFFFFF; --c-primary-soft:#F2E1E3;
+  --c-accent:#D6B99C; --c-on-accent:#352D2D;
+  --c-success:#477653; --c-success-soft:#E4EFE5;
+  --c-warning:#8A6540; --c-warning-soft:#F7EBDD;
+  --c-danger:#B4474D; --c-danger-soft:#F7E5E4;
+  --c-info:#526F83; --c-info-soft:#E7EEF1; --c-focus:#8D5362;
+  --shadow-card-v:0 2px 6px rgb(68 45 43/.045),0 8px 24px rgb(68 45 43/.035);
+  --shadow-sheet-v:0 -8px 28px rgb(68 45 43/.13);
+  --shadow-fab-v:0 6px 18px rgb(141 83 98/.25);
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark) {
+  :root:not([data-theme="light"]) {
+    --c-bg:#F8F2EB; --c-surface:#FFFCFA; --c-surface-2:#F1E6DD;
+    --c-text:#352D2D; --c-text-muted:#786C68;
+    --c-border:#E8DCD3; --c-border-strong:#B9A39A;
+    --c-primary:#A86F7B; --c-on-primary:#FFFFFF; --c-primary-soft:#F2E1E3;
+    --c-accent:#D6B99C; --c-on-accent:#352D2D;
+    --c-success:#477653; --c-success-soft:#E4EFE5;
+    --c-warning:#8A6540; --c-warning-soft:#F7EBDD;
+    --c-danger:#B4474D; --c-danger-soft:#F7E5E4;
+    --c-info:#526F83; --c-info-soft:#E7EEF1; --c-focus:#8D5362;
+    --shadow-card-v:0 2px 6px rgb(68 45 43/.045),0 8px 24px rgb(68 45 43/.035);
+    --shadow-sheet-v:0 -8px 28px rgb(68 45 43/.13);
+    --shadow-fab-v:0 6px 18px rgb(141 83 98/.25);
+    color-scheme:light;
+  }
 }
 
 @theme inline {
@@ -67,30 +80,29 @@
   --color-focus:var(--c-focus);
   --shadow-card:var(--shadow-card-v); --shadow-sheet:var(--shadow-sheet-v); --shadow-fab:var(--shadow-fab-v);
 }
-
 @theme {
-  --font-sans: "Atkinson Hyperlegible", "Noto Sans Devanagari", "Kohinoor Devanagari", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --text-xs:0.875rem;   --text-xs--line-height:1.4;
-  --text-sm:0.9375rem;  --text-sm--line-height:1.45;
-  --text-base:1rem;     --text-base--line-height:1.5;
-  --text-lg:1.125rem;   --text-lg--line-height:1.4;
-  --text-xl:1.375rem;   --text-xl--line-height:1.3;
-  --text-2xl:1.75rem;   --text-2xl--line-height:1.25;
-  --text-3xl:2.25rem;   --text-3xl--line-height:1.15;
-  --radius-sm:0.5rem; --radius-md:0.75rem; --radius-lg:1rem; --radius-xl:1.5rem;
+  --font-sans:"Atkinson Hyperlegible","Noto Sans Devanagari","Kohinoor Devanagari",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --text-xs:0.875rem; --text-xs--line-height:1.4;
+  --text-sm:0.9375rem; --text-sm--line-height:1.45;
+  --text-base:1rem; --text-base--line-height:1.5;
+  --text-lg:1.125rem; --text-lg--line-height:1.4;
+  --text-xl:1.375rem; --text-xl--line-height:1.3;
+  --text-2xl:1.75rem; --text-2xl--line-height:1.25;
+  --text-3xl:2.25rem; --text-3xl--line-height:1.15;
+  --radius-sm:0.625rem; --radius-md:0.875rem; --radius-lg:1.125rem; --radius-xl:1.5rem;
 }
 
-/* Base size: 17 px that follows the phone's text-size setting */
 html { font-size:106.25%; -webkit-text-size-adjust:100%; }
-html.ios { font:-apple-system-body; font-family:var(--font-sans); } /* iPhone Dynamic Type: 17 px at default */
+html.ios { font:-apple-system-body; font-family:var(--font-sans); }
 body { @apply bg-bg text-text font-sans text-base antialiased; margin:0; min-height:100dvh; }
 :lang(hi) { line-height:1.6; }
-
-@utility no-scrollbar { scrollbar-width:none; &::-webkit-scrollbar { display:none; } } /* Home cover slideshow */
-@utility tap { min-height:3rem; min-width:3rem; }           /* ≥ 48 px */
+@utility no-scrollbar { scrollbar-width:none; &::-webkit-scrollbar { display:none; } }
+@utility tap { min-height:3rem; min-width:3rem; }
 @utility focus-ring { outline:3px solid var(--c-focus); outline-offset:2px; }
 @utility pb-safe { padding-bottom:env(safe-area-inset-bottom); }
 @utility pt-safe { padding-top:env(safe-area-inset-top); }
-@utility px-safe { padding-left:max(1rem, env(safe-area-inset-left)); padding-right:max(1rem, env(safe-area-inset-right)); }
+@utility px-safe { padding-left:max(1rem,env(safe-area-inset-left)); padding-right:max(1rem,env(safe-area-inset-right)); }
 :focus-visible { outline:3px solid var(--c-focus); outline-offset:2px; }
-@media (prefers-reduced-motion: reduce) { *{ animation-duration:0.01ms!important; transition-duration:0.01ms!important; } }
+::selection { background:#EBD3D7; color:#352D2D; }
+button, input, textarea, select { accent-color:var(--c-primary); }
+@media (prefers-reduced-motion:reduce) { * { animation-duration:0.01ms!important; transition-duration:0.01ms!important; } }
