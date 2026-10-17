@@ -46,7 +46,7 @@ export function IosSteps({ onDone, nonSafari = isIOSNonSafari, version = iosVers
       <p ref={textRef} tabIndex={-1} className="text-lg outline-none">{t(s.text)}</p>
       <div className="flex gap-3">
         {step > 0 && <button type="button" className="tap flex-1 rounded-md border-[1.5px] border-border-strong bg-surface" onClick={() => setStep(step - 1)}>{t('install.back')}</button>}
-        <button type="button" className="tap flex-1 rounded-md bg-primary font-bold text-on-primary" onClick={() => (last ? onDone?.() : setStep(step + 1))}>
+        <button type="button" className="tap flex-1 rounded-full bg-primary font-bold text-on-primary" onClick={() => (last ? onDone?.() : setStep(step + 1))}>
           {last ? t('install.doneButton') : t('install.next')}
         </button>
       </div>

@@ -12,7 +12,6 @@ import { Notice } from '../../components/Field.jsx';
 import { api } from '../../api/client.js';
 import { useSession } from '../../api/session.js';
 import { formatTime } from '../../format/ist.js';
-import Countdown from './Countdown.jsx';
 import HomeHero from './HomeHero.jsx';
 import { MyTasksCard, OverdueCard, UpcomingEventsCard, ActivityCard, StartHere } from './Cards.jsx';
 import { t } from '../../i18n/strings.en.js';
@@ -28,9 +27,7 @@ export default function Home() {
 
   return (
     <Screen title={t('home.title')}>
-      <HomeHero admin={admin} />
-      {d && <Countdown data={d.countdown} name={user?.name} />}
-      {!d && user && <p className="text-lg">{t('home.hello', { name: user.name })}</p>}
+      <HomeHero admin={admin} countdown={d?.countdown ?? null} name={user?.name ?? null} />
       {q.isPending && <p aria-busy="true">…</p>}
       {q.isError && (
         <Notice kind="danger"><span className="inline-flex items-center gap-2"><TriangleAlert aria-hidden="true" size={20} />{t('home.serverFail')}</span></Notice>

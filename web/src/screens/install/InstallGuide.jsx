@@ -23,7 +23,7 @@ function AndroidSteps({ webView = isAndroidWebView, nonChrome = isAndroidNonChro
   return (
     <div className="flex flex-col gap-4">
       {canPrompt && (
-        <button type="button" className="tap inline-flex items-center justify-center gap-2 rounded-md bg-primary px-5 font-bold text-on-primary"
+        <button type="button" className="tap inline-flex items-center justify-center gap-2 rounded-full bg-primary px-5 font-bold text-on-primary"
           onClick={async () => { if ((await prompt()) === 'accepted') setDone(true); }}>
           <Download aria-hidden="true" size={20} />{t('install.install')}
         </button>

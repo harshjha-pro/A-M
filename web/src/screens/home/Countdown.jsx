@@ -16,34 +16,33 @@ function useNow(stepMs = 60000) {
 
 function Unit({ n, label }) {
   return (
-    <div className="flex flex-1 flex-col items-center rounded-md bg-surface px-2 py-3">
-      <span className="text-4xl font-bold tabular-nums text-primary">{String(n).padStart(2, '0')}</span>
-      <span className="text-sm text-text-muted">{label}</span>
+    <div className="glass flex flex-1 flex-col items-center rounded-md px-2 py-2">
+      <span className="font-display text-4xl leading-none tabular-nums text-text">{String(n).padStart(2, '0')}</span>
+      <span className="text-sm font-bold text-text">{label}</span>
     </div>
   );
 }
 
-export default function Countdown({ data, name }) {
+// hero: frosted tiles over the cover photo (1.0.23 redesign); otherwise its own blush card.
+export default function Countdown({ data, name, hero = false }) {
   const now = useNow();
   const { weddingDay: day, weddingDays: total, weddingStartsAt, weddingStartDate } = data;
   const left = weddingStartsAt ? monthsDaysHours(now, Date.parse(weddingStartsAt)) : null;
   if (!left && day == null && !name) return null;
   return (
-    <section className="flex flex-col gap-3 rounded-md bg-primary-soft p-4" aria-label={t('home.countdown')}>
-      {name && <p className="text-lg">{t('home.hello', { name })}</p>}
+    <section className={hero ? 'flex flex-col gap-2' : 'flex flex-col gap-3 rounded-md bg-primary-soft p-4'} aria-label={t('home.countdown')}>
+      {name && !hero && <p className="text-lg">{t('home.hello', { name })}</p>}
       {left && (
         <>
           <div className="flex items-stretch gap-2" role="timer" aria-label={t('home.countdownAria', left)}>
             <Unit n={left.months} label={left.months === 1 ? t('home.month') : t('home.months')} />
-            <span aria-hidden="true" className="self-center text-2xl font-bold text-primary">:</span>
             <Unit n={left.days} label={left.days === 1 ? t('home.day') : t('home.days')} />
-            <span aria-hidden="true" className="self-center text-2xl font-bold text-primary">:</span>
             <Unit n={left.hours} label={left.hours === 1 ? t('home.hour') : t('home.hours')} />
           </div>
-          <p className="text-center text-text-muted">{t('home.toTheWedding', { date: formatDateOnly(weddingStartDate) })}</p>
+          <p className={hero ? 'glass self-center rounded-full px-3 py-0.5 text-sm font-bold text-text' : 'text-center text-text-muted'}>{t('home.toTheWedding', { date: formatDateOnly(weddingStartDate) })}</p>
         </>
       )}
-      {day != null && <p className="text-3xl font-bold text-primary">{t('home.weddingDay', { n: day, total })}</p>}
+      {day != null && <p className={hero ? 'glass self-start rounded-md px-4 py-2 font-display text-3xl text-text' : 'text-3xl font-bold text-primary'}>{t('home.weddingDay', { n: day, total })}</p>}
     </section>
   );
 }

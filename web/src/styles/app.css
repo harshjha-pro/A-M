@@ -1,9 +1,12 @@
-/* A&M Wedding — design tokens (DESIGN.md §2.7, Tailwind v4 CSS-first). */
+/* A&M Wedding — design tokens (DESIGN.md §2.7, Tailwind v4 CSS-first).
+   1.0.23 redesign (CONTEXT 51): same palette, restrained glass, Cormorant Garamond for wedding headlines only. */
 @import "tailwindcss";
 @import "@fontsource/atkinson-hyperlegible/400.css";
 @import "@fontsource/atkinson-hyperlegible/700.css";
 @import "@fontsource/noto-sans-devanagari/400.css";
 @import "@fontsource/noto-sans-devanagari/700.css";
+@import "@fontsource/cormorant-garamond/600.css";
+@import "@fontsource/cormorant-garamond/700.css";
 
 :root {
   --c-bg:#FBF7F0; --c-surface:#FFFFFF; --c-surface-2:#F3ECE1;
@@ -16,7 +19,11 @@
   --c-danger:#B3261E;  --c-danger-soft:#FBE4E2;
   --c-info:#1F5A8A;    --c-info-soft:#E2EEF8;
   --c-focus:#1A4F8B;
-  --shadow-card-v: 0 1px 2px rgb(42 31 26/.06), 0 2px 8px rgb(42 31 26/.06);
+  --c-primary-hover:#6F1622; --c-accent-soft:#FBEFD3;
+  --c-glass:rgb(255 255 255/.62); --c-glass-blush:rgb(247 228 230/.78); --c-glass-sheet:rgb(255 252 248/.94);
+  --c-glass-border:rgb(255 255 255/.75); --c-scrim:rgb(42 31 26/.55);
+  --shadow-card-v: 0 0 0 1px var(--c-border), 0 1px 2px rgb(42 31 26/.05), 0 4px 14px rgb(42 31 26/.06);
+  --shadow-glass-v: 0 8px 24px rgb(138 28 43/.10), inset 0 1px 0 rgb(255 255 255/.6);
   --shadow-sheet-v: 0 -8px 24px rgb(42 31 26/.14);
   --shadow-fab-v: 0 6px 16px rgb(138 28 43/.30);
   color-scheme: light;
@@ -35,7 +42,11 @@
     --c-danger:#FF8A80;  --c-danger-soft:#3D1B19;
     --c-info:#93C5F0;    --c-info-soft:#16293A;
     --c-focus:#93C5F0;
-    --shadow-card-v:none; --shadow-sheet-v:none; --shadow-fab-v:none;
+    --shadow-card-v:0 0 0 1px var(--c-border); --shadow-sheet-v:none; --shadow-fab-v:none;
+    --c-primary-hover:#F6C0C6; --c-accent-soft:#3A2C12;
+    --c-glass:rgb(33 26 22/.62); --c-glass-blush:rgb(61 29 34/.78); --c-glass-sheet:rgb(33 26 22/.94);
+    --c-glass-border:rgb(255 255 255/.14); --c-scrim:rgb(0 0 0/.6);
+    --shadow-glass-v: 0 8px 24px rgb(0 0 0/.35);
     color-scheme: dark;
   }
 }
@@ -50,7 +61,11 @@
   --c-danger:#FF8A80;  --c-danger-soft:#3D1B19;
   --c-info:#93C5F0;    --c-info-soft:#16293A;
   --c-focus:#93C5F0;
-  --shadow-card-v:none; --shadow-sheet-v:none; --shadow-fab-v:none;
+  --shadow-card-v:0 0 0 1px var(--c-border); --shadow-sheet-v:none; --shadow-fab-v:none;
+  --c-primary-hover:#F6C0C6; --c-accent-soft:#3A2C12;
+  --c-glass:rgb(33 26 22/.62); --c-glass-blush:rgb(61 29 34/.78); --c-glass-sheet:rgb(33 26 22/.94);
+  --c-glass-border:rgb(255 255 255/.14); --c-scrim:rgb(0 0 0/.6);
+  --shadow-glass-v: 0 8px 24px rgb(0 0 0/.35);
   color-scheme: dark;
 }
 
@@ -65,6 +80,10 @@
   --color-danger:var(--c-danger); --color-danger-soft:var(--c-danger-soft);
   --color-info:var(--c-info); --color-info-soft:var(--c-info-soft);
   --color-focus:var(--c-focus);
+  --color-primary-hover:var(--c-primary-hover); --color-accent-soft:var(--c-accent-soft);
+  --color-glass:var(--c-glass); --color-glass-blush:var(--c-glass-blush); --color-glass-sheet:var(--c-glass-sheet);
+  --color-glass-border:var(--c-glass-border); --color-scrim:var(--c-scrim);
+  --shadow-glass:var(--shadow-glass-v);
   --shadow-card:var(--shadow-card-v); --shadow-sheet:var(--shadow-sheet-v); --shadow-fab:var(--shadow-fab-v);
 }
 
@@ -77,7 +96,8 @@
   --text-xl:1.375rem;   --text-xl--line-height:1.3;
   --text-2xl:1.75rem;   --text-2xl--line-height:1.25;
   --text-3xl:2.25rem;   --text-3xl--line-height:1.15;
-  --radius-sm:0.5rem; --radius-md:0.75rem; --radius-lg:1rem; --radius-xl:1.5rem;
+  --font-display: "Cormorant Garamond", "Atkinson Hyperlegible", Georgia, serif;
+  --radius-sm:0.75rem; --radius-md:1rem; --radius-lg:1.25rem; --radius-xl:1.75rem;
 }
 
 /* Base size: 17 px that follows the phone's text-size setting */
@@ -94,3 +114,12 @@ body { @apply bg-bg text-text font-sans text-base antialiased; margin:0; min-hei
 @utility px-safe { padding-left:max(1rem, env(safe-area-inset-left)); padding-right:max(1rem, env(safe-area-inset-right)); }
 :focus-visible { outline:3px solid var(--c-focus); outline-offset:2px; }
 @media (prefers-reduced-motion: reduce) { *{ animation-duration:0.01ms!important; transition-duration:0.01ms!important; } }
+
+/* Restrained glass (CONTEXT 51): countdown tiles, nav, selected chips, photo overlays, sheets, dialogs only.
+   Lists, forms and money stay on solid surfaces. */
+@utility glass { background:var(--c-glass); border:1px solid var(--c-glass-border); box-shadow:var(--shadow-glass-v); backdrop-filter:blur(18px) saturate(1.25); -webkit-backdrop-filter:blur(18px) saturate(1.25); }
+@utility glass-blush { background:var(--c-glass-blush); border:1px solid var(--c-primary); box-shadow:var(--shadow-glass-v); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); }
+@utility glass-sheet { background:var(--c-glass-sheet); border:1px solid var(--c-glass-border); backdrop-filter:blur(18px); -webkit-backdrop-filter:blur(18px); }
+@utility scrim-b { background:linear-gradient(180deg, rgb(42 31 26/0) 25%, var(--c-scrim) 100%); }
+@utility scrim-tb { background:linear-gradient(180deg, var(--c-scrim) 0%, rgb(42 31 26/0) 30%, rgb(42 31 26/0) 40%, var(--c-scrim) 100%); }
+@utility font-display { font-family:var(--font-display); font-weight:700; font-variant-numeric:lining-nums; }

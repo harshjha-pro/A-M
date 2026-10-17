@@ -93,7 +93,7 @@ export default function UpdatePrompt() {
         <p className="text-base font-bold">{forced ? t('update.forced') : t('update.available')}</p>
         {blocked && <p className="text-sm font-bold text-warning">{t('update.saveFirst')}</p>}
         <button type="button" onClick={refresh} disabled={busy}
-          className="tap inline-flex items-center justify-center gap-2 rounded-md bg-primary px-5 font-bold text-on-primary disabled:opacity-40">
+          className="tap inline-flex items-center justify-center gap-2 rounded-full bg-primary px-5 font-bold text-on-primary disabled:opacity-40">
           <RefreshCw aria-hidden="true" size={20} />{busy ? t('update.refreshing') : t('update.tap')}
         </button>
       </div>

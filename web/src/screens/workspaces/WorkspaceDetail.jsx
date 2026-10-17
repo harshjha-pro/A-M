@@ -73,6 +73,29 @@ function FilesSection({ ws }) {
   );
 }
 
+// Hero (1.0.23 redesign): name in the display face, its calendar event and days to go.
+function WorkspaceHero({ ws }) {
+  const days = ws.event?.startAt ? Math.ceil((Date.parse(ws.event.startAt) - Date.now()) / 86_400_000) : null;
+  return (
+    <section className="flex items-end gap-3 rounded-xl bg-gradient-to-br from-primary-soft via-accent-soft to-surface-2 p-4 pt-8 shadow-card">
+      <div className="flex min-w-0 flex-1 flex-col gap-1">
+        <p className="font-display text-[2.5rem] leading-none text-text" aria-hidden="true">{ws.name}</p>
+        {ws.event && (
+          <Link to={`/calendar/events/${ws.event.id}`} className="inline-flex items-center gap-2 font-bold text-primary">
+            <CalendarDays aria-hidden="true" size={20} />{t('workspace.onCalendar', { name: ws.event.name })}{ws.event.startAt ? ` · ${formatDate(ws.event.startAt)}` : ''}
+          </Link>
+        )}
+      </div>
+      {days > 0 && (
+        <p className="glass shrink-0 rounded-lg px-3 py-2 text-center">
+          <span className="block font-display text-3xl leading-none">{days}</span>
+          <span className="text-sm font-bold">{days === 1 ? t('workspace.dayToGo') : t('workspace.daysToGo')}</span>
+        </p>
+      )}
+    </section>
+  );
+}
+
 export default function WorkspaceDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -99,11 +122,7 @@ export default function WorkspaceDetail() {
   return (
     <Screen title={ws.name} back="/workspaces"
       actions={<button type="button" onClick={() => setEditing(true)} aria-label={t('workspace.edit')} className="tap grid place-items-center text-primary"><Pencil aria-hidden="true" size={22} /></button>}>
-      {ws.event && (
-        <Link to={`/calendar/events/${ws.event.id}`} className="inline-flex items-center gap-2 font-bold text-primary">
-          <CalendarDays aria-hidden="true" size={20} />{t('workspace.onCalendar', { name: ws.event.name })}{ws.event.startAt ? ` · ${formatDate(ws.event.startAt)}` : ''}
-        </Link>
-      )}
+      <WorkspaceHero ws={ws} />
       <TaskStrip ws={ws} />
       <OutfitSection ws={ws} sectionKey="bride_outfit" person="bride" title={SECTIONS.bride_outfit} />
       <OutfitSection ws={ws} sectionKey="groom_outfit" person="groom" title={SECTIONS.groom_outfit} />

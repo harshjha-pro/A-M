@@ -5,10 +5,10 @@ import { useOnline } from '../offline/useOnline.js';
 import { t } from '../i18n/strings.en.js';
 
 const VARIANTS = {
-  primary: 'bg-primary text-on-primary font-bold',
-  secondary: 'bg-surface text-text border-[1.5px] border-border-strong',
+  primary: 'bg-primary text-on-primary font-bold shadow-fab hover:bg-primary-hover',
+  secondary: 'bg-surface text-primary font-bold border-[1.5px] border-primary',
   text: 'bg-transparent text-primary underline-offset-4 focus-visible:underline',
-  danger: 'bg-surface text-danger border-[1.5px] border-danger',
+  danger: 'bg-surface text-danger font-bold border-[1.5px] border-danger',
 };
 
 export default function Button({ needsInternet = false, ...props }) {
@@ -32,7 +32,7 @@ function PlainButton({ variant = 'primary', loading = false, loadingLabel = 'Sav
       type={type}
       disabled={disabled || loading}
       aria-busy={loading || undefined}
-      className={`tap inline-flex items-center justify-center gap-2 rounded-md px-5 text-base transition-transform active:scale-[.98] disabled:opacity-40 ${VARIANTS[variant] ?? VARIANTS.primary} ${className}`}
+      className={`tap inline-flex items-center justify-center gap-2 rounded-full px-5 text-base transition-transform active:scale-[.98] disabled:opacity-40 ${VARIANTS[variant] ?? VARIANTS.primary} ${className}`}
       {...rest}
     >
       {loading ? loadingLabel : children}

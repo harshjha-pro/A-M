@@ -63,7 +63,7 @@ export default function DocumentDetail() {
         </div>
       )}
       <div className="grid grid-cols-1 gap-3 min-[400px]:grid-cols-2">
-        {isPdf && <a href={fileHref(d)} target="_blank" rel="noopener" className="tap inline-flex items-center justify-center gap-2 rounded-md bg-primary px-5 font-bold text-on-primary"><ExternalLink aria-hidden="true" size={20} />{t('documents.open')}</a>}
+        {isPdf && <a href={fileHref(d)} target="_blank" rel="noopener" className="tap inline-flex items-center justify-center gap-2 rounded-full bg-primary px-5 font-bold text-on-primary"><ExternalLink aria-hidden="true" size={20} />{t('documents.open')}</a>}
         <Button variant={isPdf ? 'secondary' : 'primary'} onClick={share}><Share2 aria-hidden="true" size={20} />{t('documents.share')}</Button>
         <a href={fileHref(d, true)} download className="tap inline-flex items-center justify-center gap-2 rounded-md border-[1.5px] border-border-strong bg-surface px-5 text-text"><Download aria-hidden="true" size={20} />{t('documents.download')}</a>
       </div>

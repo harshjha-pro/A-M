@@ -39,7 +39,7 @@ export default function FirstOwner() {
       {done ? (
         <>
           <Notice kind="info">{t('setup.done')}</Notice>
-          <Link to="/login" className="tap inline-flex items-center justify-center rounded-md bg-primary px-5 font-bold text-on-primary">{t('login.submit')}</Link>
+          <Link to="/login" className="tap inline-flex items-center justify-center rounded-full bg-primary px-5 font-bold text-on-primary">{t('login.submit')}</Link>
         </>
       ) : (
         <form onSubmit={submit} className="flex flex-col gap-4" noValidate>

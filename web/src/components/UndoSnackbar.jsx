@@ -45,17 +45,17 @@ export default function UndoSnackbar() {
   const hold = () => setHeld(true);
   const release = () => setHeld(false);
   return (
-    <div className="fixed inset-x-0 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-30 flex justify-center px-4">
+    <div className="fixed inset-x-0 bottom-[calc(6rem+env(safe-area-inset-bottom))] z-30 flex justify-center px-4">
       <div
         role="status"
         aria-live="polite"
         onPointerDown={hold} onPointerUp={release} onPointerCancel={release} onPointerLeave={release}
         onTouchStart={hold} onTouchEnd={release}
-        className="flex w-full max-w-xl items-center gap-3 rounded-md bg-text px-4 py-2 text-bg shadow-sheet"
+        className="flex w-full max-w-xl items-center gap-3 rounded-lg bg-text px-4 py-2 font-bold text-bg shadow-sheet"
       >
         <span className="min-w-0 flex-1 truncate">{snack.text}</span>
         {snack.kind === 'undo' && (
-          <button type="button" onClick={undo} disabled={busy} className="tap min-w-12 rounded-md px-3 font-bold uppercase text-primary-soft">
+          <button type="button" onClick={undo} disabled={busy} className="tap min-w-12 rounded-md px-3 font-bold text-primary-soft underline underline-offset-4">
             {busy ? t('saving') : t('undo.button')}
           </button>
         )}

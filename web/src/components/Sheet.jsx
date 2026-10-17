@@ -14,16 +14,16 @@ export default function Sheet({ title, onClose, children }) {
     return () => { document.removeEventListener('keydown', onKey); prev?.focus?.(); };
   }, [onClose]);
   return (
-    <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/40" role="presentation" onClick={onClose}>
+    <div className="fixed inset-0 z-40 flex items-end justify-center bg-scrim" role="presentation" onClick={onClose}>
       <div
         role="dialog" aria-modal="true" aria-labelledby="sheet-title" tabIndex={-1} ref={ref}
-        className="flex max-h-[90dvh] w-full max-w-xl flex-col rounded-t-xl bg-surface shadow-sheet outline-none"
+        className="glass-sheet flex max-h-[90dvh] w-full max-w-xl flex-col rounded-t-[2rem] shadow-sheet outline-none"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mx-auto mt-2 h-1.5 w-10 rounded-full bg-border-strong" aria-hidden="true" />
         <div className="flex items-center gap-2 px-4 pt-2">
           <h2 id="sheet-title" className="flex-1 text-xl font-bold">{title}</h2>
-          <button type="button" onClick={onClose} className="tap inline-flex items-center gap-1 rounded-md px-3 text-primary">
+          <button type="button" onClick={onClose} className="tap inline-flex items-center gap-1 rounded-full px-3 font-bold text-primary">
             <X aria-hidden="true" size={22} /> {t('tasks.close')}
           </button>
         </div>

@@ -33,7 +33,7 @@ function DownloadLinks({ exp }) {
   return (
     <div className="flex flex-col gap-3">
       {urls.map((url, i) => (
-        <a key={url} href={url} download className="tap inline-flex items-center justify-center gap-2 rounded-md bg-primary px-5 font-bold text-on-primary">
+        <a key={url} href={url} download className="tap inline-flex items-center justify-center gap-2 rounded-full bg-primary px-5 font-bold text-on-primary">
           <Download aria-hidden="true" size={20} />
           {urls.length > 1 ? t('exports.downloadPart', { n: i + 1, of: urls.length }) : t('exports.download')}
         </a>

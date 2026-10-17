@@ -1,31 +1,32 @@
-# Release notes — IDs for tasks and attachments · version 1.0.22
+# Release notes — new look (redesign) · version 1.0.23
 
 **Goes to:** STAGING (and the Vercel test copy) first.
-**Migrations:** **`009_task_codes.sql` — run it in phpMyAdmin BEFORE uploading the server files** (after `004`–`008` if you have not imported those yet).
+**Migrations:** none new. (If you have not imported `004`–`009` yet, do that first, in order: the app needs schema version **9**.)
 **.env / hPanel / `.htaccess`:** no change.
 
-## Run the migration first (≈ 1 minute)
-1. phpMyAdmin → **Export** (backup).
-2. **Import** in order whatever is not done yet: `004_home_photos.sql` … `008_contacts_timeline.sql`, then **`009_task_codes.sql`**. ("Duplicate entry" = already imported, go on.)
-3. Check: `SELECT version FROM schema_migrations ORDER BY version DESC LIMIT 1;` → **9**.
-
 ## What's new
-- **Every task has its own ID**, made at random when the task is added (e.g. **TSK-4M8Q2D**). It shows on the task page and under each task in the list.
-  - **Change it** on the task's Edit page (e.g. "TENT-01"): letters, numbers, - and _, unique across tasks (capitals ignored), checked while you type ("This ID is free.").
-  - **Search** in Tasks finds a task by its ID.
-  - Existing tasks got their IDs when you imported 009.
-- **Attachments get a random ID** too (e.g. **ATT-7K3F9Q**) instead of the next number. Still editable as before. The old numbered IDs (ATT-000001…) were replaced with random ones, oldest first; IDs you typed yourself are kept.
-- Letters and digits that look alike (0/O, 1/I/L) are never used, so IDs are easy to read out.
+The whole app has the new look from the A&M Design System. Every screen, field, button and permission works exactly as before. Only the look changed.
+
+- **Home:** your cover photo now fills the top of the screen, with the monogram, "Every Detail, A Beautiful Tomorrow", the couple, place and dates, and the **Months · Days · Hours countdown in frosted tiles** on top of the photo. Before you add photos, a soft blush card shows instead.
+- **Bottom navigation** floats in a frosted bar with the labels always visible. The selected tab has a blush pill.
+- **Buttons** are rounded. The main action is burgundy and secondary buttons have a burgundy outline. The + button is a rounded square.
+- **Filter chips:** the selected chip is frosted blush with a tick.
+- **Cards** are white with a fine border on ivory. Lists, forms and money stay solid and easy to read.
+- **Sheets and dialogs** are frosted, with larger rounded corners.
+- **Screen titles** on Home, Calendar, Tasks, Workspace and More use the elegant wedding font. Everything you read and type stays in Atkinson Hyperlegible at 17 px.
+- **Workspace:** each workspace card has a blush header with its name in the wedding font. A workspace page opens with a hero showing its calendar event and **"N days to go"**.
+- **Log in:** a blush welcome card with the A&M monogram, Ayush & Mahi and the dates.
+- Dark mode has the same look.
 
 ## Phone checks
 | # | Do | Pass when |
 |---|---|---|
-| T1 | Tasks → any task | Its ID (TSK-…) shows at the top and under it in the list |
-| T2 | Ayush → + → Task → save → open it | A new random TSK- ID |
-| T3 | Edit → Task ID → "TENT-01" | "This ID is free." → Save → the page shows TENT-01 |
-| T4 | Another task → Edit → Task ID "tent-01" | Says it is already used by the first task |
-| T5 | Tasks → search "tent-01" | Finds the task |
-| T6 | Workspace → Files → Add attachment | The new attachment's ID is ATT- + 6 letters/digits |
+| R1 | Open Home | Photo (or blush card) on top with the headline and the 3 frosted countdown tiles, readable |
+| R2 | Scroll any list | The bottom bar stays readable; the last row is not hidden behind it or behind + |
+| R3 | Tasks → tap a filter chip | The chosen chip shows a tick and the blush frosted look |
+| R4 | Workspace → open Mehndi | Big "Mehndi" header, the event link, "days to go" |
+| R5 | Phone in dark mode | Same screens, all text readable |
+| R6 | Log out → Log in screen | Blush A&M card above the form; log in still works |
 
 ## Live — release checklist
-1. **Backup now**. 2. **Run `009_task_codes.sql` on live**. 3. Upload `live/` in order, `version.json` last. 4. If anything fails: upload `deploy-session14f.zip`; the new column can stay.
+1. **Backup now** (no SQL this time). 2. Upload `live/` in order, `version.json` last. 3. If anything looks wrong: upload `deploy-session14g.zip` (1.0.22) again. Nothing in the database changed.
