@@ -41,14 +41,14 @@ export function CoverCarousel({ covers = [], monogram = null }) {
   };
 
   return (
-    <section className="relative overflow-hidden rounded-md shadow-card" aria-roledescription="carousel" aria-label={t('home.coverPhotos')}>
+    <section className="relative overflow-hidden rounded-2xl shadow-card ring-1 ring-border/70" aria-roledescription="carousel" aria-label={t('home.coverPhotos')}>
       {n === 0 ? (
-        <div className="flex aspect-[4/3] w-full flex-col items-center justify-center gap-1 bg-gradient-to-br from-primary-soft to-surface-2 text-center" data-testid="cover-placeholder">
+        <div className="flex aspect-[4/5] w-full flex-col items-center justify-center gap-2 bg-gradient-to-br from-primary-soft to-surface-2 px-6 text-center sm:aspect-[16/10]" data-testid="cover-placeholder">
           <span className="font-serif text-4xl text-primary">{t('home.coupleNames')}</span>
           <span className="text-text-muted">{t('home.subtitle')}</span>
         </div>
       ) : (
-        <div ref={track} onScroll={onScroll} className="no-scrollbar flex aspect-[4/3] w-full snap-x snap-mandatory overflow-x-auto" tabIndex={0} aria-live="off">
+        <div ref={track} onScroll={onScroll} className="no-scrollbar flex aspect-[4/5] w-full snap-x snap-mandatory overflow-x-auto sm:aspect-[16/10]" tabIndex={0} aria-live="off">
           {covers.map((p, i) => (
             <img key={p.id} src={p.url} alt={t('home.coverN', { n: i + 1, total: n })} width={p.widthPx || 1600} height={p.heightPx || 1200}
               loading={i === 0 ? 'eager' : 'lazy'} fetchpriority={i === 0 ? 'high' : undefined} decoding="async"
@@ -56,13 +56,13 @@ export function CoverCarousel({ covers = [], monogram = null }) {
           ))}
         </div>
       )}
-      <div className="pointer-events-none absolute right-3 top-3 grid h-16 w-16 place-items-center overflow-hidden rounded-full bg-surface/85 shadow-card backdrop-blur" data-testid="monogram">
+      <div className="pointer-events-none absolute right-3 top-3 grid h-12 w-12 place-items-center overflow-hidden rounded-full border border-white/70 bg-surface/85 shadow-card backdrop-blur-md sm:right-4 sm:top-4 sm:h-14 sm:w-14" data-testid="monogram">
         {monogram
-          ? <img src={monogram.url} alt={t('home.monogram')} width={64} height={64} decoding="async" className="h-14 w-14 object-contain" />
-          : <span className="font-serif text-xl text-primary" aria-label={t('home.monogram')}>A&amp;M</span>}
+          ? <img src={monogram.url} alt={t('home.monogram')} width={56} height={56} decoding="async" className="h-11 w-11 object-contain sm:h-12 sm:w-12" />
+          : <span className="font-serif text-lg text-primary sm:text-xl" aria-label={t('home.monogram')}>A&amp;M</span>}
       </div>
       {n > 1 && (
-        <div className="absolute inset-x-0 bottom-2 flex justify-center gap-1">
+        <div className="absolute inset-x-0 bottom-3 flex justify-center gap-1.5">
           {covers.map((p, i) => (
             <button key={p.id} type="button" onClick={() => go(i)} aria-label={t('home.coverN', { n: i + 1, total: n })} aria-current={i === index || undefined}
               className="grid h-6 w-6 place-items-center">
@@ -79,9 +79,9 @@ export function CouplePhotos({ photos = [], admin = false }) {
   const slots = photos.length ? photos : [null, null, null];
   return (
     <section aria-label={t('home.couplePhotos')} className="flex flex-col gap-2">
-      <ul className={`grid gap-2 ${slots.length === 4 ? 'grid-cols-4' : slots.length === 2 ? 'grid-cols-2' : slots.length === 1 ? 'grid-cols-1' : 'grid-cols-3'}`}>
+      <ul className="no-scrollbar -mx-1 flex snap-x snap-mandatory gap-2 overflow-x-auto px-1 pb-1">
         {slots.map((p, i) => (
-          <li key={p?.id ?? `empty-${i}`} className="aspect-square overflow-hidden rounded-md bg-surface-2">
+          <li key={p?.id ?? `empty-${i}`} className="aspect-square w-[5.25rem] shrink-0 snap-start overflow-hidden rounded-xl bg-surface-2 ring-1 ring-border/60 sm:w-24">
             {p
               ? <img src={p.url} alt={t('home.coupleN', { n: i + 1 })} width={p.widthPx || 400} height={p.heightPx || 400} loading="lazy" decoding="async" className="h-full w-full object-cover" />
               : <span className="grid h-full w-full place-items-center text-text-muted" aria-hidden="true"><ImagePlus size={24} /></span>}
