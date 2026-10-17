@@ -9,14 +9,18 @@ use AM\Db\Db;
 use AM\Db\UnitOfWork;
 use AM\Kernel\App;
 use AM\Kernel\HttpError;
+use AM\Kernel\RateLimiter;
 use AM\Kernel\Request;
 use AM\Kernel\Response;
 use AM\Kernel\Strings;
 use AM\Kernel\Ulid;
 use AM\Modules\Workspaces\WorkspaceDef;
 use AM\Repo\BaseRepository;
+use AM\Repo\Bulk;
 use AM\Repo\Cursor;
 use AM\Repo\Refs;
+use AM\Safety\ChangeBatches;
+use AM\Http\BaseController;
 use AM\Validation\Fields;
 use PDOException;
 
@@ -33,6 +37,7 @@ use PDOException;
 final class VaultController
 {
     public const CHUNK = 2097152; // 2 MB; every piece is this size except the last
+    public const BULK_MAX = 100;
     public const STORAGE_WARN_BYTES = 2684354560; // 2.5 GB of the 3 GB database
     public const LIST_QUERY = ['q', 'workspace', 'section', 'kind', 'favourite', 'vendor', 'unlinked', 'limit', 'cursor'];
 
@@ -355,7 +360,77 @@ final class VaultController
         });
     }
 
-    private static function addLink(App $app, Db $db, Request $request, int $attachmentId, int $workspaceId, string $section, bool $fresh, ?array $target = null): void
+    /**
+     * POST /attachment-links/bulk {action: add|remove, ids: attachment ids, workspace_id + section | a target}
+     * (1.0.24, admin-operations brief §11): use many Vault files in one place, or take them out of
+     * this place only, in one batch with one Undo. The files themselves stay in the Vault.
+     */
+    public static function bulkLinks(Request $request, App $app, array $params): Response
+    {
+        $viewer = $request->attr('user');
+        WorkspaceAccess::requireWrite($viewer);
+        $f = Fields::from($request->attr('json'));
+        $f->only(['action', 'ids', 'workspace_id', 'section', 'outfit_id', 'accessory_id', 'outfit_step_id', 'menu_item_id', 'timeline_step_id']);
+        $action = $f->enum('action', ['add', 'remove'], true);
+        $db = $app->db();
+        $target = \AM\Modules\Outfits\OutfitsController::target($db, $f, false);
+        if ($target !== null) {
+            [$ws, $section] = [$target['workspace_id'], $target['section']];
+        } else {
+            $ws = is_string($f->value('workspace_id')) ? $db->value('SELECT id FROM workspaces WHERE public_id = ? AND deleted_at IS NULL', [$f->value('workspace_id')]) : null;
+            if ($ws === null) {
+                $f->error('workspace_id', Strings::get('field_bad_link'));
+            }
+            $section = $f->enum('section', array_keys(WorkspaceDef::SECTIONS)) ?? 'general';
+        }
+        $f->fail();
+        $ids = Bulk::ids($db, $f, 'attachments', self::BULK_MAX);
+        (new RateLimiter($app))->hit('bulk:user:' . $viewer['id'], 10, 600);
+        $place = (string) $db->value('SELECT name FROM workspaces WHERE id = ?', [$ws]) . ' › ' . (WorkspaceDef::SECTIONS[$section] ?? $section);
+        $label = $action === 'add' ? 'Added %s to ' . $place : 'Removed %s from ' . $place;
+        $summaryFor = static fn (int $n) => sprintf($label, $n === 1 ? '1 file' : number_format($n) . ' files');
+        return UnitOfWork::run($app, $request, function (Db $db) use ($app, $request, $action, $ids, $ws, $section, $target, $summaryFor): Response {
+            $batch = ChangeBatches::create($app, $db, $request, $action === 'add' ? 'bulk_update' : 'delete', AttachmentLinkDef::TYPE, $summaryFor(count($ids)));
+            $affected = 0;
+            $skipped = [];
+            foreach ($ids as $id) {
+                $a = $db->one('SELECT * FROM attachments WHERE id = ? FOR UPDATE', [$id]);
+                if ($a === null) {
+                    continue;
+                }
+                if ($a['deleted_at'] !== null) {
+                    $skipped[] = ['id' => $a['public_id'], 'name' => $a['title'], 'reason' => 'deleted'];
+                    continue;
+                }
+                [$where, $args] = self::placeWhere((int) $a['id'], (int) $ws, $section, $target);
+                $links = $db->all("SELECT * FROM attachment_links WHERE $where FOR UPDATE", $args);
+                if ($action === 'add') {
+                    if ($links !== []) {
+                        $skipped[] = ['id' => $a['public_id'], 'name' => $a['title'], 'reason' => 'already_here'];
+                        continue;
+                    }
+                    self::addLink($app, $db, $request, (int) $a['id'], (int) $ws, $section, false, $target, (int) $batch['id']);
+                } else {
+                    if ($links === []) {
+                        $skipped[] = ['id' => $a['public_id'], 'name' => $a['title'], 'reason' => 'not_here'];
+                        continue;
+                    }
+                    foreach ($links as $l) {
+                        BaseRepository::softDeleteInBatch($app, $db, $request, AttachmentLinkDef::class, $l, (int) $batch['id']);
+                    }
+                }
+                $affected++;
+            }
+            ChangeBatches::setCount($db, $batch['id'], $affected);
+            $summary = $summaryFor($affected);
+            $db->run('UPDATE change_batches SET summary = ? WHERE id = ?', [mb_substr($summary, 0, 200), $batch['id']]);
+            $meta = $affected > 0 ? ['undo' => BaseController::undoMeta($app, $batch['public_id'], $summary)] : [];
+            return Response::ok(['affected' => $affected, 'skipped' => $skipped, 'batch_id' => $batch['public_id']], 200, $meta);
+        });
+    }
+
+    /** Live links of one attachment in exactly this place (a section, or one thing inside it). */
+    private static function placeWhere(int $attachmentId, int $workspaceId, string $section, ?array $target): array
     {
         $where = 'attachment_id = ? AND workspace_id = ? AND section = ? AND target_type IS NULL AND deleted_at IS NULL';
         $args = [$attachmentId, $workspaceId, $section];
@@ -367,6 +442,12 @@ final class VaultController
                 $where .= " AND `$col` IS NULL";
             }
         }
+        return [$where, $args];
+    }
+
+    private static function addLink(App $app, Db $db, Request $request, int $attachmentId, int $workspaceId, string $section, bool $fresh, ?array $target = null, ?int $batchId = null): void
+    {
+        [$where, $args] = self::placeWhere($attachmentId, $workspaceId, $section, $target);
         $exists = $db->value("SELECT 1 FROM attachment_links WHERE $where", $args);
         if ($exists !== null) {
             return; // already used there: nothing to add
@@ -385,7 +466,7 @@ final class VaultController
                     $values['outfit_id'] = $target['outfit_id']; // a step's or accessory's file also belongs to its outfit (deleted with it)
                 }
             }
-            BaseRepository::create($app, $db, $request, AttachmentLinkDef::class, $values);
+            BaseRepository::create($app, $db, $request, AttachmentLinkDef::class, $values, $batchId);
         } finally {
             $request->attributes['idem_key'] = $key;
         }

@@ -794,6 +794,43 @@ paths:
         '200': { $ref: '#/components/responses/AttachmentOne' }
         '422': { $ref: '#/components/responses/Unprocessable' }
         default: { $ref: '#/components/responses/Error' }
+  /attachment-links/bulk:
+    post:
+      tags: [Vault]
+      operationId: bulkAttachmentLinks
+      summary: Use up to 100 Vault files in one place (add), or take them out of this place only (remove). One batch, one Undo; the files stay in the Vault.
+      x-permission: Adm
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IdempotencyKey' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [action, ids]
+              properties:
+                action: { type: string, enum: [add, remove] }
+                ids: { type: array, items: { $ref: '#/components/schemas/Ulid' }, minItems: 1, maxItems: 100, description: attachment ids }
+                workspace_id: { $ref: '#/components/schemas/Ulid' }
+                section: { type: string }
+                outfit_id: { type: string }
+                accessory_id: { type: string }
+                outfit_step_id: { type: string }
+                menu_item_id: { type: string }
+                timeline_step_id: { type: string }
+      responses:
+        '200':
+          description: Done
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Ok'
+                  - properties: { data: { $ref: '#/components/schemas/BulkResult' } }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        default: { $ref: '#/components/responses/Error' }
   /attachment-links/{id}:
     parameters: [ { $ref: '#/components/parameters/Id' } ]
     delete:
@@ -1638,6 +1675,61 @@ paths:
         '201': { $ref: '#/components/responses/TaskOne' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+        default: { $ref: '#/components/responses/Error' }
+  /tasks/bulk:
+    post:
+      tags: [Tasks]
+      operationId: bulkTasks
+      summary: One change on up to 500 tasks (status, priority, due date, event, workspace, add/remove people or tags, done, delete), one batch, one Undo. Tasks changed after as_of are skipped and named.
+      x-permission: Ed; Family may delete only tasks they made or are assigned to; set_workspace needs workspace write
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IdempotencyKey' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [action, ids, as_of]
+              properties:
+                action: { type: string, enum: [set_status, set_priority, set_due, set_event, set_workspace, add_assignees, remove_assignees, add_tags, remove_tags, done, delete] }
+                ids: { type: array, items: { $ref: '#/components/schemas/Ulid' }, minItems: 1, maxItems: 500 }
+                as_of: { type: string, format: date-time, description: meta.server_time of the list the phone showed }
+                status: { type: string }
+                priority: { type: string }
+                due_date: { type: [string, 'null'], format: date }
+                event_id: { type: [string, 'null'] }
+                workspace_id: { type: [string, 'null'] }
+                assignee_ids: { type: array, items: { $ref: '#/components/schemas/Ulid' } }
+                tag_ids: { type: array, items: { $ref: '#/components/schemas/Ulid' } }
+      responses:
+        '200':
+          description: Done
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Ok'
+                  - properties: { data: { $ref: '#/components/schemas/BulkResult' } }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        default: { $ref: '#/components/responses/Error' }
+  /tasks/export:
+    get:
+      tags: [Tasks, Export]
+      operationId: exportTasksCsv
+      summary: The chosen tasks as CSV (UTF-8 BOM, formula-safe). Audited.
+      x-permission: Ed
+      parameters:
+        - { name: ids, in: query, required: true, schema: { type: string }, description: comma-separated task ids (max 500) }
+      responses:
+        '200':
+          description: CSV file
+          content:
+            text/csv:
+              schema: { type: string }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '422': { $ref: '#/components/responses/Unprocessable' }
         default: { $ref: '#/components/responses/Error' }
   /tasks/check-code:

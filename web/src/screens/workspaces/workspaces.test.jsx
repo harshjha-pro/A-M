@@ -21,6 +21,7 @@ const task = (id, title, over = {}) => ({ id, version: 1, title, status: 'todo',
 const att = (over = {}) => ({ id: A1, version: 1, code: 'MEHNDI-DECOR-01', kind: 'link', title: 'Mehndi decor idea', note: null, url: 'https://example.com/decor', body: null,
   is_favourite: true, vendor: null, task: null, file: null, file_url: null, document: null,
   used_in: [{ kind: 'link', link_id: '01JC0VN0000000000000000001', link_version: 1, workspace_id: MEHNDI, section: 'general', path: 'Mehndi › Files', to: `/workspaces/${MEHNDI}#general` }], ...over });
+const withUndo = (data, summary) => new Response(JSON.stringify({ ok: true, data, meta: { request_id: 'r', server_time: 'x', undo: { batch_id: 'B7', until: 'x', summary } } }), { status: 200, headers: { 'Content-Type': 'application/json' } });
 const page = (data, meta = {}) => new Response(JSON.stringify({ ok: true, data, meta: { has_more: false, next_cursor: null, storage: { database_bytes: 52428800, vault_bytes: 1000, limit_bytes: 3221225472, warn: false }, ...meta } }), { status: 200, headers: { 'Content-Type': 'application/json' } });
 
 function renderAt(path) {
@@ -125,6 +126,79 @@ describe('Workspaces', () => {
     fakeApi({ 'GET /workspaces': () => new Response(JSON.stringify({ ok: false, error: { code: 'db_update_needed', message: msg }, meta: {} }), { status: 503, headers: { 'Content-Type': 'application/json' } }) });
     renderAt('/workspaces');
     expect(await screen.findByText(msg)).toBeInTheDocument();
+  });
+});
+
+describe('Many files and the Vault (1.0.24)', () => {
+  const pdf = (name) => new File([`%PDF ${name}`], name, { type: 'application/pdf' });
+
+  test('pick two files → a queue; one fails and keeps Retry with the same request key; the other is saved', async () => {
+    signInAs('ayush');
+    const user = userEvent.setup();
+    let creates = 0;
+    const calls = fakeApi({
+      'GET /workspaces/{id}': () => ok({ ...ws(), tasks: [], sections: {} }),
+      'GET /attachments': () => page([]),
+      'GET /vendors': () => ok([]),
+      'POST /attachment-uploads': () => ok({ upload_id: 'U9', complete: true, chunk_size: 2097152, chunk_count: 1, received: [0] }, 201),
+      'POST /attachments': (body) => {
+        creates += 1;
+        if (body.title === 'quote-b' && creates === 2) return new Response(JSON.stringify({ ok: false, error: { code: 'server_error', message: 'Something went wrong.' }, meta: {} }), { status: 500, headers: { 'Content-Type': 'application/json' } });
+        return ok(att({ title: body.title }), 201);
+      },
+    });
+    renderAt(`/workspaces/${MEHNDI}`);
+    const files = await screen.findByRole('region', { name: 'Files' });
+    await user.click(await within(files).findByRole('button', { name: 'Add attachment' }));
+    const sheet = screen.getByRole('dialog');
+    await user.click(within(sheet).getByRole('radio', { name: 'Document' }));
+    await user.upload(within(sheet).getByTestId('vault-file'), [pdf('quote-a.pdf'), pdf('quote-b.pdf')]);
+    const queue = within(sheet).getByRole('list', { name: '2 files to add' });
+    expect(within(queue).getByText('quote-a.pdf')).toBeInTheDocument();
+    expect(within(sheet).queryByLabelText('Title')).not.toBeInTheDocument();
+    await user.click(within(sheet).getByRole('button', { name: 'Add 2 files' }));
+    expect(await within(queue).findByRole('alert')).toHaveTextContent('Something went wrong.');
+    expect(within(queue).getByLabelText('Added')).toBeInTheDocument();
+    const posts = () => calls.mock.calls.filter(([u, i]) => u === '/api/v1/attachments' && i?.method === 'POST');
+    expect(JSON.parse(posts()[0][1].body)).toMatchObject({ kind: 'document', upload_id: 'U9', title: 'quote-a', workspace_id: MEHNDI, section: 'general' });
+    const firstKey = posts()[1][1].headers['Idempotency-Key'];
+
+    await user.click(within(queue).getByRole('button', { name: 'Try again: quote-b.pdf' }));
+    await vi.waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(posts()).toHaveLength(3);
+    expect(posts()[2][1].headers['Idempotency-Key']).toBe(firstKey);
+  });
+
+  test('From Vault: tick two → one request with one Undo; Select → Remove from here', async () => {
+    signInAs('ayush');
+    const user = userEvent.setup();
+    const A2 = '01JC0VA0000000000000000002';
+    const A3 = '01JC0VA0000000000000000003';
+    const calls = fakeApi({
+      'GET /workspaces/{id}': () => ok({ ...ws(), tasks: [], sections: {} }),
+      'GET /attachments': (_b, _i, url) => page(url.includes('workspace=') ? [att()] : [att(), att({ id: A2, title: 'Stage photo', used_in: [] }), att({ id: A3, title: 'Cone design', used_in: [] })]),
+      'POST /attachment-links/bulk': (body) => withUndo({ affected: body.ids.length, skipped: [], batch_id: 'B7' }, body.action === 'add' ? 'Added 2 files to Mehndi › Files' : 'Removed 1 file from Mehndi › Files'),
+    });
+    renderAt(`/workspaces/${MEHNDI}`);
+    const files = await screen.findByRole('region', { name: 'Files' });
+    expect(await within(files).findByText('Mehndi decor idea')).toBeInTheDocument();
+    await user.click(within(files).getByRole('button', { name: 'From Vault' }));
+    const sheet = await screen.findByRole('dialog', { name: 'Pick from the Vault' });
+    await user.click(within(sheet).getByRole('checkbox', { name: 'Select Stage photo' }));
+    await user.click(within(sheet).getByRole('checkbox', { name: 'Select Cone design' }));
+    await user.click(within(sheet).getByRole('button', { name: 'Use 2 here' }));
+    expect(await screen.findByText('Added 2 files to Mehndi › Files')).toBeInTheDocument();
+    const bulk = () => calls.mock.calls.filter(([u]) => u === '/api/v1/attachment-links/bulk');
+    expect(JSON.parse(bulk()[0][1].body)).toEqual({ action: 'add', ids: [A2, A3], workspace_id: MEHNDI, section: 'general' });
+
+    await user.click(within(files).getByRole('button', { name: 'Select' }));
+    await user.click(within(files).getByRole('checkbox', { name: 'Select Mehndi decor idea' }));
+    await user.click(within(files).getByRole('button', { name: 'Remove from here' }));
+    const confirm = await screen.findByRole('alertdialog');
+    expect(confirm).toHaveTextContent('They stay in the Vault');
+    await user.click(within(confirm).getByRole('button', { name: 'Remove from here' }));
+    await vi.waitFor(() => expect(bulk()).toHaveLength(2));
+    expect(JSON.parse(bulk()[1][1].body)).toEqual({ action: 'remove', ids: [A1], workspace_id: MEHNDI, section: 'general' });
   });
 });
 

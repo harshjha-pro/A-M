@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Archive, CheckSquare, Unlink } from 'lucide-react';
 import Button from '../../components/Button.jsx';
 import { api, newIdemKey } from '../../api/client.js';
 import { withRelogin } from '../../api/auth.js';
@@ -11,6 +11,9 @@ import { showUndo, showToast } from '../../undo/undoStore.js';
 import { formatDateTime } from '../../format/ist.js';
 import { AttachmentThumb } from '../vault/AttachmentRow.jsx';
 import AttachmentAddSheet from '../vault/AttachmentAddSheet.jsx';
+import VaultPickSheet from '../vault/VaultPickSheet.jsx';
+import ConfirmDialog from '../../components/ConfirmDialog.jsx';
+import { bulkLinks } from '../../data/vault.js';
 import { t } from '../../i18n/strings.en.js';
 
 /** Re-read the outfit page and everything that shows its parts. */
@@ -69,8 +72,34 @@ export function NotesBlock({ target, notes, refresh }) {
 }
 
 /** target for an outfit / accessory / step / dish, or place = { workspaceId, section } for a section's own board (1.0.19). */
+/**
+ * Attachments of one place. 1.0.24: "From Vault" picks many at once; Select → "Remove from here"
+ * takes the chosen ones out of this place only (they stay in the Vault and anywhere else), one Undo.
+ */
 export function AttachBlock({ target = null, place = null, attachments, refresh, grid = false }) {
-  const [adding, setAdding] = useState(false);
+  const [sheet, setSheet] = useState(null); // add | pick | confirm
+  const [selecting, setSelecting] = useState(false);
+  const [picked, setPicked] = useState(() => new Set());
+  const [busy, setBusy] = useState(false);
+  const where = target ?? place ?? {};
+  const toggle = (id) => setPicked((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+  const stop = () => { setSelecting(false); setPicked(new Set()); };
+
+  async function remove() {
+    setBusy(true);
+    try {
+      const res = await bulkLinks('remove', [...picked], where);
+      if (res.meta.undo) showUndo({ batchId: res.meta.undo.batchId, summary: res.meta.undo.summary, onUndone: refresh });
+      setSheet(null);
+      stop();
+      refresh?.();
+    } catch (e) {
+      showToast(e.message || t('errors.server'));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <div className="flex flex-col gap-2">
       {attachments.length === 0 && <p className="text-text-muted">{t('outfit.noAttachments')}</p>}
@@ -78,18 +107,44 @@ export function AttachBlock({ target = null, place = null, attachments, refresh,
         <ul className={grid ? 'grid grid-cols-3 gap-2' : 'flex flex-col gap-2'}>
           {attachments.map((a) => (
             <li key={a.id}>
-              <Link to={`/vault/${a.id}`} className={grid ? 'relative block' : 'flex items-center gap-3'} aria-label={`${a.code} ${a.title}`}>
-                <AttachmentThumb a={a} size={grid ? 'aspect-square w-full' : 'h-12 w-12'} />
-                {grid
-                  ? <span className="absolute inset-x-0 bottom-0 truncate rounded-b-sm bg-black/55 px-1 text-xs text-white">{a.isFavourite ? '⭐ ' : ''}{a.title}</span>
-                  : <span className="flex min-w-0 flex-col"><span className="font-mono text-sm text-text-muted">{a.code}{a.isFavourite ? ' ⭐' : ''}</span><span className="truncate font-bold">{a.title}</span></span>}
-              </Link>
+              {selecting ? (
+                <label className={`relative flex cursor-pointer items-center gap-3 rounded-sm ${grid ? 'flex-col' : ''} ${picked.has(a.id) ? 'ring-2 ring-primary' : ''}`}>
+                  <input type="checkbox" checked={picked.has(a.id)} onChange={() => toggle(a.id)} aria-label={t('bulk.choose', { name: a.title })}
+                    className={`size-6 shrink-0 accent-[var(--c-primary)] ${grid ? 'absolute left-1 top-1 z-10' : ''}`} />
+                  <AttachmentThumb a={a} size={grid ? 'aspect-square w-full' : 'h-12 w-12'} />
+                  {!grid && <span className="truncate font-bold">{a.title}</span>}
+                </label>
+              ) : (
+                <Link to={`/vault/${a.id}`} className={grid ? 'relative block' : 'flex items-center gap-3'} aria-label={`${a.code} ${a.title}`}>
+                  <AttachmentThumb a={a} size={grid ? 'aspect-square w-full' : 'h-12 w-12'} />
+                  {grid
+                    ? <span className="absolute inset-x-0 bottom-0 truncate rounded-b-sm bg-black/55 px-1 text-xs text-white">{a.isFavourite ? '⭐ ' : ''}{a.title}</span>
+                    : <span className="flex min-w-0 flex-col"><span className="font-mono text-sm text-text-muted">{a.code}{a.isFavourite ? ' ⭐' : ''}</span><span className="truncate font-bold">{a.title}</span></span>}
+                </Link>
+              )}
             </li>
           ))}
         </ul>
       )}
-      <Button variant="secondary" needsInternet onClick={() => setAdding(true)}><Plus aria-hidden="true" size={20} />{t('vault.addHere')}</Button>
-      {adding && <AttachmentAddSheet target={target} workspaceId={place?.workspaceId} section={place?.section} onClose={() => setAdding(false)} onAdded={refresh} />}
+      {selecting ? (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="font-bold" aria-live="polite">{t('bulk.selectedN', { n: picked.size })}</span>
+          <Button variant="danger" needsInternet disabled={picked.size === 0} onClick={() => setSheet('confirm')}><Unlink aria-hidden="true" size={18} />{t('vault.removeHere')}</Button>
+          <Button variant="text" onClick={stop}>{t('bulk.done')}</Button>
+        </div>
+      ) : (
+        <div className="flex flex-wrap gap-2">
+          <Button variant="secondary" needsInternet onClick={() => setSheet('add')}><Plus aria-hidden="true" size={20} />{t('vault.addHere')}</Button>
+          <Button variant="text" needsInternet onClick={() => setSheet('pick')}><Archive aria-hidden="true" size={18} />{t('outfit.fromVault')}</Button>
+          {attachments.length > 0 && <Button variant="text" onClick={() => setSelecting(true)}><CheckSquare aria-hidden="true" size={18} />{t('tasks.select')}</Button>}
+        </div>
+      )}
+      {sheet === 'add' && <AttachmentAddSheet target={target} workspaceId={place?.workspaceId} section={place?.section} onClose={() => setSheet(null)} onAdded={refresh} />}
+      {sheet === 'pick' && <VaultPickSheet place={where} here={attachments.map((a) => a.id)} onClose={() => setSheet(null)} onDone={refresh} />}
+      {sheet === 'confirm' && (
+        <ConfirmDialog title={t('vault.removeHereTitle', { n: picked.size })} body={t('vault.removeHereBody')} confirmLabel={t('vault.removeHere')}
+          danger onConfirm={busy ? () => {} : remove} onCancel={() => setSheet(null)} />
+      )}
     </div>
   );
 }

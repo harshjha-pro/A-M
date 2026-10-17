@@ -224,6 +224,40 @@ final class WorkspacesVaultTest extends ApiTestCase
         $this->assertNotEmpty($u->json('meta.undo.batch_id'));
     }
 
+    #[Endpoint('POST /attachment-links/bulk')]
+    public function test_bulk_use_many_vault_files_in_one_place_and_remove_from_here_only(): void
+    {
+        $c = $this->loginAs('ayush');
+        $reception = '01JC0WS0000000000000000006';
+        $a = $this->add($c, ['kind' => 'text', 'body' => 'Marigold arch', 'title' => 'Arch', 'workspace_id' => self::MEHNDI_WS, 'section' => 'decor'])->assertStatus(201)->json('data.id');
+        $b = $this->add($c, ['kind' => 'link', 'url' => 'https://example.com/b', 'title' => 'Stage'])->assertStatus(201)->json('data.id');
+        $paths = fn (string $id) => array_column($c->get("/attachments/$id")->json('data.used_in'), 'path');
+
+        $r = $c->postJson('/attachment-links/bulk', ['action' => 'add', 'ids' => [$a, $b], 'workspace_id' => $reception, 'section' => 'decor'])->assertStatus(200)->json();
+        $this->assertSame(2, $r['data']['affected']);
+        $this->assertSame('Added 2 files to Reception › Theme & decoration', $r['meta']['undo']['summary']);
+        $this->assertSame(['Mehndi › Theme & decoration', 'Reception › Theme & decoration'], $paths($a));
+        $again = $c->postJson('/attachment-links/bulk', ['action' => 'add', 'ids' => [$a], 'workspace_id' => $reception, 'section' => 'decor'])->assertStatus(200)->json('data');
+        $this->assertSame([0, 'already_here'], [$again['affected'], $again['skipped'][0]['reason']]);
+        $c->postJson('/undo/' . $r['data']['batch_id'], [])->assertStatus(200);
+        $this->assertSame(['Mehndi › Theme & decoration'], $paths($a), 'one Undo takes both links back');
+        $this->assertSame([], $paths($b));
+
+        // Remove from Mehndi only: the file stays in the Vault and anywhere else it is used.
+        $c->postJson('/attachment-links/bulk', ['action' => 'add', 'ids' => [$a], 'workspace_id' => $reception, 'section' => 'decor'])->assertStatus(200);
+        $rm = $c->postJson('/attachment-links/bulk', ['action' => 'remove', 'ids' => [$a, $b], 'workspace_id' => self::MEHNDI_WS, 'section' => 'decor'])->assertStatus(200)->json();
+        $this->assertSame([1, 'not_here'], [$rm['data']['affected'], $rm['data']['skipped'][0]['reason']]);
+        $this->assertSame(['Reception › Theme & decoration'], $paths($a));
+        $this->assertNull($c->get("/attachments/$a")->json('data.deleted_at'));
+        $c->postJson('/undo/' . $rm['data']['batch_id'], [])->assertStatus(200);
+        $this->assertCount(2, $paths($a), 'Undo puts it back in Mehndi');
+
+        $c->postJson('/attachment-links/bulk', ['action' => 'add', 'ids' => [], 'workspace_id' => $reception])->assertStatus(422);
+        $c->postJson('/attachment-links/bulk', ['action' => 'move', 'ids' => [$a], 'workspace_id' => $reception])->assertStatus(422);
+        $c->postJson('/attachment-links/bulk', ['action' => 'add', 'ids' => [$a], 'workspace_id' => '01JA6ZZZZZZZZZZZZZZZZZZZZZ'])->assertStatus(422);
+        $this->loginAs('nani')->postJson('/attachment-links/bulk', ['action' => 'add', 'ids' => [$a], 'workspace_id' => $reception])->assertStatus(403);
+    }
+
     #[Endpoint('DELETE /attachments/{id}')]
     #[Endpoint('POST /attachments/{id}/restore')]
     public function test_delete_everywhere_with_undo_and_documents_live_in_the_vault(): void
