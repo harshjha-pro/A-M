@@ -19,7 +19,7 @@ import { showUndo, showToast } from '../../undo/undoStore.js';
 import { useWorkspace, useAttachments, SECTIONS } from '../../data/vault.js';
 import { formatDate, formatDateOnly } from '../../format/ist.js';
 import AttachmentRow from '../vault/AttachmentRow.jsx';
-import AttachmentAddSheet from '../vault/AttachmentAddSheet.jsx';
+import { AttachBlock } from '../outfits/parts.jsx';
 import WorkspaceSheet from './WorkspaceSheet.jsx';
 import OutfitSection, { FamilySection } from '../outfits/OutfitSection.jsx';
 import DecorSection from './DecorSection.jsx';
@@ -58,18 +58,14 @@ function TaskStrip({ ws }) {
 }
 
 function FilesSection({ ws }) {
-  const [adding, setAdding] = useState(false);
+  const qc = useQueryClient();
   const q = useAttachments({ workspace: ws.id, section: 'general', limit: 200 });
+  const refresh = () => ['attachments', 'workspace', 'workspaces'].forEach((k) => qc.invalidateQueries({ queryKey: [k] }));
   return (
     <section id="general" aria-labelledby="ws-files" className="flex flex-col gap-3 rounded-md bg-surface p-4 shadow-card">
-      <div className="flex items-center justify-between">
-        <h2 id="ws-files" className="text-lg font-bold">{SECTIONS.general}</h2>
-        <Button variant="secondary" needsInternet onClick={() => setAdding(true)}><Plus aria-hidden="true" size={20} />{t('vault.addHere')}</Button>
-      </div>
+      <h2 id="ws-files" className="text-lg font-bold">{SECTIONS.general}</h2>
       {q.isPending && <p aria-busy="true">…</p>}
-      {q.data?.items.length === 0 && <p className="text-text-muted">{t('vault.empty')}</p>}
-      {q.data?.items.length > 0 && <ul className="-mx-4 border-t border-border">{q.data.items.map((a) => <AttachmentRow key={a.id} a={a} showPaths={false} />)}</ul>}
-      {adding && <AttachmentAddSheet workspaceId={ws.id} section="general" onClose={() => setAdding(false)} />}
+      {q.data && <AttachBlock place={{ workspaceId: ws.id, section: 'general' }} attachments={q.data.items} refresh={refresh} />}
     </section>
   );
 }

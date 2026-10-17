@@ -30,6 +30,7 @@ final class MemberView
             'last_seen_at' => Time::iso($seen['last_seen'] ?? null),
             'has_logged_in' => (int) ($seen['n'] ?? 0) > 0,
             'must_change_password' => (bool) $u['must_change_password'],
+            'link' => self::link($db, (int) $u['id'], $nowDb ?? gmdate('Y-m-d H:i:s')),
             'created_at' => Time::iso($u['created_at']),
             'created_by' => $refs->user($u['created_by'] !== null ? (int) $u['created_by'] : null),
             'updated_at' => Time::iso($u['updated_at']),
@@ -45,6 +46,17 @@ final class MemberView
             ));
         }
         return $out;
+    }
+
+    /** 1.0.24: the latest set-password link: none · open (until …) · used · expired, and when it was made. */
+    public static function link(Db $db, int $userId, string $nowDb): array
+    {
+        $l = $db->one("SELECT created_at, expires_at, used_at FROM password_resets WHERE user_id = ? AND method = 'link' ORDER BY id DESC LIMIT 1", [$userId]);
+        if ($l === null) {
+            return ['status' => 'none', 'sent_at' => null, 'expires_at' => null, 'used_at' => null];
+        }
+        $status = $l['used_at'] !== null ? 'used' : ($l['expires_at'] !== null && $l['expires_at'] > $nowDb ? 'open' : 'expired');
+        return ['status' => $status, 'sent_at' => Time::iso($l['created_at']), 'expires_at' => Time::iso($l['expires_at']), 'used_at' => Time::iso($l['used_at'])];
     }
 
     public static function limited(Refs $refs, array $u): array

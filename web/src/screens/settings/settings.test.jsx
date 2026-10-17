@@ -1,5 +1,5 @@
 // Members, member form, wedding details: role-based controls and what is sent.
-import { describe, test, expect, afterEach } from 'vitest';
+import { describe, test, expect, afterEach, vi } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, RouterProvider } from 'react-router-dom';
@@ -253,5 +253,29 @@ describe('Edit member', () => {
     expect(within(dialog).getByText('They will be logged out on every phone.')).toBeInTheDocument();
     await user.click(within(dialog).getByRole('button', { name: 'Reset password' }));
     expect(await screen.findByTestId('secret')).toHaveTextContent('rose-4821');
+  });
+
+  test('1.0.24: an expired link says so, Send a new link asks first; access history opens', async () => {
+    signInAs('ayush');
+    const user = userEvent.setup();
+    const calls = fakeApi({
+      'GET /members/{id}': () => ok({ id: PEOPLE.mummy.id, version: 1, name: 'Mummy', phone: '+919829000104', role: 'family', can_see_money: false, is_active: true, access_ends_on: null, left: false,
+        link: { status: 'expired', sent_at: '2026-10-01T05:00:00Z', expires_at: '2026-10-04T05:00:00Z', used_at: null } }),
+      'GET /members/{id}/access': () => ok({ logins: [{ at: '2026-10-07T05:00:00Z', ok: false }], phones: [{ device_label: 'Android · installed', first_at: 'x', last_used_at: '2026-10-07T05:00:00Z', logged_out_at: null, why: null }],
+        passwords: [{ at: '2026-10-01T05:00:00Z', method: 'link', by: { id: 'a', name: 'Ayush' }, used_at: null }] }),
+      'POST /members/{id}/password-reset': () => ok({ setup_link: 'https://x/set-password#t=abc', setup_link_expires_at: '2026-10-11T09:12:31Z', sessions_revoked: 0 }),
+    });
+    renderAt(`/settings/members/${PEOPLE.mummy.id}`);
+    const section = await screen.findByRole('region', { name: 'Log-in link and access' });
+    expect(within(section).getByText(/Set-password link expired on/)).toBeInTheDocument();
+    await user.click(within(section).getByText('Access history'));
+    expect(await within(section).findByText(/wrong password/)).toBeInTheDocument();
+    expect(within(section).getByText(/Android · installed/)).toBeInTheDocument();
+    expect(within(section).getByText(/Set-password link sent · Ayush/)).toBeInTheDocument();
+    await user.click(within(section).getByRole('button', { name: 'Send a new link' }));
+    await user.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Reset password' }));
+    await vi.waitFor(() => expect(calls.mock.calls.some(([u]) => u.includes('/password-reset'))).toBe(true));
+    const sent = calls.mock.calls.find(([u]) => u.includes('/password-reset'));
+    expect(JSON.parse(sent[1].body)).toEqual({ mode: 'link' });
   });
 });

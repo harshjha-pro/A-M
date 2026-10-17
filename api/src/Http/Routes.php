@@ -34,6 +34,7 @@ use AM\Modules\Money\BudgetCategoryDef;
 use AM\Modules\Money\MoneyController;
 use AM\Modules\Money\PaymentDef;
 use AM\Modules\Money\PaymentsController;
+use AM\Modules\Money\MoneyBulkController;
 use AM\Modules\Money\VendorDef;
 use AM\Modules\Money\VendorsController;
 use AM\Modules\HomePhotos\HomePhotoDef;
@@ -59,6 +60,7 @@ use AM\Modules\Workspaces\WorkspaceDef;
 use AM\Modules\Workspaces\WorkspacesController;
 use AM\Modules\Tasks\TaskDef;
 use AM\Modules\Tasks\TaskItemsController;
+use AM\Modules\Tasks\TaskBulkController;
 use AM\Modules\Tasks\TasksController;
 
 /**
@@ -101,6 +103,7 @@ final class Routes
         $r->add('GET', '/members', MembersController::list(...), ['query' => ['include_inactive']]);
         $r->add('POST', '/members', MembersController::create(...), ['on_replay' => MembersController::createReplay(...)]);
         $r->add('GET', '/members/{id}', MembersController::get(...));
+        $r->add('GET', '/members/{id}/access', MembersController::access(...));
         $r->add('PATCH', '/members/{id}', MembersController::update(...));
         $r->add('POST', '/members/{id}/password-reset', MembersController::resetPassword(...), ['on_replay' => MembersController::resetReplay(...)]);
         $r->add('GET', '/me/sessions', MembersController::mySessions(...));
@@ -126,6 +129,8 @@ final class Routes
         $r->add('GET', '/tasks', TasksController::list(...), ['query' => TasksController::QUERY]);
         $r->add('POST', '/tasks', TasksController::create(...));
         $r->add('GET', '/tasks/check-code', TasksController::checkCode(...), ['query' => ['code', 'except']]);
+        $r->add('POST', '/tasks/bulk', TaskBulkController::run(...));
+        $r->add('GET', '/tasks/export', TaskBulkController::export(...), ['query' => ['ids']]);
         $r->add('GET', '/tasks/{id}', TasksController::get(...));
         $r->add('PATCH', '/tasks/{id}', TasksController::update(...));
         $r->add('DELETE', '/tasks/{id}', static fn (Request $q, App $a, array $p) => BaseController::delete($q, $a, $p, TaskDef::class, TasksController::canWrite($a)));
@@ -160,7 +165,7 @@ final class Routes
         $r->add('GET', '/households/duplicate-check', HouseholdsController::duplicateCheck(...), ['query' => ['phone', 'alt_phone', 'name', 'city', 'exclude']]);
         $r->add('GET', '/households/suggestions', HouseholdsController::suggestions(...), ['query' => ['field', 'q']]);
         $r->add('POST', '/households/bulk', BulkController::run(...));
-        $r->add('GET', '/households/export', GuestCsv::export(...), ['query' => array_diff(HouseholdsController::QUERY, ['sort', 'limit', 'cursor'])]);
+        $r->add('GET', '/households/export', GuestCsv::export(...), ['query' => [...array_diff(HouseholdsController::QUERY, ['sort', 'limit', 'cursor']), 'ids']]);
         $r->add('GET', '/households/{id}', HouseholdsController::get(...));
         $r->add('PATCH', '/households/{id}', static fn (Request $q, App $a, array $p) => BaseController::update($q, $a, $p, HouseholdDef::class, $hhWrite));
         $r->add('DELETE', '/households/{id}', static fn (Request $q, App $a, array $p) => BaseController::delete($q, $a, $p, HouseholdDef::class, $hhWrite));
@@ -188,12 +193,16 @@ final class Routes
         $r->add('POST', '/budget-categories/{id}/restore', static fn (Request $q, App $a, array $p) => BaseController::restore($q, $a, $p, BudgetCategoryDef::class));
         $r->add('GET', '/vendors', VendorsController::list(...), ['query' => VendorsController::QUERY]);
         $r->add('POST', '/vendors', VendorsController::create(...));
+        $r->add('POST', '/vendors/bulk', MoneyBulkController::vendors(...));
+        $r->add('GET', '/vendors/export', MoneyBulkController::exportVendors(...), ['query' => ['ids']]);
         $r->add('GET', '/vendors/{id}', VendorsController::get(...));
         $r->add('PATCH', '/vendors/{id}', VendorsController::update(...));
         $r->add('DELETE', '/vendors/{id}', static fn (Request $q, App $a, array $p) => BaseController::delete($q, $a, $p, VendorDef::class, VendorsController::canWrite()));
         $r->add('POST', '/vendors/{id}/restore', static fn (Request $q, App $a, array $p) => BaseController::restore($q, $a, $p, VendorDef::class));
         $r->add('GET', '/payments', PaymentsController::list(...), ['query' => PaymentsController::QUERY]);
         $r->add('POST', '/payments', PaymentsController::create(...));
+        $r->add('POST', '/payments/bulk', MoneyBulkController::payments(...));
+        $r->add('GET', '/payments/export', MoneyBulkController::exportPayments(...), ['query' => ['ids']]);
         $r->add('GET', '/payments/{id}', PaymentsController::get(...));
         $r->add('PATCH', '/payments/{id}', static fn (Request $q, App $a, array $p) => BaseController::update($q, $a, $p, PaymentDef::class, PaymentsController::canWrite()));
         $r->add('DELETE', '/payments/{id}', static fn (Request $q, App $a, array $p) => BaseController::delete($q, $a, $p, PaymentDef::class, PaymentsController::canWrite()));
@@ -238,6 +247,7 @@ final class Routes
         $r->add('POST', '/attachments/{id}/restore', static fn (Request $q, App $a, array $p) => BaseController::restore($q, $a, $p, AttachmentDef::class));
         $r->add('GET', '/attachments/{id}/file', VaultController::file(...), ['query' => ['v']]);
         $r->add('POST', '/attachments/{id}/links', VaultController::link(...));
+        $r->add('POST', '/attachment-links/bulk', VaultController::bulkLinks(...));
         $r->add('DELETE', '/attachment-links/{id}', static fn (Request $q, App $a, array $p) => BaseController::delete($q, $a, $p, AttachmentLinkDef::class, static fn (?array $v) => \AM\Auth\WorkspaceAccess::requireWrite($v)));
         $r->add('POST', '/attachment-links/{id}/restore', static fn (Request $q, App $a, array $p) => BaseController::restore($q, $a, $p, AttachmentLinkDef::class));
 

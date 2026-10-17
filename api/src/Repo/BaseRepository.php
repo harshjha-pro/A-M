@@ -302,9 +302,12 @@ final class BaseRepository
             if ($row === null) {
                 continue;
             }
+            // Link rows (no version): a delete is ours while it still carries this batch; an add (1.0.24
+            // bulk assignees / tags) is ours while the link is still live.
             $unchanged = $def::VERSIONED
                 ? (int) $row['version'] === (int) $a['entity_version']
-                : $a['action'] === 'delete' && (int) ($row['delete_batch_id'] ?? 0) === (int) $batch['id'];
+                : ($a['action'] === 'delete' ? (int) ($row['delete_batch_id'] ?? 0) === (int) $batch['id']
+                    : $a['action'] === 'create' && $def::SOFT_DELETE && $row['deleted_at'] === null);
             foreach ($keep as $fkCol => $ids) {
                 if ($a['action'] === 'create' && array_key_exists($fkCol, $row) && isset($ids[(int) $row[$fkCol]])) {
                     $unchanged = false;

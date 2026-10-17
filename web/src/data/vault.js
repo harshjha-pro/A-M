@@ -86,8 +86,16 @@ export async function sendFile(file, { onProgress } = {}) {
 }
 
 /** Make an attachment (file, link or text), optionally used in a place at once. */
-export function createAttachment(body) {
-  return withRelogin(() => api('POST', '/attachments', { body, idemKey: newIdemKey() })).then((r) => r.data);
+export function createAttachment(body, idemKey = newIdemKey()) {
+  return withRelogin(() => api('POST', '/attachments', { body, idemKey })).then((r) => r.data);
+}
+
+/**
+ * Many Vault files used in one place, or taken out of this place only (1.0.24): one request,
+ * one Undo. place = { workspaceId, section } or a target such as { outfitId }.
+ */
+export function bulkLinks(action, ids, place) {
+  return withRelogin(() => api('POST', '/attachment-links/bulk', { body: { action, ids, ...place }, idemKey: newIdemKey() }));
 }
 
 /** "Mehndi › Bride outfit" paths of an attachment, for lists. */

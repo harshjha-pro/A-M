@@ -48,6 +48,7 @@ test('E2E-05: delete a task → Undo → back with its checklist', async ({ page
     await page.getByRole('button', { name: 'Add an item' }).click();
     await expect(page.getByLabel(item, { exact: true })).toBeVisible();
   }
+  await page.getByRole('button', { name: 'More actions' }).click();
   await page.getByRole('button', { name: 'Delete' }).click();
   await expect(page).toHaveURL(/\/tasks$/);
   await expect(page.getByText(`Deleted ${title}`)).toBeVisible();

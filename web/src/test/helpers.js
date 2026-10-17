@@ -40,7 +40,7 @@ export function fakeApi(handlers) {
     const key = `${init.method || 'GET'} ${path}`;
     const h = handlers[key] ?? Object.entries(handlers).find(([k]) => new RegExp(`^${k.replace(/\{[^}]+\}/g, '[^/]+')}$`).test(key))?.[1];
     if (!h) return fail(404, { code: 'not_found', message: "This item doesn't exist or was removed." });
-    return h(typeof init.body === 'string' ? JSON.parse(init.body) : init.body, init);
+    return h(typeof init.body === 'string' ? JSON.parse(init.body) : init.body, init, String(url));
   });
   vi.stubGlobal('fetch', fn);
   vi.stubGlobal('XMLHttpRequest', fakeXhr(fn));

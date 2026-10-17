@@ -1,13 +1,16 @@
 // Select mode actions (FEATURES B5): Invite to / Remove from / Set Coming? / Change side /
 // Delete (Ayush and Mahi). One request, one batch, one Undo; rows someone changed after
 // the list was opened are left alone and counted.
+// 1.0.24: the sheet says what will change before Apply; skipped families are listed by name;
+// Export selected (Ayush and Mahi) downloads just the chosen families.
 import { useState } from 'react';
-import { UserPlus, UserMinus, CircleCheck, ArrowLeftRight, Trash2 } from 'lucide-react';
+import { UserPlus, UserMinus, CircleCheck, ArrowLeftRight, Trash2, FileDown } from 'lucide-react';
+import BulkResult from '../../components/BulkResult.jsx';
 import Sheet from '../../components/Sheet.jsx';
 import Button from '../../components/Button.jsx';
 import ConfirmDialog from '../../components/ConfirmDialog.jsx';
 import { ChoiceChips } from '../../components/Field.jsx';
-import { api, newIdemKey } from '../../api/client.js';
+import { api, newIdemKey, API_BASE } from '../../api/client.js';
 import { withRelogin } from '../../api/auth.js';
 import { showUndo, showToast } from '../../undo/undoStore.js';
 import { formatCount } from '../../format/inr.js';
@@ -36,6 +39,7 @@ export default function BulkBar({ count, target, asOf, events, isAdmin, defaultE
   const [rsvp, setRsvp] = useState('coming');
   const [side, setSide] = useState('both');
   const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState(null);
   const tooMany = count > 2000;
 
   async function apply() {
@@ -50,6 +54,7 @@ export default function BulkBar({ count, target, asOf, events, isAdmin, defaultE
       const extra = skippedText(res.data.skipped);
       if (res.meta.undo) showUndo({ batchId: res.meta.undo.batchId, summary: [res.meta.undo.summary, extra].filter(Boolean).join('. '), onUndone: onDone });
       else showToast(extra || t('bulk.nothing'));
+      if (res.data.skipped?.length && res.data.skipped[0].name) setResult(res.data);
       onDone();
     } catch (e) {
       showToast(e.message || t('errors.server'));
@@ -59,6 +64,13 @@ export default function BulkBar({ count, target, asOf, events, isAdmin, defaultE
   }
 
   const def = ACTIONS.find((a) => a.key === action);
+  const eventName = events.find((e) => e.id === eventId)?.name ?? '—';
+  const what = () => ({
+    invite: `${t('bulk.invite')}: ${eventName}`,
+    uninvite: `${t('bulk.uninvite')}: ${eventName}`,
+    set_rsvp: `${eventName} → ${t(`guests.rsvp.${rsvp}`)}`,
+    set_side: `${t('bulk.side')} → ${t(`guests.sides.${side}`)}`,
+  }[action]);
   return (
     <>
       <div role="toolbar" aria-label={t('bulk.pick')} className="flex flex-wrap gap-2">
@@ -68,6 +80,11 @@ export default function BulkBar({ count, target, asOf, events, isAdmin, defaultE
             <Icon aria-hidden="true" size={20} /> {t(LABEL[key])}
           </button>
         ))}
+        {isAdmin && target.ids?.length > 0 && (
+          <a href={`${API_BASE}/households/export?ids=${target.ids.join(',')}`} download className="tap inline-flex items-center gap-2 rounded-sm border-[1.5px] border-border-strong bg-surface px-3 font-bold">
+            <FileDown aria-hidden="true" size={20} /> {t('bulk.exportSelected')}
+          </a>
+        )}
       </div>
       {tooMany && <p role="alert" className="text-danger">{t('bulk.tooMany')}</p>}
       {def && def.key !== 'delete' && (
@@ -88,6 +105,9 @@ export default function BulkBar({ count, target, asOf, events, isAdmin, defaultE
             {def.needs === 'side' && (
               <ChoiceChips label={t('bulk.side')} value={side} onChange={setSide} options={SIDES.map((s) => ({ value: s, label: t(`guests.sides.${s}`) }))} />
             )}
+            {(!def.needs.includes('event') || eventId) && (
+              <p className="rounded-md bg-surface-2 p-3" role="status">{t('bulk.preview', { n: t('guests.nFamilies', { n: formatCount(count) }), what: what() })}</p>
+            )}
             <Button needsInternet onClick={apply} loading={busy} disabled={tooMany || (def.needs.includes('event') && !eventId)}>
               {t('bulk.apply', { n: formatCount(count) })}
             </Button>
@@ -98,6 +118,7 @@ export default function BulkBar({ count, target, asOf, events, isAdmin, defaultE
         <ConfirmDialog title={t('bulk.confirmDelete', { n: formatCount(count) })} body={t('bulk.confirmDeleteBody')}
           confirmLabel={t('bulk.delete')} danger onConfirm={apply} onCancel={() => setAction(null)} />
       )}
+      <BulkResult result={result} onClose={() => setResult(null)} />
     </>
   );
 }

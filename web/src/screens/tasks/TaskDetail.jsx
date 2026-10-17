@@ -7,6 +7,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { CalendarArrowUp, CheckCircle2, History, MessageCircle, Pencil, Trash2, X, Plus } from 'lucide-react';
 import Screen from '../../components/Screen.jsx';
 import Button from '../../components/Button.jsx';
+import OverflowMenu from '../../components/OverflowMenu.jsx';
 import ConfirmDialog from '../../components/ConfirmDialog.jsx';
 import { Notice } from '../../components/Field.jsx';
 import { api, newIdemKey } from '../../api/client.js';
@@ -169,9 +170,11 @@ export default function TaskDetail() {
       )}
 
       <div className="flex flex-col gap-3">
-        <Link to={`/history/tasks/${id}`} className="tap inline-flex items-center justify-center gap-2 font-bold text-primary"><History aria-hidden="true" size={20} />{t('tasks.history')}</Link>
         {canEdit && <Button variant="secondary" onClick={() => navigate(`/tasks/${id}/edit`)}><Pencil aria-hidden="true" size={20} />{t('tasks.edit')}</Button>}
-        {canEdit && <Button needsInternet variant="danger" onClick={remove} disabled={busy}><Trash2 aria-hidden="true" size={20} />{t('tasks.delete')}</Button>}
+        <OverflowMenu>
+          <Link to={`/history/tasks/${id}`} className="tap inline-flex items-center justify-center gap-2 font-bold text-primary"><History aria-hidden="true" size={20} />{t('tasks.history')}</Link>
+          {canEdit && <Button needsInternet variant="danger" onClick={remove} disabled={busy}><Trash2 aria-hidden="true" size={20} />{t('tasks.delete')}</Button>}
+        </OverflowMenu>
       </div>
 
       {moving && <PostponeSheet task={task} saving={busy} onPick={move} onClose={() => setMoving(false)} />}

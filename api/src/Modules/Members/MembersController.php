@@ -48,8 +48,9 @@ final class MembersController
             'SELECT * FROM users WHERE deleted_at IS NULL' . ($includeInactive ? '' : ' AND is_active = 1')
             . ' ORDER BY ' . self::ROLE_ORDER . ', name, id',
         );
+        $now = $app->clock->dbNow();
         $out = array_map(
-            static fn (array $u) => $admin ? MemberView::full($db, $refs, $u) : MemberView::limited($refs, $u),
+            static fn (array $u) => $admin ? MemberView::full($db, $refs, $u, false, $now) : MemberView::limited($refs, $u),
             $rows,
         );
         return Response::ok($out, 200, ['total' => count($out)]);
@@ -311,6 +312,30 @@ final class MembersController
     public static function resetReplay(Request $request, App $app, array $params, Response $stored): Response
     {
         return self::resetPassword($request, $app, $params);
+    }
+
+    /**
+     * GET /members/{id}/access (1.0.24, admin-operations brief §13) — admins: recent log-ins
+     * (worked or not), phones with when they were last used or logged out and why, and
+     * password changes. No IP addresses or tokens.
+     */
+    public static function access(Request $request, App $app, array $params): Response
+    {
+        Permissions::requireAdmin($request->attr('user'));
+        $db = $app->db();
+        $u = Users::byPublicId($db, $params['id']);
+        $refs = new Refs($db, $app->clock->todayIst());
+        $logins = array_map(static fn (array $r) => ['at' => Time::iso($r['attempted_at']), 'ok' => (bool) $r['succeeded']], $db->all(
+            'SELECT attempted_at, succeeded FROM login_attempts WHERE user_id = ? ORDER BY attempted_at DESC, id DESC LIMIT 30', [$u['id']]));
+        $phones = array_map(static fn (array $s) => [
+            'device_label' => $s['device_label'], 'first_at' => Time::iso($s['created_at']), 'last_used_at' => Time::iso($s['last_used_at']),
+            'logged_out_at' => Time::iso($s['revoked_at']), 'why' => $s['revoked_reason'],
+        ], $db->all('SELECT device_label, created_at, last_used_at, revoked_at, revoked_reason FROM sessions WHERE user_id = ? ORDER BY last_used_at DESC, id DESC LIMIT 20', [$u['id']]));
+        $passwords = array_map(static fn (array $r) => [
+            'at' => Time::iso($r['created_at']), 'method' => $r['method'], 'by' => $refs->user($r['reset_by'] !== null ? (int) $r['reset_by'] : null),
+            'used_at' => Time::iso($r['used_at']),
+        ], $db->all('SELECT created_at, method, reset_by, used_at FROM password_resets WHERE user_id = ? ORDER BY id DESC LIMIT 20', [$u['id']]));
+        return Response::ok(['logins' => $logins, 'phones' => $phones, 'passwords' => $passwords]);
     }
 
     /** GET /me/sessions — my logged-in phones */

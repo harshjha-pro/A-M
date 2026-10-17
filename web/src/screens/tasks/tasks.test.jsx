@@ -85,6 +85,68 @@ describe('Task list', () => {
   });
 });
 
+describe('Task select mode (1.0.24)', () => {
+  test('pick two tasks → Priority → preview → one request with as_of, then Undo; skipped rows listed', async () => {
+    signInAs('ayush');
+    const user = userEvent.setup();
+    const T2 = '01JA7Q3M2K8V5R1T9W4X6Y0T02';
+    const calls = fakeApi({
+      'GET /tasks': () => listReply([task(), task({ id: T2, title: 'Order sweets' })]),
+      'GET /tags': () => ok([]),
+      'POST /tasks/bulk': () => withMeta({ batch_id: 'B9', affected: 1, skipped: [{ id: T2, name: 'Order sweets', reason: 'changed_since_loaded', changed_by: { id: 'u2', name: 'Mahi' } }] },
+        { undo: { batch_id: 'B9', until: 'x', summary: 'Set Low for 1 task' } }),
+    });
+    renderAt('/tasks');
+    expect(await screen.findByText('Book tent wala')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Select' }));
+    expect(screen.queryByRole('button', { name: 'Add task' })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Select all 2 shown' }));
+    expect(screen.getByText('2 selected')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Export selected/ })).toHaveAttribute('href', expect.stringContaining(`/tasks/export?ids=${T1},${T2}`));
+
+    await user.click(screen.getByRole('button', { name: 'Priority' }));
+    const sheet = await screen.findByRole('dialog');
+    await user.click(within(sheet).getByRole('radio', { name: 'Low' }));
+    expect(within(sheet).getByRole('status')).toHaveTextContent('Priority → Low');
+    await user.click(within(sheet).getByRole('button', { name: 'Apply to 2' }));
+    expect(await screen.findByText('Set Low for 1 task')).toBeInTheDocument();
+    const sent = calls.mock.calls.find(([u, i]) => String(u).includes('/tasks/bulk') && i?.method === 'POST');
+    expect(JSON.parse(sent[1].body)).toEqual({ action: 'set_priority', ids: [T1, T2], as_of: '2026-10-08T09:12:31Z', priority: 'low' });
+    const result = await screen.findByRole('dialog', { name: 'What changed' });
+    expect(within(result).getByText('Order sweets')).toBeInTheDocument();
+    expect(within(result).getByText(/Mahi/)).toBeInTheDocument();
+  });
+
+  test('a Viewer gets no Select button', async () => {
+    signInAs('nani');
+    fakeApi({ 'GET /tasks': () => listReply([task()]), 'GET /tags': () => ok([]) });
+    renderAt('/tasks');
+    expect(await screen.findByText('Book tent wala')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Select' })).not.toBeInTheDocument();
+  });
+});
+
+describe('Sort and More actions (1.0.24)', () => {
+  test('Sort → Due date asks the server for sort=due_date; the task page keeps History and Delete under More actions', async () => {
+    signInAs('ayush');
+    const user = userEvent.setup();
+    const calls = fakeApi({ 'GET /tasks': () => listReply([task()]), 'GET /tags': () => ok([]), 'GET /tasks/{id}': () => ok(full()), 'GET /members': () => ok(members) });
+    renderAt('/tasks');
+    expect(await screen.findByText('1 of 1 shown')).toBeInTheDocument();
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Sort' }), 'Due date');
+    await vi.waitFor(() => expect(calls.mock.calls.some(([u]) => u.startsWith('/api/v1/tasks?') && u.includes('sort=due_date'))).toBe(true));
+
+    renderAt(`/tasks/${T1}`);
+    const more = await screen.findByRole('button', { name: 'More actions' });
+    expect(screen.queryByRole('link', { name: 'History' })).toBeNull();
+    await user.click(more);
+    expect(more).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByRole('link', { name: 'History' })).toHaveAttribute('href', `/history/tasks/${T1}`);
+    await user.keyboard('{Escape}');
+    expect(screen.queryByRole('link', { name: 'History' })).toBeNull();
+  });
+});
+
 describe('Add a task', () => {
   test('AC-TASK-01: + → type → Save sends only the title, once', async () => {
     signInAs('mahi');
@@ -197,6 +259,7 @@ describe('Task detail', () => {
       'GET /tasks': () => listReply([]),
     });
     const { router } = renderAt(`/tasks/${T1}`);
+    await user.click(await screen.findByRole('button', { name: 'More actions' }));
     await user.click(await screen.findByRole('button', { name: 'Delete' }));
     expect(await screen.findByText('Deleted Book tent wala')).toBeInTheDocument();
     expect(router.state.location.pathname).toBe('/tasks');

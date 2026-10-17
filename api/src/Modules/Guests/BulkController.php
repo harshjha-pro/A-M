@@ -15,12 +15,10 @@ use AM\Kernel\Response;
 use AM\Kernel\Strings;
 use AM\Modules\Events\InvitationDef;
 use AM\Repo\BaseRepository;
+use AM\Repo\Bulk;
 use AM\Repo\Refs;
-use AM\Safety\AuditLog;
 use AM\Safety\ChangeBatches;
 use AM\Validation\Fields;
-use DateTimeImmutable;
-use DateTimeZone;
 
 /**
  * POST /households/bulk (API.md §6.7, FEATURES B5): one action on up to 2,000
@@ -44,7 +42,7 @@ final class BulkController
         if ($action === 'delete') {
             Permissions::requireAdmin($viewer);
         }
-        $asOf = self::asOf($f);
+        $asOf = Bulk::asOf($f);
         $rsvp = $action === 'set_rsvp' ? $f->enum('rsvp', array_keys(InvitationDef::RSVP), true) : null;
         $side = $action === 'set_side' ? $f->enum('side', array_keys(HouseholdDef::SIDES), true) : null;
         $db = $app->db();
@@ -98,7 +96,7 @@ final class BulkController
                         BaseRepository::softDeleteInBatch($app, $db, $request, HouseholdDef::class, $h, $batch['id']);
                         $affected++;
                     } elseif ($h['side'] !== $side) {
-                        self::setColumns($app, $db, $request, 'households', 'household', $h, ['side' => $side], $batch['id']);
+                        Bulk::setColumns($app, $db, $request, 'households', 'household', $h, ['side' => $side], $batch['id']);
                         $affected++;
                     }
                     continue;
@@ -126,7 +124,7 @@ final class BulkController
                     $affected++;
                 } elseif ($inv['rsvp'] !== $rsvp) {
                     $now = $app->clock->dbNow();
-                    self::setColumns($app, $db, $request, 'household_events', 'invitation', $inv,
+                    Bulk::setColumns($app, $db, $request, 'household_events', 'invitation', $inv,
                         ['rsvp' => $rsvp, 'rsvp_updated_at' => $now, 'rsvp_updated_by' => $request->attr('user')['id']], $batch['id']);
                     $affected++;
                 }
@@ -139,44 +137,7 @@ final class BulkController
         });
     }
 
-    /** One version-bumped, audited change inside the batch (so Undo can put it back). */
-    private static function setColumns(App $app, Db $db, Request $request, string $table, string $type, array $row, array $changes, int $batchId): void
-    {
-        $set = [];
-        $args = [];
-        foreach ($changes as $col => $v) {
-            if (!preg_match('/^[a-z_]+$/', $col)) {
-                throw new \LogicException('Bad column');
-            }
-            $set[] = "`$col` = ?";
-            $args[] = $v;
-        }
-        $user = $request->attr('user');
-        $db->run("UPDATE `$table` SET " . implode(', ', $set) . ', version = version + 1, updated_at = ?, updated_by = ? WHERE id = ?',
-            [...$args, $app->clock->dbNow(), $user['id'] ?? null, $row['id']]);
-        $after = $db->one("SELECT * FROM `$table` WHERE id = ?", [$row['id']]);
-        AuditLog::record($app, $db, $request, [
-            'action' => 'update', 'entity_type' => $type, 'entity_id' => (int) $row['id'],
-            'entity_version' => (int) $after['version'], 'batch_id' => $batchId, 'before' => $row, 'after' => $after,
-        ]);
-    }
 
-    /** as_of: when the phone loaded the list (ISO with Z or offset) → UTC "Y-m-d H:i:s". */
-    private static function asOf(Fields $f): string
-    {
-        $v = $f->raw('as_of', true, 40);
-        if ($v !== null && preg_match('/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:\d{2})$/', $v)) {
-            try {
-                return (new DateTimeImmutable($v))->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d H:i:s');
-            } catch (\Exception) {
-                // fall through
-            }
-        }
-        if ($v !== null) {
-            $f->error('as_of', Strings::get('field_bad_datetime'));
-        }
-        return '1970-01-01 00:00:00';
-    }
 
     /** Family ids from `ids` (≤ 2,000) or `filter` (same keys as the list, applied here). @return list<int> */
     private static function targets(Db $db, Fields $f): array

@@ -51,7 +51,11 @@ describe('Select mode', () => {
     await user.click(screen.getByRole('button', { name: 'Set Coming?' }));
     const sheet = screen.getByRole('dialog');
     await user.selectOptions(within(sheet).getByLabelText('Event'), MEHNDI);
+    expect(within(sheet).getByRole('status')).toHaveTextContent('2 families will change: Mehndi → Coming');
+    expect(screen.queryByRole('link', { name: /Export selected/ })).toBeNull(); // Family: no export
     await user.click(within(sheet).getByRole('button', { name: 'Apply to 2' }));
+    const result = await screen.findByRole('dialog', { name: 'What changed' });
+    expect(within(result).getByText('Family 2')).toBeInTheDocument();
     expect(await screen.findByText(/Set Coming for 1 family · Mehndi. 1 left as they were: changed by someone after you opened the list/)).toBeInTheDocument();
     expect(bodies[0]).toEqual({ action: 'set_rsvp', as_of: '2026-10-08T09:12:31Z', ids: [fam(1).id, fam(2).id], event_id: MEHNDI, rsvp: 'coming' });
   });

@@ -7,7 +7,7 @@ import { canSeeWorkspace } from '../../api/workspaceAccess.js';
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Check, ChevronRight, Pencil, Plus, Trash2, Archive } from 'lucide-react';
+import { Check, ChevronRight, Pencil, Plus, Trash2 } from 'lucide-react';
 import Screen from '../../components/Screen.jsx';
 import Button from '../../components/Button.jsx';
 import Sheet from '../../components/Sheet.jsx';
@@ -19,8 +19,6 @@ import { ValidationError } from '../../api/errors.js';
 import { useSession } from '../../api/session.js';
 import { showUndo, showToast } from '../../undo/undoStore.js';
 import { todayIst, formatDateOnly } from '../../format/ist.js';
-import { useAttachments } from '../../data/vault.js';
-import { AttachmentThumb } from '../vault/AttachmentRow.jsx';
 import { VendorSelect } from '../vault/AttachmentAddSheet.jsx';
 import { NotesBlock, AttachBlock, TasksBlock, useRefresh } from './parts.jsx';
 import { t } from '../../i18n/strings.en.js';
@@ -115,37 +113,6 @@ function AccessorySheet({ outfit, acc, onClose, refresh, L }) {
   );
 }
 
-function VaultPickSheet({ outfit, onClose, refresh }) {
-  const [q, setQ] = useState('');
-  const list = useAttachments({ q: q.trim() || undefined, limit: 50 });
-  const on = new Set(outfit.moodboard.map((a) => a.id));
-  async function pick(a) {
-    try {
-      await withRelogin(() => api('POST', `/attachments/${a.id}/links`, { body: { outfitId: outfit.id }, idemKey: newIdemKey() }));
-      refresh(); onClose();
-    } catch (e) { showToast(e.message || t('errors.server')); }
-  }
-  return (
-    <Sheet title={t('outfit.pickTitle')} onClose={onClose}>
-      <div className="flex flex-col gap-3">
-        <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('vault.search')} aria-label={t('vault.search')}
-          className="tap w-full rounded-sm border-[1.5px] border-border-strong bg-surface px-3 text-base text-text" />
-        <ul className="flex flex-col gap-2">
-          {(list.data?.items ?? []).filter((a) => !on.has(a.id)).map((a) => (
-            <li key={a.id}>
-              <button type="button" onClick={() => pick(a)} className="tap flex w-full items-center gap-3 rounded-sm border border-border p-2 text-left">
-                <AttachmentThumb a={a} size="h-12 w-12" />
-                <span className="flex min-w-0 flex-1 flex-col"><span className="font-mono text-sm text-text-muted">{a.code}</span><span className="truncate font-bold">{a.title}</span></span>
-                <Plus aria-hidden="true" size={20} className="text-primary" />
-              </button>
-            </li>
-          ))}
-        </ul>
-      </div>
-    </Sheet>
-  );
-}
-
 export default function OutfitDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -215,10 +182,7 @@ export default function OutfitDetail() {
       </section>
 
       <section aria-labelledby="o-mood" className="flex flex-col gap-3 rounded-md bg-surface p-4 shadow-card">
-        <div className="flex items-center justify-between gap-2">
-          <h2 id="o-mood" className="text-lg font-bold">{t('outfit.moodboard')}</h2>
-          <Button variant="text" onClick={() => setSheet({ kind: 'pick' })}><Archive aria-hidden="true" size={18} />{t('outfit.fromVault')}</Button>
-        </div>
+        <h2 id="o-mood" className="text-lg font-bold">{t('outfit.moodboard')}</h2>
         <AttachBlock target={{ outfitId: o.id }} attachments={o.moodboard} refresh={refresh} grid />
       </section>
 
@@ -253,7 +217,6 @@ export default function OutfitDetail() {
 
       {step && <StepSheet outfit={o} step={step} refresh={refresh} onClose={() => setSheet(null)} />}
       {acc && <AccessorySheet outfit={o} acc={acc} refresh={refresh} L={L} onClose={() => setSheet(null)} />}
-      {sheet?.kind === 'pick' && <VaultPickSheet outfit={o} refresh={refresh} onClose={() => setSheet(null)} />}
       {sheet?.kind === 'addStep' && <NameSheet title={t('outfit.addStep')} label={t('outfit.stepName')} max={60} onClose={() => setSheet(null)}
         onSave={(name) => withRelogin(() => api('POST', `/outfits/${o.id}/steps`, { body: { name }, idemKey: newIdemKey() })).then(refresh)} />}
       {sheet?.kind === 'addAcc' && <NameSheet title={L.addAccessory} label={L.accessoryName} onClose={() => setSheet(null)}

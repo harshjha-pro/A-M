@@ -321,6 +321,30 @@ paths:
         '409': { $ref: '#/components/responses/Conflict' }
         '422': { $ref: '#/components/responses/Unprocessable' }
         default: { $ref: '#/components/responses/Error' }
+  /members/{id}/access:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    get:
+      tags: [Members]
+      operationId: memberAccess
+      summary: Access history (1.0.24) — recent log-ins (worked or not), phones (last used, logged out and why), password changes. No IP addresses or tokens.
+      x-permission: Adm
+      responses:
+        '200':
+          description: History
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Ok'
+                  - properties:
+                      data:
+                        type: object
+                        properties:
+                          logins: { type: array, items: { type: object, properties: { at: { type: string }, ok: { type: boolean } } } }
+                          phones: { type: array, items: { type: object } }
+                          passwords: { type: array, items: { type: object } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        default: { $ref: '#/components/responses/Error' }
   /members/{id}/password-reset:
     parameters: [ { $ref: '#/components/parameters/Id' } ]
     post:
@@ -793,6 +817,43 @@ paths:
       responses:
         '200': { $ref: '#/components/responses/AttachmentOne' }
         '422': { $ref: '#/components/responses/Unprocessable' }
+        default: { $ref: '#/components/responses/Error' }
+  /attachment-links/bulk:
+    post:
+      tags: [Vault]
+      operationId: bulkAttachmentLinks
+      summary: Use up to 100 Vault files in one place (add), or take them out of this place only (remove). One batch, one Undo; the files stay in the Vault.
+      x-permission: Adm
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IdempotencyKey' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [action, ids]
+              properties:
+                action: { type: string, enum: [add, remove] }
+                ids: { type: array, items: { $ref: '#/components/schemas/Ulid' }, minItems: 1, maxItems: 100, description: attachment ids }
+                workspace_id: { $ref: '#/components/schemas/Ulid' }
+                section: { type: string }
+                outfit_id: { type: string }
+                accessory_id: { type: string }
+                outfit_step_id: { type: string }
+                menu_item_id: { type: string }
+                timeline_step_id: { type: string }
+      responses:
+        '200':
+          description: Done
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Ok'
+                  - properties: { data: { $ref: '#/components/schemas/BulkResult' } }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+        '403': { $ref: '#/components/responses/Forbidden' }
         default: { $ref: '#/components/responses/Error' }
   /attachment-links/{id}:
     parameters: [ { $ref: '#/components/parameters/Id' } ]
@@ -1640,6 +1701,61 @@ paths:
         '409': { $ref: '#/components/responses/Conflict' }
         '422': { $ref: '#/components/responses/Unprocessable' }
         default: { $ref: '#/components/responses/Error' }
+  /tasks/bulk:
+    post:
+      tags: [Tasks]
+      operationId: bulkTasks
+      summary: One change on up to 500 tasks (status, priority, due date, event, workspace, add/remove people or tags, done, delete), one batch, one Undo. Tasks changed after as_of are skipped and named.
+      x-permission: Ed; Family may delete only tasks they made or are assigned to; set_workspace needs workspace write
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IdempotencyKey' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [action, ids, as_of]
+              properties:
+                action: { type: string, enum: [set_status, set_priority, set_due, set_event, set_workspace, add_assignees, remove_assignees, add_tags, remove_tags, done, delete] }
+                ids: { type: array, items: { $ref: '#/components/schemas/Ulid' }, minItems: 1, maxItems: 500 }
+                as_of: { type: string, format: date-time, description: meta.server_time of the list the phone showed }
+                status: { type: string }
+                priority: { type: string }
+                due_date: { type: [string, 'null'], format: date }
+                event_id: { type: [string, 'null'] }
+                workspace_id: { type: [string, 'null'] }
+                assignee_ids: { type: array, items: { $ref: '#/components/schemas/Ulid' } }
+                tag_ids: { type: array, items: { $ref: '#/components/schemas/Ulid' } }
+      responses:
+        '200':
+          description: Done
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Ok'
+                  - properties: { data: { $ref: '#/components/schemas/BulkResult' } }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        default: { $ref: '#/components/responses/Error' }
+  /tasks/export:
+    get:
+      tags: [Tasks, Export]
+      operationId: exportTasksCsv
+      summary: The chosen tasks as CSV (UTF-8 BOM, formula-safe). Audited.
+      x-permission: Ed
+      parameters:
+        - { name: ids, in: query, required: true, schema: { type: string }, description: comma-separated task ids (max 500) }
+      responses:
+        '200':
+          description: CSV file
+          content:
+            text/csv:
+              schema: { type: string }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+        default: { $ref: '#/components/responses/Error' }
   /tasks/check-code:
     get:
       tags: [Tasks]
@@ -1972,6 +2088,7 @@ paths:
         - { name: side, in: query, schema: { type: string, enum: [bride, groom, both] } }
         - { name: event, in: query, schema: { $ref: '#/components/schemas/Ulid' } }
         - { name: rsvp, in: query, schema: { type: string } }
+        - { name: ids, in: query, schema: { type: string }, description: 'comma-separated family ids: only those (1.0.24 select mode)' }
       responses:
         '200':
           description: CSV file
@@ -2354,7 +2471,7 @@ paths:
         - { $ref: '#/components/parameters/Q' }
         - { name: category, in: query, schema: { $ref: '#/components/schemas/VendorCategory' } }
         - { name: booked, in: query, schema: { type: boolean } }
-        - { name: sort, in: query, schema: { type: string, enum: [name, -created_at] } }
+        - { name: sort, in: query, schema: { type: string, enum: [name, category, -created_at, booked] } }
         - { $ref: '#/components/parameters/Limit' }
         - { $ref: '#/components/parameters/Cursor' }
       responses:
@@ -2383,6 +2500,56 @@ paths:
         '201': { $ref: '#/components/responses/VendorOne' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+        default: { $ref: '#/components/responses/Error' }
+  /vendors/bulk:
+    post:
+      tags: [Money]
+      operationId: bulkVendors
+      summary: Change type or booked for up to 500 vendors, or delete them; one batch, one Undo; vendors changed after as_of are skipped and named
+      x-permission: Ed; delete is Adm only
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IdempotencyKey' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [action, ids, as_of]
+              properties:
+                action: { type: string, enum: [set_category, set_booked, delete] }
+                ids: { type: array, items: { $ref: '#/components/schemas/Ulid' }, minItems: 1, maxItems: 500 }
+                as_of: { type: string, format: date-time }
+                category: { type: string }
+                is_booked: { type: boolean }
+      responses:
+        '200':
+          description: Done
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Ok'
+                  - properties: { data: { $ref: '#/components/schemas/BulkResult' } }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        default: { $ref: '#/components/responses/Error' }
+  /vendors/export:
+    get:
+      tags: [Money, Export]
+      operationId: exportVendorsCsv
+      summary: The chosen vendors as CSV (formula-safe); agreed, paid and due columns only for money users. Audited.
+      x-permission: Ed
+      parameters:
+        - { name: ids, in: query, required: true, schema: { type: string }, description: comma-separated ids (max 500) }
+      responses:
+        '200':
+          description: CSV file
+          content:
+            text/csv:
+              schema: { type: string }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '422': { $ref: '#/components/responses/Unprocessable' }
         default: { $ref: '#/components/responses/Error' }
   /vendors/{id}:
@@ -2488,6 +2655,56 @@ paths:
         '201': { $ref: '#/components/responses/PaymentOne' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+        default: { $ref: '#/components/responses/Error' }
+  /payments/bulk:
+    post:
+      tags: [Money]
+      operationId: bulkPayments
+      summary: Change category or event for up to 500 payments; one batch, one Undo. Never paid, amount or delete in bulk.
+      x-permission: Money
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IdempotencyKey' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [action, ids, as_of]
+              properties:
+                action: { type: string, enum: [set_category, set_event] }
+                ids: { type: array, items: { $ref: '#/components/schemas/Ulid' }, minItems: 1, maxItems: 500 }
+                as_of: { type: string, format: date-time }
+                category_id: { $ref: '#/components/schemas/Ulid' }
+                event_id: { type: [string, 'null'] }
+      responses:
+        '200':
+          description: Done
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Ok'
+                  - properties: { data: { $ref: '#/components/schemas/BulkResult' } }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        default: { $ref: '#/components/responses/Error' }
+  /payments/export:
+    get:
+      tags: [Money, Export]
+      operationId: exportPaymentsCsv
+      summary: The chosen payments as CSV (formula-safe). Audited.
+      x-permission: Money
+      parameters:
+        - { name: ids, in: query, required: true, schema: { type: string }, description: comma-separated ids (max 500) }
+      responses:
+        '200':
+          description: CSV file
+          content:
+            text/csv:
+              schema: { type: string }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '422': { $ref: '#/components/responses/Unprocessable' }
         default: { $ref: '#/components/responses/Error' }
   /payments/{id}:
