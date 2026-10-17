@@ -15,6 +15,7 @@ import { useSave } from '../../forms/useSave.js';
 import { useEntityForm } from '../../forms/useEntityForm.js';
 import DraftBanner from '../../components/DraftBanner.jsx';
 import ConflictScreen from '../../components/ConflictScreen.jsx';
+import { formatDateTime } from '../../format/ist.js';
 import { t } from '../../i18n/strings.en.js';
 
 const ROLES = ['partner', 'family', 'viewer'];
@@ -93,6 +94,48 @@ function memberShow(field, v) {
   if (field === 'role') return t(`members.roles.${v}`);
   if (field === 'canSeeMoney' || field === 'isActive') return v ? t('yes') : t('no');
   return v;
+}
+
+/** "Link open until Sun, 11 Oct, 2:42 PM" · "Link expired …" · "Link used …" · "No link sent" (1.0.24) */
+export function linkText(link) {
+  if (!link || link.status === 'none') return t('members.access.noLink');
+  if (link.status === 'open') return t('members.access.open', { when: formatDateTime(link.expiresAt) });
+  if (link.status === 'used') return t('members.access.used', { when: formatDateTime(link.usedAt) });
+  return t('members.access.expired', { when: formatDateTime(link.expiresAt) });
+}
+
+/** Recent log-ins, phones and password changes (admins, 1.0.24). Loads when opened. */
+function AccessHistory({ id }) {
+  const [open, setOpen] = useState(false);
+  const q = useQuery({ queryKey: ['member-access', id], queryFn: () => api('GET', `/members/${id}/access`).then((r) => r.data), enabled: open });
+  const why = (w) => (w ? t(`members.access.why.${w}`) : '');
+  return (
+    <details onToggle={(e) => setOpen(e.currentTarget.open)} className="rounded-sm border border-border p-3">
+      <summary className="tap cursor-pointer font-bold">{t('members.access.history')}</summary>
+      {q.isPending && open && <p aria-busy="true">…</p>}
+      {q.isError && <Notice kind="danger">{t('errors.loadFailed')}</Notice>}
+      {q.data && (
+        <div className="mt-2 flex flex-col gap-3">
+          <section>
+            <h3 className="font-bold">{t('members.access.logins')}</h3>
+            {q.data.logins.length === 0 ? <p className="text-text-muted">{t('members.never')}</p> : (
+              <ul className="text-sm">{q.data.logins.map((l, i) => <li key={i} className={l.ok ? '' : 'text-danger'}>{formatDateTime(l.at)} · {l.ok ? t('members.access.ok') : t('members.access.failed')}</li>)}</ul>
+            )}
+          </section>
+          <section>
+            <h3 className="font-bold">{t('members.access.phones')}</h3>
+            <ul className="text-sm">{q.data.phones.map((p, i) => (
+              <li key={i}>{p.deviceLabel || t('members.access.aPhone')} · {t('members.lastSeen', { when: formatDateTime(p.lastUsedAt) })}{p.loggedOutAt ? ` · ${t('members.access.loggedOut', { when: formatDateTime(p.loggedOutAt) })} ${why(p.why)}` : ''}</li>
+            ))}</ul>
+          </section>
+          <section>
+            <h3 className="font-bold">{t('members.access.passwords')}</h3>
+            <ul className="text-sm">{q.data.passwords.map((p, i) => <li key={i}>{formatDateTime(p.at)} · {t(`members.access.method.${p.method}`)}{p.by ? ` · ${p.by.name}` : ''}</li>)}</ul>
+          </section>
+        </div>
+      )}
+    </details>
+  );
 }
 
 function EditMember({ id }) {
@@ -204,6 +247,16 @@ function EditMember({ id }) {
               <Button variant="danger" onClick={() => setConfirmReset(true)} loading={reset.status === 'saving'}>{t('members.reset')}</Button>
             </>
           )}
+        </section>
+      )}
+      {permissions?.admin && !self && (
+        <section aria-labelledby="m-access" className="flex flex-col gap-3 rounded-md bg-surface p-4 shadow-card">
+          <h2 id="m-access" className="text-lg font-bold">{t('members.access.title')}</h2>
+          <p className={m.link?.status === 'expired' ? 'font-bold text-warning' : 'text-text-muted'}>{linkText(m.link)}</p>
+          {canReset && ['open', 'expired'].includes(m.link?.status) && !secret && (
+            <Button variant="secondary" onClick={() => { setResetMode('link'); setConfirmReset(true); }}>{t('members.access.resend')}</Button>
+          )}
+          <AccessHistory id={id} />
         </section>
       )}
       {confirmReset && (

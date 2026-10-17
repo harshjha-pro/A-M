@@ -321,6 +321,30 @@ paths:
         '409': { $ref: '#/components/responses/Conflict' }
         '422': { $ref: '#/components/responses/Unprocessable' }
         default: { $ref: '#/components/responses/Error' }
+  /members/{id}/access:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    get:
+      tags: [Members]
+      operationId: memberAccess
+      summary: Access history (1.0.24) — recent log-ins (worked or not), phones (last used, logged out and why), password changes. No IP addresses or tokens.
+      x-permission: Adm
+      responses:
+        '200':
+          description: History
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Ok'
+                  - properties:
+                      data:
+                        type: object
+                        properties:
+                          logins: { type: array, items: { type: object, properties: { at: { type: string }, ok: { type: boolean } } } }
+                          phones: { type: array, items: { type: object } }
+                          passwords: { type: array, items: { type: object } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        default: { $ref: '#/components/responses/Error' }
   /members/{id}/password-reset:
     parameters: [ { $ref: '#/components/parameters/Id' } ]
     post:
@@ -2064,6 +2088,7 @@ paths:
         - { name: side, in: query, schema: { type: string, enum: [bride, groom, both] } }
         - { name: event, in: query, schema: { $ref: '#/components/schemas/Ulid' } }
         - { name: rsvp, in: query, schema: { type: string } }
+        - { name: ids, in: query, schema: { type: string }, description: 'comma-separated family ids: only those (1.0.24 select mode)' }
       responses:
         '200':
           description: CSV file

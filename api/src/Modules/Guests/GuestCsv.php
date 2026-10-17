@@ -19,6 +19,7 @@ use DateTimeZone;
  * GET /households/export — the filtered guest list as CSV (FEATURES B8):
  * UTF-8 with BOM (Hindi and ₹ open right in Excel), RFC 4180, IST times,
  * formula-safe cells (AC-EXP-07). Admins only; every download is audited.
+ * 1.0.24: `?ids=` exports just the families chosen in select mode.
  */
 final class GuestCsv
 {
@@ -27,7 +28,12 @@ final class GuestCsv
         $viewer = $request->attr('user');
         Permissions::requireAdmin($viewer);
         $db = $app->db();
-        [$where, $args] = HouseholdsController::filters($db, $request->query);
+        [$where, $args] = HouseholdsController::filters($db, array_diff_key($request->query, ['ids' => 1]));
+        if (isset($request->query['ids'])) {
+            $ids = \AM\Repo\Bulk::exportIds($request, BulkController::MAX);
+            $where[] = 'h.public_id IN (' . implode(',', array_fill(0, count($ids), '?')) . ')';
+            array_push($args, ...$ids);
+        }
         $families = $db->all('SELECT h.* FROM households h WHERE ' . implode(' AND ', $where) . ' ORDER BY h.name, h.id', $args);
         $events = $db->all('SELECT id, name FROM events WHERE deleted_at IS NULL AND guests_invited = 1 ORDER BY start_at IS NULL, start_at, sort_order, id');
         $answers = [];

@@ -39,4 +39,18 @@ final class GuestsExportTest extends ApiTestCase
         $this->loginAs('papa')->get('/households/export')->assertStatus(403);
         $ayush->get('/households/export', ['rsvp' => 'coming'])->assertStatus(422);
     }
+
+    #[Endpoint('GET /households/export')]
+    public function test_export_only_the_chosen_families(): void
+    {
+        $mummy = $this->loginAs('mummy');
+        $a = $mummy->postJson('/households', ['name' => 'Sharma ji', 'side' => 'groom'])->assertStatus(201)->json('data.id');
+        $mummy->postJson('/households', ['name' => 'Gupta ji', 'side' => 'bride'])->assertStatus(201);
+        $ayush = $this->loginAs('ayush');
+        $body = $ayush->get('/households/export', ['ids' => $a])->assertStatus(200)->body();
+        $lines = explode("\r\n", trim(substr($body, 3)));
+        $this->assertCount(2, $lines);
+        $this->assertStringStartsWith('Sharma ji,', $lines[1]);
+        $ayush->get('/households/export', ['ids' => 'nope'])->assertStatus(422);
+    }
 }

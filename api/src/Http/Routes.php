@@ -103,6 +103,7 @@ final class Routes
         $r->add('GET', '/members', MembersController::list(...), ['query' => ['include_inactive']]);
         $r->add('POST', '/members', MembersController::create(...), ['on_replay' => MembersController::createReplay(...)]);
         $r->add('GET', '/members/{id}', MembersController::get(...));
+        $r->add('GET', '/members/{id}/access', MembersController::access(...));
         $r->add('PATCH', '/members/{id}', MembersController::update(...));
         $r->add('POST', '/members/{id}/password-reset', MembersController::resetPassword(...), ['on_replay' => MembersController::resetReplay(...)]);
         $r->add('GET', '/me/sessions', MembersController::mySessions(...));
@@ -164,7 +165,7 @@ final class Routes
         $r->add('GET', '/households/duplicate-check', HouseholdsController::duplicateCheck(...), ['query' => ['phone', 'alt_phone', 'name', 'city', 'exclude']]);
         $r->add('GET', '/households/suggestions', HouseholdsController::suggestions(...), ['query' => ['field', 'q']]);
         $r->add('POST', '/households/bulk', BulkController::run(...));
-        $r->add('GET', '/households/export', GuestCsv::export(...), ['query' => array_diff(HouseholdsController::QUERY, ['sort', 'limit', 'cursor'])]);
+        $r->add('GET', '/households/export', GuestCsv::export(...), ['query' => [...array_diff(HouseholdsController::QUERY, ['sort', 'limit', 'cursor']), 'ids']]);
         $r->add('GET', '/households/{id}', HouseholdsController::get(...));
         $r->add('PATCH', '/households/{id}', static fn (Request $q, App $a, array $p) => BaseController::update($q, $a, $p, HouseholdDef::class, $hhWrite));
         $r->add('DELETE', '/households/{id}', static fn (Request $q, App $a, array $p) => BaseController::delete($q, $a, $p, HouseholdDef::class, $hhWrite));

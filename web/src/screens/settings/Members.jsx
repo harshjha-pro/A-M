@@ -43,6 +43,7 @@ export default function Members() {
                   <span className="text-sm text-text-muted">
                     {t(`members.roles.${m.role}`)} · {formatPhone(m.phone)}
                     {admin && (m.lastSeenAt ? ` · ${t('members.lastSeen', { when: formatDateTime(m.lastSeenAt) })}` : ` · ${t('members.never')}`)}
+                    {admin && m.link?.status === 'expired' && !m.hasLoggedIn && <span className="font-bold text-warning"> · {t('members.access.linkExpired')}</span>}
                   </span>
                 </span>
               </>

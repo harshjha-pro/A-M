@@ -320,4 +320,29 @@ final class MembersTest extends ApiTestCase
         $this->assertSame([true], array_values(array_filter(array_column($rows, 'current'))));
         $this->assertSame(['device_label', 'last_used_at', 'current'], array_keys($rows[0]));
     }
+
+    #[Endpoint('GET /members/{id}/access')]
+    public function test_link_status_resend_and_access_history_for_admins_only(): void
+    {
+        $ayush = $this->loginAs('ayush');
+        $papa = $this->pid('papa');
+        $member = fn () => array_column($ayush->get('/members')->json('data'), null, 'id')[$papa];
+        $this->assertSame('none', $member()['link']['status']);
+        $ayush->postJson("/members/$papa/password-reset", ['mode' => 'link'])->assertStatus(200);
+        $l = $member()['link'];
+        $this->assertSame(['open', '2026-10-11T09:12:31Z'], [$l['status'], $l['expires_at']], 'open for 72 hours');
+        $this->db()->run("UPDATE password_resets SET expires_at = '2026-10-08 09:00:00' WHERE method = 'link'");
+        $this->assertSame('expired', $member()['link']['status']);
+        $ayush->postJson("/members/$papa/password-reset", ['mode' => 'link'])->assertStatus(200); // Resend
+        $this->assertSame('open', $member()['link']['status']);
+
+        $this->api->login('9829000103', 'wrong-password-123');
+        $this->loginAs('papa');
+        $a = $ayush->get("/members/$papa/access")->assertStatus(200)->json('data');
+        $this->assertSame([true, false], array_slice(array_column($a['logins'], 'ok'), 0, 2), 'newest first: the good log-in, then the wrong password');
+        $this->assertNotEmpty($a['phones']);
+        $this->assertSame(['link', 'Ayush'], [$a['passwords'][0]['method'], $a['passwords'][0]['by']['name']]);
+        $this->assertStringNotContainsString('ip', json_encode(array_keys($a['logins'][0])));
+        $this->loginAs('papa')->get("/members/$papa/access")->assertStatus(403);
+    }
 }
