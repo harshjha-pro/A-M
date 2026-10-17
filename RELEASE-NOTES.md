@@ -25,9 +25,9 @@ The whole app has the new look from the A&M Design System. Every screen, field, 
 | R1 | Open Home | Photo (or blush card) on top with the logo, headline and 4 frosted countdown tiles; Next event card; Tasks · Guests · Budget · Vendors tiles (Budget only for money users) |
 | R2 | Scroll any list | The bottom bar stays readable; the last row is not hidden behind it or behind + |
 | R3 | Tasks → tap a filter chip | The chosen chip shows a tick and the blush frosted look |
-| R4 | Workspace → open Mehndi | Big "Mehndi" header, the event link, "days to go" |
+| R4 | Workspace → open Mehndi | Mehndi picture on top with its name, the event link and "days to go" |
 | R5 | Phone in dark mode | Same screens, all text readable |
-| R6 | Log out → Log in screen | Blush A&M card above the form; log in still works |
+| R6 | Log out → Log in screen | Roses in the corners, A&M ♥ logo, "Welcome back"; log in still works |
 
 ## Live — release checklist
 1. **Backup now** (no SQL this time). 2. Upload `live/` in order, `version.json` last. 3. If anything looks wrong: upload `deploy-session14g.zip` (1.0.22) again. Nothing in the database changed.
