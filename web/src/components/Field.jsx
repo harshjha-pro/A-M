@@ -22,20 +22,31 @@ export function FieldShell({ id, label, help, error, children }) {
 
 const inputClass = 'tap w-full rounded-sm border-[1.5px] bg-surface px-4 text-base text-text min-h-[3.25rem] focus:border-primary';
 
-export function TextField({ label, help, error, value, onChange, type = 'text', ...rest }) {
+// Icon (optional, 1.0.23): a decorative lucide icon inside the field on the left.
+function WithIcon({ Icon, children }) {
+  if (!Icon) return children;
+  return (
+    <div className="relative flex-1">
+      <Icon aria-hidden="true" size={20} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-text-muted" />
+      {children}
+    </div>
+  );
+}
+
+export function TextField({ label, help, error, value, onChange, type = 'text', Icon = null, ...rest }) {
   const id = useId();
   return (
     <FieldShell id={id} label={label} help={help} error={error}>
-      <input
+      <WithIcon Icon={Icon}><input
         id={id}
         type={type}
         value={value ?? ''}
         onChange={(e) => onChange(e.target.value)}
         aria-invalid={error ? 'true' : undefined}
         aria-describedby={error ? `${id}-error` : help ? `${id}-help` : undefined}
-        className={`${inputClass} ${error ? 'border-danger' : 'border-border-strong'}`}
+        className={`${inputClass} ${Icon ? 'pl-12' : ''} ${error ? 'border-danger' : 'border-border-strong'}`}
         {...rest}
-      />
+      /></WithIcon>
     </FieldShell>
   );
 }
@@ -44,13 +55,13 @@ export function PhoneField(props) {
   return <TextField type="tel" inputMode="tel" autoComplete="tel" {...props} />;
 }
 
-export function PasswordField({ label, help, error, value, onChange, autoComplete = 'current-password', ...rest }) {
+export function PasswordField({ label, help, error, value, onChange, autoComplete = 'current-password', Icon = null, ...rest }) {
   const id = useId();
   const [shown, setShown] = useState(false);
   return (
     <FieldShell id={id} label={label} help={help} error={error}>
       <div className="flex gap-2">
-        <input
+        <WithIcon Icon={Icon}><input
           id={id}
           type={shown ? 'text' : 'password'}
           value={value ?? ''}
@@ -60,9 +71,9 @@ export function PasswordField({ label, help, error, value, onChange, autoComplet
           spellCheck="false"
           aria-invalid={error ? 'true' : undefined}
           aria-describedby={error ? `${id}-error` : help ? `${id}-help` : undefined}
-          className={`${inputClass} flex-1 ${error ? 'border-danger' : 'border-border-strong'}`}
+          className={`${inputClass} flex-1 ${Icon ? 'pl-12' : ''} ${error ? 'border-danger' : 'border-border-strong'}`}
           {...rest}
-        />
+        /></WithIcon>
         <button type="button" className="tap rounded-sm border-[1.5px] border-border-strong bg-surface px-3 font-bold text-primary" onClick={() => setShown(!shown)} aria-pressed={shown}>
           {shown ? t('hide') : t('show')}
         </button>

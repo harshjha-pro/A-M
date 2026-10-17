@@ -2,8 +2,9 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { TriangleAlert, CircleCheck, CircleAlert, CircleMinus, Users, PartyPopper, ChevronDown, ChevronUp } from 'lucide-react';
+import { TriangleAlert, CircleCheck, CircleAlert, CircleMinus, Users, ChevronDown, ChevronUp } from 'lucide-react';
 import Card from './Card.jsx';
+import { eventArt } from './HomeTiles.jsx';
 import HistoryList from '../../components/HistoryList.jsx';
 import { TaskRow, markDone } from '../tasks/TaskList.jsx';
 import { useSession } from '../../api/session.js';
@@ -127,7 +128,7 @@ export function UpcomingEventsCard({ data }) {
           {data.map((e) => (
             <li key={e.id} className="border-b border-border last:border-b-0">
               <Link to={`/calendar/events/${e.id}`} className="flex min-h-16 items-center gap-3 px-4 py-2">
-                <PartyPopper aria-hidden="true" size={22} className="shrink-0 text-primary" />
+                <img src={eventArt(e.type)} alt="" width={56} height={56} className="size-14 shrink-0 rounded-md object-cover" />
                 <span className="flex min-w-0 flex-col">
                   <span className="font-bold">{e.name}</span>
                   <span className="text-sm text-text-muted">

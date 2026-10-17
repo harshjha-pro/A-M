@@ -1,4 +1,4 @@
-// Countdown (1.0.16): Months : Days : Hours to the wedding (midnight IST on the first day),
+// Countdown (1.0.16; minutes on the Home photo since 1.0.23): Months : Days : Hours to the wedding (midnight IST on the first day),
 // ticking every minute; "Day 1 of 3" during it; hidden after.
 import { useEffect, useState } from 'react';
 import { monthsDaysHours } from './countdownMath.js';
@@ -16,8 +16,8 @@ function useNow(stepMs = 60000) {
 
 function Unit({ n, label }) {
   return (
-    <div className="glass flex flex-1 flex-col items-center rounded-md px-2 py-2">
-      <span className="font-display text-4xl leading-none tabular-nums text-text">{String(n).padStart(2, '0')}</span>
+    <div className="glass flex flex-1 flex-col items-center rounded-md px-1 py-2">
+      <span className="font-display text-[2rem] leading-none text-text">{String(n).padStart(2, '0')}</span>
       <span className="text-sm font-bold text-text">{label}</span>
     </div>
   );
@@ -38,6 +38,7 @@ export default function Countdown({ data, name, hero = false }) {
             <Unit n={left.months} label={left.months === 1 ? t('home.month') : t('home.months')} />
             <Unit n={left.days} label={left.days === 1 ? t('home.day') : t('home.days')} />
             <Unit n={left.hours} label={left.hours === 1 ? t('home.hour') : t('home.hours')} />
+            {hero && <Unit n={left.minutes} label={left.minutes === 1 ? t('home.minute') : t('home.minutes')} />}
           </div>
           <p className={hero ? 'glass self-center rounded-full px-3 py-0.5 text-sm font-bold text-text' : 'text-center text-text-muted'}>{t('home.toTheWedding', { date: formatDateOnly(weddingStartDate) })}</p>
         </>

@@ -20,10 +20,10 @@ final class DashboardTest extends ApiTestCase
     public function test_cards_per_role(): void
     {
         $cards = fn (string $who) => array_keys($this->loginAs($who)->get('/dashboard')->assertStatus(200)->assertEnvelope()->json('data'));
-        $this->assertSame(['countdown', 'upcoming_events', 'my_tasks', 'overdue', 'payments_due', 'budget', 'headcount', 'safety', 'recent_activity', 'start_here'], $cards('ayush'));
-        $this->assertSame(['countdown', 'upcoming_events', 'my_tasks', 'overdue', 'payments_due', 'budget', 'headcount'], $cards('papa'));
-        $this->assertSame(['countdown', 'upcoming_events', 'my_tasks', 'overdue', 'headcount'], $cards('mummy'), 'AC-DASH-03: no money cards at all');
-        $this->assertSame(['countdown', 'upcoming_events', 'headcount'], $cards('nani'), 'Viewer: countdown, upcoming events and headcount only');
+        $this->assertSame(['countdown', 'upcoming_events', 'my_tasks', 'overdue', 'payments_due', 'budget', 'headcount', 'stats', 'safety', 'recent_activity', 'start_here'], $cards('ayush'));
+        $this->assertSame(['countdown', 'upcoming_events', 'my_tasks', 'overdue', 'payments_due', 'budget', 'headcount', 'stats'], $cards('papa'));
+        $this->assertSame(['countdown', 'upcoming_events', 'my_tasks', 'overdue', 'headcount', 'stats'], $cards('mummy'), 'AC-DASH-03: no money cards at all');
+        $this->assertSame(['countdown', 'upcoming_events', 'headcount', 'stats'], $cards('nani'), 'Viewer: countdown, upcoming events, headcount and the Home tiles only');
         $body = $this->loginAs('mummy')->get('/dashboard')->body();
         $this->assertStringNotContainsString('_paise', $body);
         $this->loginAs('papa')->get('/dashboard', ['payments_window_days' => '91'])->assertStatus(400);
@@ -137,6 +137,26 @@ final class DashboardTest extends ApiTestCase
         $recent = $a->get('/dashboard')->json('data.recent_activity');
         $this->assertSame('Ayush added Book tent.', $recent[0]['sentence']);
         $this->assertLessThanOrEqual(10, count($recent));
+    }
+
+    /** Home tiles (1.0.23): counts match the tables, deleted rows are left out, everyone gets them. */
+    #[Endpoint('GET /dashboard')]
+    public function test_home_tiles_counts_skip_deleted(): void
+    {
+        $db = $this->db();
+        $count = fn (string $sql) => (int) $db->value($sql);
+        $want = [
+            'tasks_open' => $count("SELECT COUNT(*) FROM tasks WHERE deleted_at IS NULL AND status IN ('todo','doing','waiting')"),
+            'tasks_done' => $count("SELECT COUNT(*) FROM tasks WHERE deleted_at IS NULL AND status = 'done'"),
+            'families' => $count('SELECT COUNT(*) FROM households WHERE deleted_at IS NULL'),
+            'people' => $count('SELECT COALESCE(SUM(adults + children), 0) FROM households WHERE deleted_at IS NULL'),
+            'vendors' => $count('SELECT COUNT(*) FROM vendors WHERE deleted_at IS NULL'),
+        ];
+        $this->assertSame($want, $this->loginAs('nani')->get('/dashboard')->json('data.stats'));
+        $this->assertGreaterThan(0, $want['vendors'], 'fixtures have vendors');
+        $v = $db->one('SELECT public_id, version FROM vendors WHERE deleted_at IS NULL ORDER BY id LIMIT 1');
+        $this->loginAs('ayush')->request('DELETE', '/vendors/' . $v['public_id'], null, [], [], ['ifMatch' => (int) $v['version']])->assertStatus(200);
+        $this->assertSame($want['vendors'] - 1, $this->loginAs('ayush')->get('/dashboard')->json('data.stats.vendors'));
     }
 
     /** DATABASE §7 "Results below are from the demo data": Mummy (user 3) at 2:00 PM IST on 8 Oct 2026. */

@@ -122,4 +122,4 @@ body { @apply bg-bg text-text font-sans text-base antialiased; margin:0; min-hei
 @utility glass-sheet { background:var(--c-glass-sheet); border:1px solid var(--c-glass-border); backdrop-filter:blur(18px); -webkit-backdrop-filter:blur(18px); }
 @utility scrim-b { background:linear-gradient(180deg, rgb(42 31 26/0) 25%, var(--c-scrim) 100%); }
 @utility scrim-tb { background:linear-gradient(180deg, var(--c-scrim) 0%, rgb(42 31 26/0) 30%, rgb(42 31 26/0) 40%, var(--c-scrim) 100%); }
-@utility font-display { font-family:var(--font-display); font-weight:700; font-variant-numeric:lining-nums; }
+@utility font-display { font-family:var(--font-display); font-weight:700; font-variant-numeric:lining-nums proportional-nums; font-feature-settings:"lnum" 1, "pnum" 1; }

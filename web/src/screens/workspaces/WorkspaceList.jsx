@@ -12,6 +12,7 @@ import { useSession } from '../../api/session.js';
 import { useWorkspaces } from '../../data/vault.js';
 import { formatDate } from '../../format/ist.js';
 import WorkspaceSheet from './WorkspaceSheet.jsx';
+import { artForName } from '../home/HomeTiles.jsx';
 import { t } from '../../i18n/strings.en.js';
 
 export default function WorkspaceList() {
@@ -29,17 +30,16 @@ export default function WorkspaceList() {
         <ul className="flex flex-col gap-3">
           {q.data.map((w) => (
             <li key={w.id}>
-              <Link to={`/workspaces/${w.id}`} className="flex flex-col overflow-hidden rounded-lg bg-surface shadow-card">
-                <span className="flex flex-col gap-1 bg-gradient-to-br from-primary-soft via-accent-soft to-surface-2 px-4 pb-3 pt-6">
-                  <span className="font-display text-[1.75rem] leading-none text-text">{w.name}</span>
-                  {w.event && <span className="inline-flex items-center gap-1 text-sm font-bold text-text-muted"><CalendarDays aria-hidden="true" size={16} />{w.event.name}{w.event.startAt ? ` · ${formatDate(w.event.startAt)}` : ''}</span>}
-                </span>
-                <span className="flex items-center gap-3 px-4 py-3">
-                  <span className="min-w-0 flex-1 text-sm text-text-muted">
+              <Link to={`/workspaces/${w.id}`} className="flex items-center gap-3 overflow-hidden rounded-lg bg-surface p-3 shadow-card">
+                <img src={artForName(w.name)} alt="" width={88} height={88} className="size-[5.5rem] shrink-0 rounded-md object-cover" />
+                <span className="flex min-w-0 flex-1 flex-col gap-1">
+                  <span className="font-display text-[1.6rem] leading-none text-primary">{w.name}</span>
+                  {w.event && <span className="inline-flex items-center gap-1 text-sm text-text-muted"><CalendarDays aria-hidden="true" size={16} />{w.event.startAt ? formatDate(w.event.startAt) : w.event.name}</span>}
+                  <span className="text-sm text-text-muted">
                     {w.counts.tasksOpen === 1 ? t('workspace.openTasksOne') : t('workspace.openTasks', { n: w.counts.tasksOpen })} · {t('workspace.files', { n: w.counts.attachments })}
                   </span>
-                  <span className="inline-flex items-center font-bold text-primary">{t('workspace.openWorkspace')}<ChevronRight aria-hidden="true" size={20} /></span>
                 </span>
+                <ChevronRight aria-hidden="true" size={22} className="shrink-0 text-text-muted" />
               </Link>
             </li>
           ))}
