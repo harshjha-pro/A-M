@@ -15,14 +15,14 @@ The whole app has the new look from the A&M Design System. Every screen, field, 
 - **Cards** are white with a fine border on ivory. Lists, forms and money stay solid and easy to read.
 - **Sheets and dialogs** are frosted, with larger rounded corners.
 - **Screen titles** on Home, Calendar, Tasks, Workspace and More use the elegant wedding font. Everything you read and type stays in Atkinson Hyperlegible at 17 px.
-- **Workspace:** each workspace card has a blush header with its name in the wedding font. A workspace page opens with a hero showing its calendar event and **"N days to go"**.
+- **Workspace:** each workspace card shows its picture, its name in the wedding font, the date and open tasks. A workspace page opens with its picture, the calendar event and **"N days to go"**. The event page and calendar rows show event pictures too.
 - **Log in:** roses in the corners, the A&M ♥ logo, **Welcome back** and "Plan your beautiful tomorrow", with phone and lock icons in the fields.
 - Dark mode has the same look.
 
 ## Phone checks
 | # | Do | Pass when |
 |---|---|---|
-| R1 | Open Home | Photo (or blush card) on top with the headline and the 3 frosted countdown tiles, readable |
+| R1 | Open Home | Photo (or blush card) on top with the logo, headline and 4 frosted countdown tiles; Next event card; Tasks · Guests · Budget · Vendors tiles (Budget only for money users) |
 | R2 | Scroll any list | The bottom bar stays readable; the last row is not hidden behind it or behind + |
 | R3 | Tasks → tap a filter chip | The chosen chip shows a tick and the blush frosted look |
 | R4 | Workspace → open Mehndi | Big "Mehndi" header, the event link, "days to go" |
