@@ -3705,6 +3705,7 @@ components:
         budget: { $ref: '#/components/schemas/MoneySummary' }
         safety: { $ref: '#/components/schemas/Health' }
         recent_activity: { type: array, items: { $ref: '#/components/schemas/HistoryLine' } }
+        stats: { type: object, description: 'Home tiles (1.0.23), every logged-in role; no money.', properties: { tasks_open: { type: integer }, tasks_done: { type: integer }, families: { type: integer }, people: { type: integer }, vendors: { type: integer } } }
         start_here: { type: array, items: { type: object, properties: { key: { type: string }, done: { type: boolean } } } }
     CalendarItem:
       type: object

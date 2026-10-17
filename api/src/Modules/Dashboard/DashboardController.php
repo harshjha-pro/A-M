@@ -63,6 +63,7 @@ final class DashboardController
             static fn (array $e) => Headcount::forEvent($db, $e) + ['date' => EventDef::istDate($e['start_at'])],
             $db->all('SELECT * FROM events WHERE deleted_at IS NULL AND guests_invited = 1 ORDER BY start_at IS NULL, start_at, sort_order'),
         );
+        $out['stats'] = self::stats($db);
         if ($admin) {
             $out['safety'] = self::safety($app);
             $out['recent_activity'] = self::recent($db, $refs, $viewer);
@@ -101,6 +102,20 @@ final class DashboardController
             // Home's Months : Days : Hours counts to midnight IST at the start of the first day.
             'wedding_starts_at' => $s === null ? null : (new DateTimeImmutable($s['wedding_start_date'] . ' 00:00:00', new \DateTimeZone('Asia/Kolkata')))->setTimezone(new \DateTimeZone('UTC'))->format('Y-m-d\TH:i:s\Z'),
             'next_event' => $next === null ? null : EventDef::present($app, $db, $refs, $next, $viewer),
+        ];
+    }
+
+    /** Home's four tiles (1.0.23 redesign): open/done tasks, families and people, vendors. Never deleted rows; no money. */
+    private static function stats(Db $db): array
+    {
+        $t = $db->one("SELECT SUM(status IN ('todo','doing','waiting')) open_n, SUM(status = 'done') done_n FROM tasks WHERE deleted_at IS NULL");
+        $g = $db->one('SELECT COUNT(*) n, COALESCE(SUM(adults + children), 0) people FROM households WHERE deleted_at IS NULL');
+        return [
+            'tasks_open' => (int) ($t['open_n'] ?? 0),
+            'tasks_done' => (int) ($t['done_n'] ?? 0),
+            'families' => (int) $g['n'],
+            'people' => (int) $g['people'],
+            'vendors' => (int) $db->value('SELECT COUNT(*) FROM vendors WHERE deleted_at IS NULL'),
         ];
     }
 

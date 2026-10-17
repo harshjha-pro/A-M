@@ -1,5 +1,6 @@
 // The phone + password form, used by the Log in screen and the login sheet.
 import { useState } from 'react';
+import { Phone, LockKeyhole } from 'lucide-react';
 import { PhoneField, PasswordField, Notice } from '../../components/Field.jsx';
 import Button from '../../components/Button.jsx';
 import { login } from '../../api/auth.js';
@@ -37,9 +38,9 @@ export default function LoginForm({ initialPhone = '', notice = null, onDone, ch
       {notice && <Notice kind="info">{notice}</Notice>}
       {error && <Notice kind="danger">{error}</Notice>}
       {!online && <Notice kind="info">{t('login.offline')}</Notice>}
-      <PhoneField label={t('login.phone')} help={t('login.phoneHelp')} value={phone} onChange={setPhone} autoComplete="username" required />
-      <PasswordField label={t('login.password')} value={password} onChange={setPassword} required />
-      <Button type="submit" loading={busy} loadingLabel={t('login.busy')} disabled={!online}>{t('login.submit')}</Button>
+      <PhoneField label={t('login.phone')} help={t('login.phoneHelp')} value={phone} onChange={setPhone} autoComplete="username" required Icon={Phone} />
+      <PasswordField label={t('login.password')} value={password} onChange={setPassword} required Icon={LockKeyhole} />
+      <Button type="submit" className="min-h-14 text-lg" loading={busy} loadingLabel={t('login.busy')} disabled={!online}>{t('login.submit')}</Button>
       {children}
     </form>
   );

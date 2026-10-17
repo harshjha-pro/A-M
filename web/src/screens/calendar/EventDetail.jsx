@@ -5,6 +5,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { History, MapPin, Pencil, Plus, Trash2 } from 'lucide-react';
 import Screen from '../../components/Screen.jsx';
+import { eventArt } from '../home/HomeTiles.jsx';
 import Button from '../../components/Button.jsx';
 import ConfirmDialog from '../../components/ConfirmDialog.jsx';
 import WhatsAppButton from '../../components/WhatsAppButton.jsx';
@@ -65,6 +66,11 @@ export default function EventDetail() {
   const h = e.headcount;
   return (
     <Screen title={e.name} back="/calendar">
+      <div className="relative -mx-4 -mt-6 h-52 overflow-hidden sm:mx-0 sm:mt-0 sm:rounded-xl">
+        <img src={eventArt(e.type)} alt="" className="h-full w-full object-cover" />
+        <div className="scrim-b absolute inset-0" aria-hidden="true" />
+        <p aria-hidden="true" className="absolute bottom-3 left-4 font-display text-[2.5rem] leading-none text-white drop-shadow">{e.name}</p>
+      </div>
       {e.workspace && (
         <Link to={`/workspaces/${e.workspace.id}`} className="tap inline-flex items-center gap-2 self-start rounded-md bg-primary-soft px-4 font-bold text-primary">
           {t('workspace.openWorkspace')}: {e.workspace.name} →

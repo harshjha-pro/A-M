@@ -25,8 +25,8 @@ export default function BottomNav() {
   const { pathname } = useLocation();
   const { permissions } = useSession();
   return (
-    <nav aria-label={t('nav.label')} className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-surface pb-safe">
-      <ul className="mx-auto grid max-w-xl grid-cols-5">
+    <nav aria-label={t('nav.label')} className="fixed inset-x-0 bottom-0 z-30 px-3 pb-[calc(0.5rem+env(safe-area-inset-bottom))]">
+      <ul className="glass mx-auto grid !bg-glass-sheet max-w-xl grid-cols-5 rounded-[1.75rem] px-1 py-1">
         {navItems(canSeeWorkspace(permissions)).map(({ to, label, Icon, end }) => (
           <li key={to}>
             <NavLink
@@ -36,7 +36,7 @@ export default function BottomNav() {
                 const active = end ? pathname === to : pathname.startsWith(to);
                 if (active) { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
               }}
-              className="tap flex h-16 flex-col items-center justify-center gap-0.5 text-sm text-text-muted"
+              className="tap flex h-[3.75rem] flex-col items-center justify-center gap-0.5 text-sm text-text-muted"
             >
               {({ isActive }) => (
                 <>

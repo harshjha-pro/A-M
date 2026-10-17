@@ -151,7 +151,7 @@ export default function ImportScreen() {
             <FileSpreadsheet aria-hidden="true" size={22} /> {t('import.template')}
           </a>
         </section>
-        <label className="tap flex cursor-pointer items-center justify-center gap-2 rounded-md bg-primary px-5 font-bold text-on-primary">
+        <label className="tap flex cursor-pointer items-center justify-center gap-2 rounded-full bg-primary px-5 font-bold text-on-primary">
           <Upload aria-hidden="true" size={20} /> {busy ? t('import.reading') : t('import.chooseFile')}
           <input type="file" accept=".xlsx,.csv,.txt,.vcf,text/csv,text/vcard,text/x-vcard,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={onFile} className="sr-only" />
         </label>

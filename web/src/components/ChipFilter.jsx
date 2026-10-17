@@ -7,7 +7,7 @@ export default function ChipFilter({ label, options, value, onChange }) {
         return (
           <button
             key={o.value} type="button" role="radio" aria-checked={on} onClick={() => onChange(o.value)}
-            className={`tap inline-flex items-center gap-1 rounded-full border-[1.5px] px-3 text-base ${on ? 'border-primary bg-primary-soft font-bold text-primary' : 'border-border-strong bg-surface'}`}
+            className={`tap inline-flex items-center gap-1 rounded-full border-[1.5px] px-3 text-base ${on ? 'glass-blush font-bold text-primary' : 'border-border bg-surface font-bold'}`}
           >
             {on && <span aria-hidden="true">✓</span>}
             {o.label}
@@ -29,7 +29,7 @@ export function MultiChips({ label, options, value, onChange, error }) {
         {options.map((o) => {
           const on = value.includes(o.value);
           return (
-            <label key={o.value} className={`tap inline-flex cursor-pointer items-center gap-2 rounded-sm border-[1.5px] px-3 py-2 ${on ? 'border-primary bg-primary-soft font-bold text-primary' : 'border-border-strong bg-surface'}`}>
+            <label key={o.value} className={`tap inline-flex cursor-pointer items-center gap-2 rounded-full border-[1.5px] px-4 py-2 ${on ? 'glass-blush font-bold text-primary' : 'border-border bg-surface'}`}>
               <input type="checkbox" checked={on} onChange={() => toggle(o.value)} className="sr-only" />
               <span aria-hidden="true">{on ? '✓' : ''}</span>
               <span>{o.label}</span>

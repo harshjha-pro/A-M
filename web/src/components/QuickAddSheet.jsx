@@ -13,19 +13,19 @@ export default function QuickAddSheet({ onClose }) {
     <Sheet title={t('quickAdd.title')} onClose={onClose}>
       <ul className="flex flex-col gap-2">
         {permissions?.admin && <li>
-          <button type="button" onClick={() => navigate('/tasks/new')} className="tap flex w-full items-center gap-3 rounded-md border-[1.5px] border-border px-4 text-lg">
-            <ListChecks aria-hidden="true" size={24} className="text-primary" /> {t('quickAdd.task')}
+          <button type="button" onClick={() => navigate('/tasks/new')} className="tap flex w-full items-center gap-3 rounded-lg bg-surface px-4 text-lg font-bold shadow-card">
+            <ListChecks aria-hidden="true" size={24} className="box-content rounded-xl bg-primary-soft p-2 text-primary" /> {t('quickAdd.task')}
           </button>
         </li>}
         <li>
-          <button type="button" onClick={() => navigate('/guests/new')} className="tap flex w-full items-center gap-3 rounded-md border-[1.5px] border-border px-4 text-lg">
-            <Users aria-hidden="true" size={24} className="text-primary" /> {t('quickAdd.family')}
+          <button type="button" onClick={() => navigate('/guests/new')} className="tap flex w-full items-center gap-3 rounded-lg bg-surface px-4 text-lg font-bold shadow-card">
+            <Users aria-hidden="true" size={24} className="box-content rounded-xl bg-primary-soft p-2 text-primary" /> {t('quickAdd.family')}
           </button>
         </li>
         {permissions?.money && (
           <li>
-            <button type="button" onClick={() => navigate('/money/payments/new')} className="tap flex w-full items-center gap-3 rounded-md border-[1.5px] border-border px-4 text-lg">
-              <IndianRupee aria-hidden="true" size={24} className="text-primary" /> {t('quickAdd.payment')}
+            <button type="button" onClick={() => navigate('/money/payments/new')} className="tap flex w-full items-center gap-3 rounded-lg bg-surface px-4 text-lg font-bold shadow-card">
+              <IndianRupee aria-hidden="true" size={24} className="box-content rounded-xl bg-primary-soft p-2 text-primary" /> {t('quickAdd.payment')}
             </button>
           </li>
         )}

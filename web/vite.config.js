@@ -90,7 +90,7 @@ export default defineConfig(({ mode }) => ({
       injectRegister: false,        // registered from our own module (CSP: no inline script)
       manifest: false,              // written by amFlavour (per flavour)
       injectManifest: {
-        globPatterns: ['**/*.{js,css,html,woff2}', 'icons/*.png'],
+        globPatterns: ['**/*.{js,css,html,woff2}', 'icons/*.png', 'art/*.webp'],
         // Never precache: the escape hatch, guide pictures, templates, the version file, the SW itself
         globIgnores: ['reset.html', 'reset.js', 'reset.css', 'install-guide/**', 'splash/**', 'templates/**', 'version.json', 'sw.js', 'icons-staging/**'],
         maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,

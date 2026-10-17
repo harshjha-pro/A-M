@@ -1,0 +1,4 @@
+<!-- @dsCard group="4 · Calendar & events" page height=1034 width=1322 subtitle="Calendar \u00b7 /calendar" -->
+<div id="root"></div>
+<script>const h=React.createElement;const row=(...k)=>h('div',{style:{display:'flex',gap:12,flexWrap:'wrap',alignItems:'center'}},...k);const col=(...k)=>h('div',{style:{display:'flex',flexDirection:'column',gap:14,maxWidth:420}},...k);
+ReactDOM.createRoot(document.getElementById("root")).render(h(AM.FrameRow,{title:"Calendar \u00b7 /calendar",note:"Month grid with today/selected styles, event dots vs task squares, day list; Agenda grouped by IST date with Date not set, Show past/later; admin Quick Add sheet."},h(AM.Screens.CalendarMonth),h(AM.Screens.CalendarAgenda),h(AM.Screens.CalendarAddSheet)));</script>

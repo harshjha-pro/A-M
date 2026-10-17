@@ -54,7 +54,7 @@ export default function RsvpChips({ familyId, familyName, invitation, disabled, 
               onClick={() => { setClash(null); onSaved(clash.current); }}>
               {t('guests.keepTheirs', { value: t(`guests.rsvp.${clash.current.rsvp}`) })}
             </button>
-            <button type="button" className="tap rounded-md bg-primary px-3 font-bold text-on-primary" disabled={busy}
+            <button type="button" className="tap rounded-full bg-primary px-3 font-bold text-on-primary" disabled={busy}
               onClick={() => send(clash.mine, clash.current.version)}>
               {t('guests.useMine', { value: t(`guests.rsvp.${clash.mine}`) })}
             </button>

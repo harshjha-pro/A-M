@@ -1,0 +1,4 @@
+<!-- @dsCard group="Inputs" height=300 -->
+<div id="root" class="am-root" style="padding:16px;background:var(--bg);color:var(--text)"></div>
+<script>const h=React.createElement;const row=(...k)=>h('div',{style:{display:'flex',gap:12,flexWrap:'wrap',alignItems:'center'}},...k);const col=(...k)=>h('div',{style:{display:'flex',flexDirection:'column',gap:14,maxWidth:420}},...k);
+ReactDOM.createRoot(document.getElementById("root")).render(h(React.Fragment,null,col(h(AM.TextField,{label:'Phone number',value:'98290 12345',icon:'Phone',help:'The number Ayush or Mahi added for you.'}),h(AM.TextField,{label:'What needs doing?',value:'',required:true,error:'Please type what needs doing.'}))));</script>

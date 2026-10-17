@@ -46,7 +46,7 @@ export default function AndroidInstallBanner({ android = isAndroid }) {
       <p className="text-base font-bold">{t('install.bannerTitle')}</p>
       <p className="text-sm text-text-muted">{t('install.bannerText')}</p>
       <div className="flex gap-3">
-        <button type="button" className="tap inline-flex flex-1 items-center justify-center gap-2 rounded-md bg-primary font-bold text-on-primary"
+        <button type="button" className="tap inline-flex flex-1 items-center justify-center gap-2 rounded-full bg-primary font-bold text-on-primary"
           onClick={async () => { if ((await prompt()) === 'accepted') setDone(true); }}>
           <Download aria-hidden="true" size={20} />{t('install.install')}
         </button>

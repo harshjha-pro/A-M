@@ -1,5 +1,7 @@
 # DESIGN.md — Release 1 UX & Visual Design
 
+> **1.0.23 redesign (CONTEXT 51):** the A&M Design System artifact (source in `design/system/`) is now the visual reference. Same palette and Atkinson Hyperlegible; added Cormorant Garamond for wedding headlines and countdown numbers only; radii sm 12 / md 16 / lg 20 / xl 28 px; restrained glass (`glass`, `glass-blush`, `glass-sheet` utilities) only on countdown tiles, the floating bottom nav, selected chips, photo overlays, sheets and dialogs. Lists, forms and money stay on solid surfaces. Where this file and the artifact differ on looks, the artifact wins; on behaviour this file still rules.
+
 Version 1.1 · 8 Oct 2026 · Owner: Ayush Porwal · v1.1 applies the owner's answers: WhatsApp-like, minimal, ivory, one UI font, "A&M Wedding"
 Reads from: `CONTEXT.md` (source of truth), `PRD.md`, `FEATURES.md`.
 

@@ -8,6 +8,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { CalendarDays, Pencil, Plus, Trash2 } from 'lucide-react';
 import Screen from '../../components/Screen.jsx';
+import { artForName } from '../home/HomeTiles.jsx';
 import Button from '../../components/Button.jsx';
 import ConfirmDialog from '../../components/ConfirmDialog.jsx';
 import { Notice } from '../../components/Field.jsx';
@@ -73,6 +74,31 @@ function FilesSection({ ws }) {
   );
 }
 
+// Hero (1.0.23 redesign): name in the display face, its calendar event and days to go.
+function WorkspaceHero({ ws }) {
+  const days = ws.event?.startAt ? Math.ceil((Date.parse(ws.event.startAt) - Date.now()) / 86_400_000) : null;
+  return (
+    <section className="relative flex min-h-56 items-end gap-3 overflow-hidden rounded-xl p-4 shadow-card">
+      <img src={artForName(ws.name)} alt="" className="absolute inset-0 h-full w-full object-cover" />
+      <div className="scrim-b absolute inset-0" aria-hidden="true" />
+      <div className="relative flex min-w-0 flex-1 flex-col gap-1 text-white">
+        <p className="font-display text-[2.5rem] leading-none drop-shadow" aria-hidden="true">{ws.name}</p>
+        {ws.event && (
+          <Link to={`/calendar/events/${ws.event.id}`} className="glass inline-flex items-center gap-2 self-start rounded-full px-3 py-1 text-sm font-bold text-text">
+            <CalendarDays aria-hidden="true" size={20} />{t('workspace.onCalendar', { name: ws.event.name })}{ws.event.startAt ? ` · ${formatDate(ws.event.startAt)}` : ''}
+          </Link>
+        )}
+      </div>
+      {days > 0 && (
+        <p className="glass relative shrink-0 rounded-lg px-3 py-2 text-center">
+          <span className="block font-display text-3xl leading-none">{days}</span>
+          <span className="text-sm font-bold">{days === 1 ? t('workspace.dayToGo') : t('workspace.daysToGo')}</span>
+        </p>
+      )}
+    </section>
+  );
+}
+
 export default function WorkspaceDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -99,11 +125,7 @@ export default function WorkspaceDetail() {
   return (
     <Screen title={ws.name} back="/workspaces"
       actions={<button type="button" onClick={() => setEditing(true)} aria-label={t('workspace.edit')} className="tap grid place-items-center text-primary"><Pencil aria-hidden="true" size={22} /></button>}>
-      {ws.event && (
-        <Link to={`/calendar/events/${ws.event.id}`} className="inline-flex items-center gap-2 font-bold text-primary">
-          <CalendarDays aria-hidden="true" size={20} />{t('workspace.onCalendar', { name: ws.event.name })}{ws.event.startAt ? ` · ${formatDate(ws.event.startAt)}` : ''}
-        </Link>
-      )}
+      <WorkspaceHero ws={ws} />
       <TaskStrip ws={ws} />
       <OutfitSection ws={ws} sectionKey="bride_outfit" person="bride" title={SECTIONS.bride_outfit} />
       <OutfitSection ws={ws} sectionKey="groom_outfit" person="groom" title={SECTIONS.groom_outfit} />

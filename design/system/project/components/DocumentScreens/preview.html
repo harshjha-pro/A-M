@@ -1,0 +1,4 @@
+<!-- @dsCard group="10 · Documents & Vault" page height=1034 width=2588 subtitle="Documents \u00b7 /documents(/:id|/:id/edit)" -->
+<div id="root"></div>
+<script>const h=React.createElement;const row=(...k)=>h('div',{style:{display:'flex',gap:12,flexWrap:'wrap',alignItems:'center'}},...k);const col=(...k)=>h('div',{style:{display:'flex',flexDirection:'column',gap:14,maxWidth:420}},...k);
+ReactDOM.createRoot(document.getElementById("root")).render(h(AM.FrameRow,{title:"Documents \u00b7 /documents(/:id|/:id/edit)",note:"Type chips, private badge (hidden from family), Open/Download/Share, where used, upload progress, failure and too-big errors."},h(AM.Screens.DocumentList),h(AM.Screens.DocumentList,{role:'family'}),h(AM.Screens.DocumentDetail,{state:'saved'}),h(AM.Screens.DocumentForm),h(AM.Screens.DocumentForm,{state:'uploading'}),h(AM.Screens.DocumentForm,{state:'failed'})));</script>

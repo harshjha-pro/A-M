@@ -1,0 +1,4 @@
+<!-- @dsCard group="4 · Calendar & events" page height=1034 width=2588 subtitle="Add / edit event \u00b7 /calendar/events/new \u00b7 /:id/edit" -->
+<div id="root"></div>
+<script>const h=React.createElement;const row=(...k)=>h('div',{style:{display:'flex',gap:12,flexWrap:'wrap',alignItems:'center'}},...k);const col=(...k)=>h('div',{style:{display:'flex',flexDirection:'column',gap:14,maxWidth:420}},...k);
+ReactDOM.createRoot(document.getElementById("root")).render(h(AM.FrameRow,{title:"Add / edit event \u00b7 /calendar/events/new \u00b7 /:id/edit",note:"Name/type/date/time first; venue, map, dress code, notes under More details; sticky Save; field error, saving, server error, conflict."},h(AM.Screens.EventForm),h(AM.Screens.EventForm,{mode:'edit'}),h(AM.Screens.EventForm,{state:'error'}),h(AM.Screens.EventForm,{mode:'edit',state:'saving'}),h(AM.Screens.EventForm,{mode:'edit',state:'server'}),h(AM.Screens.EventForm,{mode:'edit',state:'conflict'})));</script>

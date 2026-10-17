@@ -20,22 +20,33 @@ export function FieldShell({ id, label, help, error, children }) {
   );
 }
 
-const inputClass = 'tap w-full rounded-sm border-[1.5px] bg-surface px-3 text-base text-text min-h-[3.25rem]';
+const inputClass = 'tap w-full rounded-sm border-[1.5px] bg-surface px-4 text-base text-text min-h-[3.25rem] focus:border-primary';
 
-export function TextField({ label, help, error, value, onChange, type = 'text', ...rest }) {
+// Icon (optional, 1.0.23): a decorative lucide icon inside the field on the left.
+function WithIcon({ Icon, children }) {
+  if (!Icon) return children;
+  return (
+    <div className="relative flex-1">
+      <Icon aria-hidden="true" size={20} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-text-muted" />
+      {children}
+    </div>
+  );
+}
+
+export function TextField({ label, help, error, value, onChange, type = 'text', Icon = null, ...rest }) {
   const id = useId();
   return (
     <FieldShell id={id} label={label} help={help} error={error}>
-      <input
+      <WithIcon Icon={Icon}><input
         id={id}
         type={type}
         value={value ?? ''}
         onChange={(e) => onChange(e.target.value)}
         aria-invalid={error ? 'true' : undefined}
         aria-describedby={error ? `${id}-error` : help ? `${id}-help` : undefined}
-        className={`${inputClass} ${error ? 'border-danger' : 'border-border-strong'}`}
+        className={`${inputClass} ${Icon ? 'pl-12' : ''} ${error ? 'border-danger' : 'border-border-strong'}`}
         {...rest}
-      />
+      /></WithIcon>
     </FieldShell>
   );
 }
@@ -44,13 +55,13 @@ export function PhoneField(props) {
   return <TextField type="tel" inputMode="tel" autoComplete="tel" {...props} />;
 }
 
-export function PasswordField({ label, help, error, value, onChange, autoComplete = 'current-password', ...rest }) {
+export function PasswordField({ label, help, error, value, onChange, autoComplete = 'current-password', Icon = null, ...rest }) {
   const id = useId();
   const [shown, setShown] = useState(false);
   return (
     <FieldShell id={id} label={label} help={help} error={error}>
       <div className="flex gap-2">
-        <input
+        <WithIcon Icon={Icon}><input
           id={id}
           type={shown ? 'text' : 'password'}
           value={value ?? ''}
@@ -60,10 +71,10 @@ export function PasswordField({ label, help, error, value, onChange, autoComplet
           spellCheck="false"
           aria-invalid={error ? 'true' : undefined}
           aria-describedby={error ? `${id}-error` : help ? `${id}-help` : undefined}
-          className={`${inputClass} flex-1 ${error ? 'border-danger' : 'border-border-strong'}`}
+          className={`${inputClass} flex-1 ${Icon ? 'pl-12' : ''} ${error ? 'border-danger' : 'border-border-strong'}`}
           {...rest}
-        />
-        <button type="button" className="tap rounded-sm border-[1.5px] border-border-strong bg-surface px-3" onClick={() => setShown(!shown)} aria-pressed={shown}>
+        /></WithIcon>
+        <button type="button" className="tap rounded-sm border-[1.5px] border-border-strong bg-surface px-3 font-bold text-primary" onClick={() => setShown(!shown)} aria-pressed={shown}>
           {shown ? t('hide') : t('show')}
         </button>
       </div>
@@ -81,7 +92,7 @@ export function ChoiceChips({ label, options, value, onChange, error, help }) {
         {options.map((o) => {
           const on = value === o.value;
           return (
-            <label key={o.value} className={`tap inline-flex cursor-pointer items-center gap-2 rounded-sm border-[1.5px] px-3 py-2 ${on ? 'border-primary bg-primary-soft font-bold text-primary' : 'border-border-strong bg-surface'}`}>
+            <label key={o.value} className={`tap inline-flex cursor-pointer items-center gap-2 rounded-full border-[1.5px] px-4 py-2 ${on ? 'glass-blush font-bold text-primary' : 'border-border bg-surface'}`}>
               <input type="radio" name={id} value={o.value} checked={on} onChange={() => onChange(o.value)} className="sr-only" />
               <span aria-hidden="true">{on ? '✓' : ''}</span>
               <span>{o.label}</span>
@@ -113,7 +124,7 @@ export function FixSummary({ fields }) {
   const n = Object.keys(fields || {}).length;
   if (n === 0) return null;
   return (
-    <p role="alert" className="rounded-md bg-danger-soft p-3 font-bold text-danger">
+    <p role="alert" className="rounded-lg bg-danger-soft p-3 font-bold text-danger">
       {n === 1 ? t('fixOne') : t('fixThings', { n })}
     </p>
   );
@@ -121,5 +132,5 @@ export function FixSummary({ fields }) {
 
 export function Notice({ kind = 'info', children }) {
   const cls = { info: 'bg-info-soft', danger: 'bg-danger-soft', success: 'bg-success-soft', warning: 'bg-warning-soft' }[kind];
-  return <p role={kind === 'danger' ? 'alert' : 'status'} className={`rounded-md p-3 ${cls}`}>{children}</p>;
+  return <p role={kind === 'danger' ? 'alert' : 'status'} className={`rounded-lg p-3 ${cls}`}>{children}</p>;
 }

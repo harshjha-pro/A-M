@@ -1,6 +1,6 @@
 // Top bar (DESIGN §4.4): 56 px + safe area. Non-root screens show "← Back",
 // because the iPhone Home Screen app has no browser Back button.
-import { ArrowLeft } from 'lucide-react';
+import { ChevronLeft } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { t } from '../i18n/strings.en.js';
 
@@ -12,19 +12,19 @@ export default function TopBar({ title, back = false, actions = null }) {
   // going back would leave the app, so go to the parent screen instead.
   const goBack = () => (location.key !== 'default' ? navigate(-1) : navigate(typeof back === 'string' ? back : '/'));
   return (
-    <header className="sticky top-0 z-20 border-b border-border bg-bg pt-safe">
+    <header className="sticky top-0 z-20 border-b border-glass-border bg-bg/85 pt-safe backdrop-blur-xl">
       <div className="flex min-h-14 items-center gap-1 px-safe">
         {back && (
           <button
             type="button"
             onClick={goBack}
-            className="tap -ml-3 inline-flex items-center gap-1 rounded-md px-3 text-primary"
+            className="tap -ml-2 inline-flex items-center gap-0.5 rounded-full pl-1 pr-3 font-bold text-primary"
           >
-            <ArrowLeft aria-hidden="true" size={24} strokeWidth={2} />
+            <ChevronLeft aria-hidden="true" size={26} strokeWidth={2.25} />
             <span>{t('back')}</span>
           </button>
         )}
-        <h1 className="min-w-0 flex-1 truncate text-xl font-bold">{title}</h1>
+        <h1 className={`min-w-0 flex-1 truncate ${back ? 'text-xl font-bold' : 'font-display text-[2rem] leading-tight'}`}>{title}</h1>
         {actions}
       </div>
     </header>

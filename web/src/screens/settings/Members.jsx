@@ -25,7 +25,7 @@ export default function Members() {
   return (
     <Screen title={t('members.title')} back="/settings">
       {admin && (
-        <Link to="/settings/members/new" className="tap inline-flex items-center justify-center gap-2 rounded-md bg-primary px-5 font-bold text-on-primary">
+        <Link to="/settings/members/new" className="tap inline-flex items-center justify-center gap-2 rounded-full bg-primary px-5 font-bold text-on-primary">
           <UserPlus aria-hidden="true" size={22} /> {t('members.add')}
         </Link>
       )}

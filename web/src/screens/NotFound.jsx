@@ -6,7 +6,7 @@ export default function NotFound() {
   return (
     <Screen title={t('notFound.title')} back>
       <p className="text-lg">{t('notFound.body')}</p>
-      <Link to="/" className="tap inline-flex items-center justify-center rounded-md bg-primary px-5 font-bold text-on-primary">
+      <Link to="/" className="tap inline-flex items-center justify-center rounded-full bg-primary px-5 font-bold text-on-primary">
         {t('notFound.home')}
       </Link>
     </Screen>

@@ -28,6 +28,7 @@ const family = {
   my_tasks: { items: [task('01JA7Q3M2K8V5R1T9W4X6Y0T01', 'Due yesterday', { overdue: true, due_date: '2026-10-07', due_today: false }), task('01JA7Q3M2K8V5R1T9W4X6Y0T02', 'Due today')], total: 2, upcoming: false },
   overdue: { total: 7 },
   payments_due: { items: [], total: 5, total_paise: 52000000, window_days: 14 },
+  stats: { tasks_open: 23, tasks_done: 41, families: 412, people: 1806, vendors: 18 },
   budget: { planned_paise: 400000000, spent_paise: 79535000, still_to_pay_paise: 168000000, left_paise: 320465000, free_paise: 152465000, not_yet_split_paise: 0 },
 };
 const lines = (n) => Array.from({ length: n }, (_, i) => ({ at: `2026-10-08T09:0${i}:00Z`, sentence: `Line ${i + 1}` }));
@@ -53,10 +54,10 @@ beforeEach(() => { vi.spyOn(Date, 'now').mockReturnValue(NOW); });
 afterEach(() => { act(() => dismiss()); signOut(); vi.restoreAllMocks(); });
 
 describe('Countdown maths (IST calendar)', () => {
-  test('Months : Days : Hours to midnight IST on 14 Feb 2027', () => {
-    expect(monthsDaysHours(NOW, Date.parse('2027-02-13T18:30:00Z'))).toEqual({ months: 4, days: 5, hours: 9 });
-    expect(monthsDaysHours(Date.parse('2026-10-31T06:30:00Z'), Date.parse('2026-11-30T18:30:00Z'))).toEqual({ months: 1, days: 0, hours: 12 }); // 31 Oct 12:00 → 1 Dec 00:00 IST
-    expect(monthsDaysHours(Date.parse('2027-01-31T18:30:00Z'), Date.parse('2027-02-13T18:30:00Z'))).toEqual({ months: 0, days: 13, hours: 0 });
+  test('Months : Days : Hours : Minutes to midnight IST on 14 Feb 2027', () => {
+    expect(monthsDaysHours(NOW, Date.parse('2027-02-13T18:30:00Z'))).toEqual({ months: 4, days: 5, hours: 9, minutes: 17 });
+    expect(monthsDaysHours(Date.parse('2026-10-31T06:30:00Z'), Date.parse('2026-11-30T18:30:00Z'))).toEqual({ months: 1, days: 0, hours: 12, minutes: 0 }); // 31 Oct 12:00 → 1 Dec 00:00 IST
+    expect(monthsDaysHours(Date.parse('2027-01-31T18:30:00Z'), Date.parse('2027-02-13T18:30:00Z'))).toEqual({ months: 0, days: 13, hours: 0, minutes: 0 });
     expect(monthsDaysHours(Date.parse('2027-02-13T18:30:00Z'), Date.parse('2027-02-13T18:30:00Z'))).toBeNull();
   });
 });
@@ -67,9 +68,16 @@ describe('Home', () => {
     fakeApi({ 'GET /dashboard': () => ok(admin), 'GET /home-photos': () => ok(PHOTOS) });
     const { container } = renderAt('/');
     const timer = await screen.findByRole('timer');
-    expect(timer).toHaveAccessibleName('4 months, 5 days and 9 hours to the wedding'); // AC-DASH-01, live in IST
-    expect(within(timer).getAllByText(/^0\d$/).map((x) => x.textContent)).toEqual(['04', '05', '09']);
+    expect(timer).toHaveAccessibleName('4 months, 5 days, 9 hours and 17 minutes to the wedding'); // AC-DASH-01, live in IST
+    expect(within(timer).getAllByText(/^\d\d$/).map((x) => x.textContent)).toEqual(['04', '05', '09', '17']);
     expect(screen.getByText('to the wedding · Sun, 14 Feb 2027')).toBeInTheDocument();
+    // 1.0.23 layout: logo heading, next event card over the photo's edge, four tiles (Budget for money users).
+    expect(screen.getByRole('heading', { level: 1, name: 'Home' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Next event: Mehndi' })).toHaveAttribute('href', `/calendar/events/${mehndi.id}`);
+    const tiles = screen.getByRole('region', { name: 'At a glance' });
+    expect(within(tiles).getAllByRole('link').map((a) => a.getAttribute('href'))).toEqual(['/tasks', '/guests', '/money', '/vendors']);
+    expect(within(tiles).getByRole('link', { name: /412.*Guests.*1806 people/ })).toBeInTheDocument();
+    expect(within(tiles).getByRole('link', { name: /20%.*Budget/ })).toBeInTheDocument();
     // Cover slideshow: 2 photos, dots, monogram on top
     const carousel = screen.getByRole('region', { name: 'Cover photos' });
     expect(within(carousel).getAllByRole('img', { name: /^Photo \d of 2$/ })).toHaveLength(2);
