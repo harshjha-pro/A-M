@@ -100,6 +100,8 @@ final class Strings
         'rsvp_needs_event'         => 'Pick an event to filter by Coming?.',
         'restore_phone_clash'      => '{name} has the same phone as {other}. Check for a duplicate.',
         'bulk_too_many'            => 'Please choose 2,000 families or fewer.',
+        'bulk_too_many_n'          => 'Please choose {max} or fewer at a time.',
+        'bulk_needs_value'         => 'Choose what to change.',
         'bulk_needs_event'         => 'Pick an event.',
         'import_too_many'          => 'Please import 3,000 rows or fewer at a time.',
         'import_has_errors'        => 'Some rows still have a problem. Fix them or choose Skip.',

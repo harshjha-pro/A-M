@@ -59,6 +59,7 @@ use AM\Modules\Workspaces\WorkspaceDef;
 use AM\Modules\Workspaces\WorkspacesController;
 use AM\Modules\Tasks\TaskDef;
 use AM\Modules\Tasks\TaskItemsController;
+use AM\Modules\Tasks\TaskBulkController;
 use AM\Modules\Tasks\TasksController;
 
 /**
@@ -126,6 +127,8 @@ final class Routes
         $r->add('GET', '/tasks', TasksController::list(...), ['query' => TasksController::QUERY]);
         $r->add('POST', '/tasks', TasksController::create(...));
         $r->add('GET', '/tasks/check-code', TasksController::checkCode(...), ['query' => ['code', 'except']]);
+        $r->add('POST', '/tasks/bulk', TaskBulkController::run(...));
+        $r->add('GET', '/tasks/export', TaskBulkController::export(...), ['query' => ['ids']]);
         $r->add('GET', '/tasks/{id}', TasksController::get(...));
         $r->add('PATCH', '/tasks/{id}', TasksController::update(...));
         $r->add('DELETE', '/tasks/{id}', static fn (Request $q, App $a, array $p) => BaseController::delete($q, $a, $p, TaskDef::class, TasksController::canWrite($a)));
