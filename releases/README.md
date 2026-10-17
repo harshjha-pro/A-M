@@ -47,3 +47,7 @@ Version 1.0.21 (Fix: Workspace error message + Workspace for everyone, "Session 
 Version 1.0.22 (Task IDs + random attachment IDs, "Session 14g"):
 
 - `deploy-session14g.zip` — Hostinger upload packages **plus `migrations/009_task_codes.sql`** (run it first; run 004–008 first if you never did)
+
+Version 1.0.24 (Admin operations: bulk changes, many files, exports, member access; also carries the 1.0.23 redesign, "Session 16"):
+
+- `deploy-session16.zip` — Hostinger upload packages (no new migration; needs 004–009 imported). Upload `1-server.zip`, `2-assets.zip`, `3-shell.zip` in order, `version.json` last.
