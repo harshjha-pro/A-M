@@ -118,6 +118,7 @@ final class Strings
         'move_target_bad'          => 'Pick another category to move the payments to.',
         'payment_duplicate'        => "Looks like a duplicate of '{title}' {amount} on {date}.",
         'vendor_duplicate'         => 'Already in vendors: {name} ({phone})',
+        'vendor_duplicate_name'    => 'A vendor with this name is already there: {name}',
         'paid_needs_details'       => 'Paid payments need the date paid and how.',
         'paid_in_future'           => "The paid date can't be in the future.",
         'already_paid'             => 'This payment is already paid.',

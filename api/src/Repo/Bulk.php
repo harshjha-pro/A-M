@@ -4,6 +4,11 @@ declare(strict_types=1);
 namespace AM\Repo;
 
 use AM\Db\Db;
+use AM\Db\UnitOfWork;
+use AM\Http\BaseController;
+use AM\Kernel\Csv;
+use AM\Kernel\Response;
+use AM\Safety\ChangeBatches;
 use AM\Kernel\App;
 use AM\Kernel\HttpError;
 use AM\Kernel\Request;
@@ -77,5 +82,78 @@ final class Bulk
             'entity_version' => (int) $after['version'], 'batch_id' => $batchId, 'before' => $row + $extraBefore, 'after' => $after + ($extraAfter instanceof \Closure ? $extraAfter() : $extraAfter),
         ]);
         return $after;
+    }
+
+    /**
+     * The usual bulk loop: one batch; each target row is locked, skipped when deleted or changed
+     * after `as_of`, else handed to $apply (true = changed, a string = skipped with that reason,
+     * null = nothing to do). The batch summary then carries the changed count.
+     * @param list<int> $ids
+     * @param \Closure(int):string $summaryFor
+     * @param \Closure(Db, array, int):(bool|string|null) $apply  ($db, $row, $batchId)
+     */
+    public static function run(App $app, Request $request, string $table, string $type, string $nameCol, array $ids, string $asOf,
+        string $batchAction, \Closure $summaryFor, \Closure $apply): Response
+    {
+        return UnitOfWork::run($app, $request, function (Db $db) use ($app, $request, $table, $type, $nameCol, $ids, $asOf, $batchAction, $summaryFor, $apply): Response {
+            $batch = ChangeBatches::create($app, $db, $request, $batchAction, $type, $summaryFor(count($ids)));
+            $refs = new Refs($db, $app->clock->todayIst());
+            $affected = 0;
+            $skipped = [];
+            foreach ($ids as $id) {
+                $row = $db->one("SELECT * FROM `$table` WHERE id = ? FOR UPDATE", [$id]);
+                if ($row === null) {
+                    continue;
+                }
+                $reason = null;
+                $by = null;
+                if ($row['deleted_at'] !== null) {
+                    [$reason, $by] = ['deleted', $row['deleted_by']];
+                } elseif ($row['updated_at'] > $asOf) {
+                    [$reason, $by] = ['changed_since_loaded', $row['updated_by']];
+                } else {
+                    $r = $apply($db, $row, (int) $batch['id']);
+                    if ($r === true) {
+                        $affected++;
+                    } elseif (is_string($r)) {
+                        $reason = $r;
+                    }
+                }
+                if ($reason !== null) {
+                    $skipped[] = ['id' => $row['public_id'], 'name' => $row[$nameCol], 'reason' => $reason, 'changed_by' => $refs->user($by !== null ? (int) $by : null)];
+                }
+            }
+            ChangeBatches::setCount($db, $batch['id'], $affected);
+            $summary = $summaryFor($affected);
+            $db->run('UPDATE change_batches SET summary = ? WHERE id = ?', [mb_substr($summary, 0, 200), $batch['id']]);
+            $meta = $affected > 0 ? ['undo' => BaseController::undoMeta($app, $batch['public_id'], $summary)] : [];
+            return Response::ok(['affected' => $affected, 'skipped' => $skipped, 'batch_id' => $batch['public_id']], 200, $meta);
+        });
+    }
+
+    /** `?ids=a,b,c` for an export of chosen rows (required, ≤ $max). @return list<string> public ids */
+    public static function exportIds(Request $request, int $max): array
+    {
+        $ids = array_values(array_unique(array_filter(explode(',', (string) ($request->query['ids'] ?? '')), static fn ($x) => preg_match('/^[0-9A-HJKMNP-TV-Z]{26}$/', $x))));
+        if ($ids === [] || count($ids) > $max) {
+            throw new HttpError(422, 'validation_failed', Strings::get('bulk_too_many_n', ['max' => number_format($max)]), ['fields' => ['ids' => Strings::get('field_required')]]);
+        }
+        return $ids;
+    }
+
+    /** A CSV download (UTF-8 BOM, CRLF, formula-safe cells); the export itself is audited. @param list<list<mixed>> $rows header first */
+    public static function csv(App $app, Request $request, string $type, string $what, array $rows, string $file): Response
+    {
+        $count = count($rows) - 1;
+        UnitOfWork::run($app, $request, static function (Db $db) use ($app, $request, $type, $what, $count): Response {
+            AuditLog::record($app, $db, $request, ['action' => 'export', 'entity_type' => $type, 'note' => "$count $what as CSV"]);
+            return Response::ok(null);
+        });
+        $r = new Response(200);
+        $r->body = Csv::BOM . implode("\r\n", array_map(static fn ($cells) => Csv::line($cells), $rows)) . "\r\n";
+        $r->headers['Content-Type'] = 'text/csv; charset=utf-8';
+        $r->headers['Content-Disposition'] = 'attachment; filename="' . $file . '_' . $app->clock->todayIst() . '.csv"';
+        $r->headers['Cache-Control'] = 'no-store';
+        return $r;
     }
 }

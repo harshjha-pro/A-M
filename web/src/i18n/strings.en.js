@@ -437,6 +437,12 @@ export const strings = {
     confirmBody: 'Families it added are deleted (you can restore them from Deleted items). Families changed since are kept.',
   },
   money: {
+    bulk: {
+      nVendors: '{n} vendors', nPayments: '{n} payments', countShown: '{n} of {total} shown',
+      setType: 'Type', setBooked: 'Booked', notBooked: 'Not booked', setCategory: 'Category', setEvent: 'Event', choose: 'Choose…',
+      confirmDelete: 'Delete {n} vendors?', deleteBody: 'Their payments stay. You can Undo for 10 minutes, then restore from Deleted items.',
+      oneAtATime: 'Marking paid, amounts and deleting stay one payment at a time, so nothing big changes by mistake.',
+    },
     inWorkspaces: 'Contact in',
     title: 'Money',
     empty: 'Set your total budget.',

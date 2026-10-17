@@ -208,3 +208,73 @@ describe('Vendors', () => {
     expect(screen.getByText('Agreed ₹3,50,000 · paid ₹1,00,000 · due ₹1,50,000')).toBeInTheDocument();
   });
 });
+
+describe('Select mode on vendors and payments (1.0.24)', () => {
+  const page = (rows) => new Response(JSON.stringify({ ok: true, data: rows, meta: { request_id: 'r', server_time: '2026-10-08T09:12:31Z', has_more: false, total: rows.length,
+    totals: { amount_paise: 0, due_paise: 0, paid_paise: 0 } } }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+  const vendor = (id, name) => ({ id, version: 1, name, category: 'tent_decor', contact_person: null, phone: null, alt_phone: null, is_booked: false, notes: null });
+  const V2 = '01JA7Q3M2K8V5R1T9W4X6Y0V02';
+
+  test('Ayush: pick vendors → Type → Florist sends one request; Delete asks first; Mummy gets no Delete', async () => {
+    signInAs('ayush');
+    const user = userEvent.setup();
+    const calls = fakeApi({
+      'GET /vendors': () => page([vendor(V1, 'Shree Tent House'), vendor(V2, 'Gupta Tent')]),
+      'POST /vendors/bulk': (body) => withUndo({ affected: 2, skipped: [], batch_id: 'B' }, body.action === 'delete' ? 'Deleted 2 vendors' : 'Set type Florist for 2 vendors'),
+    });
+    renderAt('/vendors');
+    await user.click(await screen.findByRole('button', { name: 'Select' }));
+    expect(screen.getByText('2 of 2 shown')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Select all 2 shown' }));
+    expect(screen.getByRole('link', { name: /Export selected/ })).toHaveAttribute('href', expect.stringContaining(`/vendors/export?ids=${V1},${V2}`));
+    await user.click(screen.getByRole('button', { name: 'Type' }));
+    const sheet = await screen.findByRole('dialog');
+    await user.click(within(sheet).getByRole('radio', { name: 'Florist' }));
+    expect(within(sheet).getByRole('status')).toHaveTextContent('2 vendors will change: Type → Florist');
+    await user.click(within(sheet).getByRole('button', { name: 'Apply to 2' }));
+    expect(await screen.findByText('Set type Florist for 2 vendors')).toBeInTheDocument();
+    const sent = calls.mock.calls.filter(([u]) => u === '/api/v1/vendors/bulk');
+    expect(JSON.parse(sent[0][1].body)).toEqual({ action: 'set_category', ids: [V1, V2], as_of: '2026-10-08T09:12:31Z', category: 'florist' });
+
+    await user.click(screen.getByRole('button', { name: 'Select all 2 shown' }));
+    await user.click(screen.getByRole('button', { name: 'Delete' }));
+    const confirm = await screen.findByRole('alertdialog');
+    expect(confirm).toHaveTextContent('Delete 2 vendors?');
+    await user.click(within(confirm).getByRole('button', { name: 'Delete' }));
+    await vi.waitFor(() => expect(calls.mock.calls.filter(([u]) => u === '/api/v1/vendors/bulk')).toHaveLength(2));
+  });
+
+  test('Mummy can change type but has no Delete', async () => {
+    signInAs('mummy');
+    const user = userEvent.setup();
+    fakeApi({ 'GET /vendors': () => page([vendor(V1, 'Shree Tent House')]) });
+    renderAt('/vendors');
+    await user.click(await screen.findByRole('button', { name: 'Select' }));
+    expect(screen.getByRole('button', { name: 'Type' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Delete' })).not.toBeInTheDocument();
+  });
+
+  test('Papa: payments → Category → one request; no paid, amount or delete in bulk', async () => {
+    signInAs('papa');
+    const user = userEvent.setup();
+    const calls = fakeApi({
+      'GET /payments': () => page([payment()]),
+      'GET /budget-categories': () => ok([cat()]),
+      'GET /events': () => ok([]),
+      'POST /payments/bulk': () => withUndo({ affected: 1, skipped: [], batch_id: 'B' }, 'Set category Clothing for 1 payment'),
+    });
+    renderAt('/money/payments');
+    await user.click(await screen.findByRole('button', { name: 'Select' }));
+    await user.click(screen.getByRole('checkbox', { name: 'Select Tent balance' }));
+    const bar = screen.getByRole('toolbar');
+    expect(within(bar).queryByRole('button', { name: /paid|Delete|Amount/i })).not.toBeInTheDocument();
+    await user.click(within(bar).getByRole('button', { name: 'Category' }));
+    const sheet = await screen.findByRole('dialog');
+    await vi.waitFor(() => expect(within(sheet).getByRole('option', { name: 'Clothing' })).toBeInTheDocument());
+    await user.selectOptions(within(sheet).getByRole('combobox'), 'Clothing');
+    await user.click(within(sheet).getByRole('button', { name: 'Apply to 1' }));
+    expect(await screen.findByText('Set category Clothing for 1 payment')).toBeInTheDocument();
+    const sent = calls.mock.calls.find(([u]) => u === '/api/v1/payments/bulk');
+    expect(JSON.parse(sent[1].body)).toEqual({ action: 'set_category', ids: [P1], as_of: '2026-10-08T09:12:31Z', category_id: cat().id });
+  });
+});

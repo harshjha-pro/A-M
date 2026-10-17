@@ -122,6 +122,17 @@ final class VendorDef extends EntityDef
                 ]);
             }
         }
+        // 1.0.24 (brief §9): the same name is a likely duplicate too (spaces and capitals ignored).
+        $nameChanged = isset($out['name']) && ($create || mb_strtolower(trim((string) $out['name'])) !== mb_strtolower(trim((string) ($current['name'] ?? ''))));
+        if ($nameChanged && !$f->hasErrors() && ($f->value('allow_duplicate') ?? false) !== true) {
+            $dup = $app->db()->one('SELECT public_id, name, phone FROM vendors WHERE deleted_at IS NULL AND id <> ? AND LOWER(TRIM(name)) = ? LIMIT 1',
+                [$current['id'] ?? 0, mb_strtolower(trim((string) $out['name']))]);
+            if ($dup !== null) {
+                throw new HttpError(409, 'duplicate_found', Strings::get('vendor_duplicate_name', ['name' => $dup['name']]), [
+                    'matches' => [['id' => $dup['public_id'], 'name' => $dup['name'], 'phone' => $dup['phone'], 'match_on' => 'name']],
+                ]);
+            }
+        }
         return $out;
     }
 

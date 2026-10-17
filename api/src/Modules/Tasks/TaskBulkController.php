@@ -9,7 +9,6 @@ use AM\Db\Db;
 use AM\Db\UnitOfWork;
 use AM\Http\BaseController;
 use AM\Kernel\App;
-use AM\Kernel\Csv;
 use AM\Kernel\HttpError;
 use AM\Kernel\RateLimiter;
 use AM\Kernel\Request;
@@ -244,31 +243,18 @@ final class TaskBulkController
     {
         $viewer = $request->attr('user');
         Permissions::requireEditor($viewer);
-        $ids = array_values(array_filter(explode(',', (string) ($request->query['ids'] ?? '')), static fn ($x) => preg_match('/^[0-9A-HJKMNP-TV-Z]{26}$/', $x)));
-        if ($ids === [] || count($ids) > self::MAX) {
-            throw new HttpError(422, 'validation_failed', Strings::get('bulk_too_many_n', ['max' => number_format(self::MAX)]), ['fields' => ['ids' => Strings::get('field_required')]]);
-        }
+        $ids = Bulk::exportIds($request, self::MAX);
         $db = $app->db();
         $in = implode(',', array_fill(0, count($ids), '?'));
         $tasks = $db->all("SELECT * FROM tasks WHERE public_id IN ($in) AND deleted_at IS NULL ORDER BY due_date IS NULL, due_date, due_time, id", $ids);
-        $lines = [Csv::line(['Task ID', 'Title', 'Status', 'Priority', 'Due date', 'Time', 'Assigned to', 'Tags', 'Event', 'Workspace', 'Checklist', 'Notes'])];
+        $rows = [['Task ID', 'Title', 'Status', 'Priority', 'Due date', 'Time', 'Assigned to', 'Tags', 'Event', 'Workspace', 'Checklist', 'Notes']];
         foreach ($tasks as $t) {
             $n = TaskWriter::names($db, (int) $t['id']);
             $items = $db->one('SELECT COUNT(*) total, SUM(is_done) done FROM task_items WHERE task_id = ? AND deleted_at IS NULL', [$t['id']]);
-            $lines[] = Csv::line([$t['code'], $t['title'], TaskDef::STATUS[$t['status']], TaskDef::PRIORITY[$t['priority']], $t['due_date'],
+            $rows[] = [$t['code'], $t['title'], TaskDef::STATUS[$t['status']], TaskDef::PRIORITY[$t['priority']], $t['due_date'],
                 $t['due_time'] !== null ? substr($t['due_time'], 0, 5) : null, implode(', ', $n['assignees']), implode(', ', $n['tags']), $n['event'], $n['workspace'],
-                (int) $items['total'] > 0 ? (int) $items['done'] . '/' . (int) $items['total'] : null, $t['notes']]);
+                (int) $items['total'] > 0 ? (int) $items['done'] . '/' . (int) $items['total'] : null, $t['notes']];
         }
-        $count = count($tasks);
-        UnitOfWork::run($app, $request, static function (Db $db) use ($app, $request, $count): Response {
-            AuditLog::record($app, $db, $request, ['action' => 'export', 'entity_type' => 'task', 'note' => "$count tasks as CSV"]);
-            return Response::ok(null);
-        });
-        $r = new Response(200);
-        $r->body = Csv::BOM . implode("\r\n", $lines) . "\r\n";
-        $r->headers['Content-Type'] = 'text/csv; charset=utf-8';
-        $r->headers['Content-Disposition'] = 'attachment; filename="tasks_' . $app->clock->todayIst() . '.csv"';
-        $r->headers['Cache-Control'] = 'no-store';
-        return $r;
+        return Bulk::csv($app, $request, 'task', 'tasks', $rows, 'tasks');
     }
 }

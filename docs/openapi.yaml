@@ -2477,6 +2477,56 @@ paths:
         '409': { $ref: '#/components/responses/Conflict' }
         '422': { $ref: '#/components/responses/Unprocessable' }
         default: { $ref: '#/components/responses/Error' }
+  /vendors/bulk:
+    post:
+      tags: [Money]
+      operationId: bulkVendors
+      summary: Change type or booked for up to 500 vendors, or delete them; one batch, one Undo; vendors changed after as_of are skipped and named
+      x-permission: Ed; delete is Adm only
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IdempotencyKey' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [action, ids, as_of]
+              properties:
+                action: { type: string, enum: [set_category, set_booked, delete] }
+                ids: { type: array, items: { $ref: '#/components/schemas/Ulid' }, minItems: 1, maxItems: 500 }
+                as_of: { type: string, format: date-time }
+                category: { type: string }
+                is_booked: { type: boolean }
+      responses:
+        '200':
+          description: Done
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Ok'
+                  - properties: { data: { $ref: '#/components/schemas/BulkResult' } }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        default: { $ref: '#/components/responses/Error' }
+  /vendors/export:
+    get:
+      tags: [Money, Export]
+      operationId: exportVendorsCsv
+      summary: The chosen vendors as CSV (formula-safe); agreed, paid and due columns only for money users. Audited.
+      x-permission: Ed
+      parameters:
+        - { name: ids, in: query, required: true, schema: { type: string }, description: comma-separated ids (max 500) }
+      responses:
+        '200':
+          description: CSV file
+          content:
+            text/csv:
+              schema: { type: string }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+        default: { $ref: '#/components/responses/Error' }
   /vendors/{id}:
     parameters: [ { $ref: '#/components/parameters/Id' } ]
     get:
@@ -2580,6 +2630,56 @@ paths:
         '201': { $ref: '#/components/responses/PaymentOne' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+        default: { $ref: '#/components/responses/Error' }
+  /payments/bulk:
+    post:
+      tags: [Money]
+      operationId: bulkPayments
+      summary: Change category or event for up to 500 payments; one batch, one Undo. Never paid, amount or delete in bulk.
+      x-permission: Money
+      security: [ { sessionCookie: [], csrfHeader: [] } ]
+      parameters: [ { $ref: '#/components/parameters/IdempotencyKey' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [action, ids, as_of]
+              properties:
+                action: { type: string, enum: [set_category, set_event] }
+                ids: { type: array, items: { $ref: '#/components/schemas/Ulid' }, minItems: 1, maxItems: 500 }
+                as_of: { type: string, format: date-time }
+                category_id: { $ref: '#/components/schemas/Ulid' }
+                event_id: { type: [string, 'null'] }
+      responses:
+        '200':
+          description: Done
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Ok'
+                  - properties: { data: { $ref: '#/components/schemas/BulkResult' } }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        default: { $ref: '#/components/responses/Error' }
+  /payments/export:
+    get:
+      tags: [Money, Export]
+      operationId: exportPaymentsCsv
+      summary: The chosen payments as CSV (formula-safe). Audited.
+      x-permission: Money
+      parameters:
+        - { name: ids, in: query, required: true, schema: { type: string }, description: comma-separated ids (max 500) }
+      responses:
+        '200':
+          description: CSV file
+          content:
+            text/csv:
+              schema: { type: string }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '422': { $ref: '#/components/responses/Unprocessable' }
         default: { $ref: '#/components/responses/Error' }
   /payments/{id}:
