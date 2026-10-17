@@ -10,9 +10,10 @@ import EmptyState from '../../components/EmptyState.jsx';
 import AddButton from '../../components/AddButton.jsx';
 import { Notice } from '../../components/Field.jsx';
 import { useSession } from '../../api/session.js';
-import { useAttachments, useWorkspaces, formatBytes } from '../../data/vault.js';
+import { useAttachments, useWorkspaces } from '../../data/vault.js';
 import AttachmentRow from './AttachmentRow.jsx';
 import AttachmentAddSheet from './AttachmentAddSheet.jsx';
+import StorageCard from '../../components/StorageCard.jsx';
 import { t } from '../../i18n/strings.en.js';
 
 export default function Vault() {
@@ -47,9 +48,7 @@ export default function Vault() {
           {(workspaces.data ?? []).map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}
         </select>
       </label>
-      {storage && (storage.warn
-        ? <Notice kind="warning">{t('vault.storageWarn', { used: formatBytes(storage.databaseBytes) })}</Notice>
-        : <p className="text-sm text-text-muted">{t('vault.storage', { used: formatBytes(storage.databaseBytes) })}</p>)}
+      <StorageCard storage={storage} checkedAt={list.data?.meta?.serverTime} />
       {list.isPending && <p aria-busy="true">…</p>}
       {list.isError && <Notice kind="danger">{list.error.message || t('errors.loadFailed')}</Notice>}
       {list.data && list.data.items.length === 0 && <EmptyState Icon={Archive} text={filtered ? t('vault.emptyFilter') : t('vault.empty')} />}

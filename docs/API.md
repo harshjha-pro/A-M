@@ -887,6 +887,23 @@ A step with no `start_time` starts when the one before ends (`estimated: true`);
 
 Every task carries `code` (random when made, `TSK-` + 6 of `23456789ABCDEFGHJKMNPQRSTVWXYZ`). `POST /tasks` and `PATCH /tasks/{id}` accept `code` (3–30 of A–Z a–z 0–9 - _; unique across tasks, capitals ignored; 422 `fields.code` names the task that has it). `GET /tasks/check-code?code=&except=` → `{available, message}`. `GET /tasks?q=` also matches the ID. New attachments get a random `ATT-` ID (was the next number); still editable as before.
 
+### 6.9g Admin operations: bulk, export, links, access (version 1.0.24)
+Every bulk endpoint takes `ids` (public ids) and `as_of` (the `meta.server_time` of the list the phone showed). It runs in **one change batch with one Undo** (10 minutes), skips rows that are deleted or were changed after `as_of`, and answers `{affected, skipped: [{id, name, reason, changed_by}], batch_id}` with `meta.undo`. Rate limit: 10 bulk calls per person per 10 minutes. Shared code: `Repo\Bulk` (`asOf`, `ids`, `setColumns`, `run`, `exportIds`, `csv`).
+
+| Endpoint | Who | Actions / notes |
+|---|---|---|
+| `POST /tasks/bulk` (≤ 500) | Ed | set_status, set_priority, set_due, set_event, set_workspace (workspace write), add/remove_assignees, add/remove_tags, done, delete (Family: only tasks they made or are assigned to, else `not_yours`) |
+| `GET /tasks/export?ids=` | Ed | CSV of the chosen tasks |
+| `POST /attachment-links/bulk` (≤ 100) | Adm | `add` (use Vault files in one place; `already_here`) · `remove` (this place only; `not_here`). Files stay in the Vault |
+| `POST /vendors/bulk` (≤ 500) | Ed | set_category, set_booked; delete is Adm only |
+| `GET /vendors/export?ids=` | Ed | agreed / paid / due columns only for money users |
+| `POST /payments/bulk` (≤ 500) | Money | set_category, set_event. No bulk paid, amount or delete |
+| `GET /payments/export?ids=` | Money | CSV of the chosen payments |
+| `GET /households/export?ids=` | Adm | just the chosen families |
+| `GET /members/{id}/access` | Adm | recent log-ins (worked or not), phones (last used, logged out and why), password changes; no IPs or tokens |
+
+Also: members carry `link: {status: none|open|used|expired, sent_at, expires_at, used_at}` (Send a new link = `POST /members/{id}/password-reset {mode: link}`); `POST /vendors` warns `409 duplicate_found` (`match_on: name`) for a vendor name already there (spaces and capitals ignored), `allow_duplicate: true` adds anyway; `GET /vendors?sort=` name · category · -created_at · booked. CSV files are UTF-8 with BOM, CRLF and formula-safe cells; every export is audited. Undo of a batch also takes back link rows the batch created. Full list of routes: `docs/ROUTES.md`.
+
 ### 6.10 History and activity
 
 |Method|Path|Purpose|Who|Request|Response|Errors|

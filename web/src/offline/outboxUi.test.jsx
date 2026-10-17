@@ -169,6 +169,7 @@ describe('Online-only actions', () => {
     fakeApi({ [`GET /tasks/${T1}`]: noNet, 'GET /members': noNet });
     setOnline(false);
     renderAt(`/tasks/${T1}`);
+    await userEvent.setup().click(await screen.findByRole('button', { name: 'More actions' }));
     const del = await screen.findByRole('button', { name: 'Delete' });
     expect(del).toBeDisabled();
     expect(screen.getByText('Needs internet')).toBeInTheDocument();

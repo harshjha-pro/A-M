@@ -8,4 +8,4 @@ import { cleanup } from '@testing-library/react';
 
 expect.extend(axeMatchers);
 afterEach(() => cleanup());
-globalThis.__APP_VERSION__ = '1.0.23';
+globalThis.__APP_VERSION__ = '1.0.24';

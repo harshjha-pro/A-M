@@ -4,6 +4,19 @@ export const strings = {
   appName: 'A&M Wedding',
   appNameStaging: 'A&M Staging',
   version: 'Version {version}',
+  common: { moreActions: 'More actions' },
+  storage: {
+    title: 'Storage',
+    files: 'Vault files: {size}',
+    checked: 'checked {when}',
+    ok: 'Plenty of room. For long videos, a YouTube or Drive link saves space.',
+  },
+  sort: {
+    label: 'Sort',
+    tasks: { default: 'Overdue first', due_date: 'Due date', '-created_at': 'Newest first', title: 'A to Z' },
+    vendors: { name: 'A to Z', category: 'Type', '-created_at': 'Newest first', booked: 'Not booked first' },
+    payments: { due_date: 'Due date', '-paid_on': 'Recently paid', '-amount_paise': 'Biggest first' },
+  },
 
   nav: {
     label: 'Main',

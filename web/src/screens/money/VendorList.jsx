@@ -6,6 +6,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Search, Store, CircleCheck, CheckSquare, Tags, BadgeCheck, Trash2 } from 'lucide-react';
 import SelectBar from '../../components/SelectBar.jsx';
+import SortSelect from '../../components/SortSelect.jsx';
 import BulkActions, { useSelection } from '../../components/BulkActions.jsx';
 import Screen from '../../components/Screen.jsx';
 import AddButton from '../../components/AddButton.jsx';
@@ -24,9 +25,10 @@ export default function VendorList() {
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [q, setQ] = useState('');
+  const [sort, setSort] = useState('name');
   useEffect(() => { const id = setTimeout(() => setQ(search.trim()), 300); return () => clearTimeout(id); }, [search]);
   const qc = useQueryClient();
-  const res = useQuery({ queryKey: ['vendors', q, 'page'], queryFn: () => api('GET', '/vendors', { query: { q, limit: 200 } }) });
+  const res = useQuery({ queryKey: ['vendors', q, 'page', sort], queryFn: () => api('GET', '/vendors', { query: { q, limit: 200, sort: sort === 'name' ? undefined : sort } }) });
   const list = { ...res, data: res.data?.data };
   const sel = useSelection();
   const n = (k) => t('money.bulk.nVendors', { n: formatCount(k) });
@@ -48,13 +50,16 @@ export default function VendorList() {
           className="tap w-full rounded-sm border-[1.5px] border-border-strong bg-surface pl-10 pr-3 text-base text-text" />
       </label>
       {!permissions?.edit && <p className="text-text-muted">{t('money.vendorReadOnly')}</p>}
-      {permissions?.edit && list.data?.length > 0 && (
-        <div className="flex items-center justify-between gap-2">
+      {list.data?.length > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <span className="text-sm text-text-muted">{t('money.bulk.countShown', { n: formatCount(list.data.length), total: formatCount(res.data.meta.total ?? list.data.length) })}</span>
-          <button type="button" aria-pressed={sel.on} onClick={sel.on ? sel.stop : sel.start}
+          <span className="flex items-center gap-2">
+          <SortSelect value={sort} onChange={setSort} options={['name', 'category', '-created_at', 'booked'].map((v) => ({ value: v, label: t(`sort.vendors.${v}`) }))} />
+          {permissions?.edit && <button type="button" aria-pressed={sel.on} onClick={sel.on ? sel.stop : sel.start}
             className={`tap inline-flex items-center gap-2 rounded-full border-[1.5px] px-4 font-bold ${sel.on ? 'glass-blush text-primary' : 'border-border bg-surface'}`}>
             <CheckSquare aria-hidden="true" size={20} /> {sel.on ? t('bulk.done') : t('tasks.select')}
-          </button>
+          </button>}
+          </span>
         </div>
       )}
       {sel.on && (

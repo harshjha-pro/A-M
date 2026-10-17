@@ -131,4 +131,17 @@ final class MoneyBulkTest extends ApiTestCase
         $this->assertStringContainsString('1000.00', $body);
         $this->loginAs('mummy')->get('/payments/export', ['ids' => implode(',', $ids)])->assertStatus(403);
     }
+
+    #[Endpoint('GET /vendors')]
+    public function test_vendor_list_sorts(): void
+    {
+        $c = $this->loginAs('mummy');
+        $names = fn (string $sort) => array_column($c->get('/vendors', ['sort' => $sort])->assertStatus(200)->json('data'), 'name');
+        $this->assertSame(['Rajesh ji Halwai', 'Shree Tent House'], $names('name'));
+        $this->assertSame(['Rajesh ji Halwai', 'Shree Tent House'], $names('category'), 'caterer before tent_decor');
+        $this->assertSame(['Rajesh ji Halwai', 'Shree Tent House'], $names('-created_at'));
+        $this->db()->run('UPDATE vendors SET is_booked = 1 WHERE public_id = ?', [self::HALWAI]);
+        $this->assertSame(['Shree Tent House', 'Rajesh ji Halwai'], $names('booked'), 'not booked first');
+        $c->get('/vendors', ['sort' => 'phone'])->assertStatus(400);
+    }
 }

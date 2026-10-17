@@ -3,13 +3,20 @@
 import { Link } from 'react-router-dom';
 import { CalendarHeart, Users, UserRound, Smartphone, ChevronRight, ShieldCheck, Activity, Trash2, Upload, FileDown, TabletSmartphone, Images } from 'lucide-react';
 import Screen from '../../components/Screen.jsx';
+import { useQuery } from '@tanstack/react-query';
+import StorageCard from '../../components/StorageCard.jsx';
+import { api } from '../../api/client.js';
 import { useSession } from '../../api/session.js';
+import { canSeeWorkspace } from '../../api/workspaceAccess.js';
 import { t } from '../../i18n/strings.en.js';
 
 const VERSION = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0.0.0';
 
 export default function Settings() {
   const { user, permissions } = useSession();
+  // 1.0.24: the storage card for Ayush and Mahi (the Vault reply carries the server's numbers).
+  const store = useQuery({ queryKey: ['storage'], queryFn: () => api('GET', '/attachments', { query: { limit: 1 } }).then((r) => r.meta),
+    enabled: Boolean(permissions?.admin && canSeeWorkspace(permissions)), staleTime: 300_000 });
   const rows = [
     { to: '/settings/wedding', label: 'settings.wedding', Icon: CalendarHeart },
     { to: '/settings/members', label: 'settings.members', Icon: Users },
@@ -38,6 +45,7 @@ export default function Settings() {
           </li>
         ))}
       </ul>
+      {store.data && <StorageCard storage={store.data.storage} checkedAt={store.data.serverTime} />}
       <section className="flex flex-col gap-1 text-text-muted">
         <h2 className="font-bold text-text">{t('settings.about')}</h2>
         {user && <p>{t('settings.signedInAs', { name: user.name })}</p>}

@@ -6,6 +6,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Receipt, TriangleAlert, CalendarX, Paperclip, CheckSquare, Tags, PartyPopper } from 'lucide-react';
 import SelectBar from '../../components/SelectBar.jsx';
+import SortSelect from '../../components/SortSelect.jsx';
 import BulkActions, { useSelection } from '../../components/BulkActions.jsx';
 import Screen from '../../components/Screen.jsx';
 import ChipFilter from '../../components/ChipFilter.jsx';
@@ -53,9 +54,10 @@ export function PaymentRow({ p, sel = null }) {
 export default function PaymentList() {
   const navigate = useNavigate();
   const [status, setStatus] = useState('all');
+  const [sort, setSort] = useState('due_date');
   const list = useInfiniteQuery({
-    queryKey: ['payments', status],
-    queryFn: ({ pageParam }) => api('GET', '/payments', { query: { status: status === 'all' ? undefined : status, cursor: pageParam } }),
+    queryKey: ['payments', status, sort],
+    queryFn: ({ pageParam }) => api('GET', '/payments', { query: { status: status === 'all' ? undefined : status, sort: sort === 'due_date' ? undefined : sort, cursor: pageParam } }),
     initialPageParam: undefined,
     getNextPageParam: (last) => (last.meta.hasMore ? last.meta.nextCursor : undefined),
   });
@@ -90,7 +92,8 @@ export default function PaymentList() {
         </p>
       )}
       {rows.length > 0 && (
-        <div className="flex justify-end">
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <SortSelect value={sort} onChange={setSort} options={['due_date', '-paid_on', '-amount_paise'].map((v) => ({ value: v, label: t(`sort.payments.${v}`) }))} />
           <button type="button" aria-pressed={sel.on} onClick={sel.on ? sel.stop : sel.start}
             className={`tap inline-flex items-center gap-2 rounded-full border-[1.5px] px-4 font-bold ${sel.on ? 'glass-blush text-primary' : 'border-border bg-surface'}`}>
             <CheckSquare aria-hidden="true" size={20} /> {sel.on ? t('bulk.done') : t('tasks.select')}

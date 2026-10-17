@@ -5,6 +5,9 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Circle, CircleCheck, CircleX, ListChecks, TriangleAlert, Sun, Flag, Hourglass, Search, CheckSquare } from 'lucide-react';
 import SelectBar from '../../components/SelectBar.jsx';
+import SortSelect from '../../components/SortSelect.jsx';
+
+const TASK_SORTS = ['default', 'due_date', '-created_at', 'title'];
 import TaskBulkBar from './TaskBulkBar.jsx';
 import Screen from '../../components/Screen.jsx';
 import ChipFilter from '../../components/ChipFilter.jsx';
@@ -96,6 +99,7 @@ export default function TaskList() {
   const defaultView = user?.role === 'family' ? 'mine' : 'all';
   const view = VIEWS.includes(params.get('view')) ? params.get('view') : defaultView;
   const tag = params.get('tag') || '';
+  const sort = TASK_SORTS.includes(params.get('sort')) ? params.get('sort') : 'default';
   const [search, setSearch] = useState(params.get('q') || '');
   const [q, setQ] = useState(search);
   useEffect(() => { const id = setTimeout(() => setQ(search.trim()), 300); return () => clearTimeout(id); }, [search]);
@@ -105,8 +109,8 @@ export default function TaskList() {
   const toggle = (id) => setPicked((p) => { const n = new Set(p); if (n.has(id)) n.delete(id); else n.add(id); return n; });
 
   const list = useInfiniteQuery({
-    queryKey: ['tasks', view, tag, q],
-    queryFn: ({ pageParam }) => api('GET', '/tasks', { query: { view, tag, q, cursor: pageParam } }),
+    queryKey: ['tasks', view, tag, q, sort],
+    queryFn: ({ pageParam }) => api('GET', '/tasks', { query: { view, tag, q, sort: sort === 'default' ? undefined : sort, cursor: pageParam } }),
     initialPageParam: undefined,
     getNextPageParam: (last) => (last.meta.hasMore ? last.meta.nextCursor : undefined),
   });
@@ -138,15 +142,16 @@ export default function TaskList() {
         </label>
       </div>
       {!permissions?.edit && <p className="text-text-muted">{t('tasks.viewerNote')}</p>}
-      {permissions?.edit && (
-        <div className="flex items-center justify-between gap-2">
-          <span className="text-sm text-text-muted">{first?.meta.total != null ? t('tasks.countShown', { n: rows.length, total: first.meta.total }) : ''}</span>
-          <button type="button" aria-pressed={selecting} onClick={() => { setSelecting(!selecting); setPicked(new Set()); }}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <span className="text-sm text-text-muted">{first?.meta.total != null ? t('tasks.countShown', { n: rows.length, total: first.meta.total }) : ''}</span>
+        <span className="flex items-center gap-2">
+          <SortSelect value={sort} onChange={(v) => set('sort', v === 'default' ? '' : v)} options={TASK_SORTS.map((v) => ({ value: v, label: t(`sort.tasks.${v}`) }))} />
+          {permissions?.edit && <button type="button" aria-pressed={selecting} onClick={() => { setSelecting(!selecting); setPicked(new Set()); }}
             className={`tap inline-flex items-center gap-2 rounded-full border-[1.5px] px-4 font-bold ${selecting ? 'glass-blush text-primary' : 'border-border bg-surface'}`}>
             <CheckSquare aria-hidden="true" size={20} /> {selecting ? t('bulk.done') : t('tasks.select')}
-          </button>
-        </div>
-      )}
+          </button>}
+        </span>
+      </div>
       {selecting && (
         <SelectBar count={picked.size} visible={rows.length} onSelectVisible={() => setPicked(new Set(rows.map((r) => r.id)))} onClear={() => setPicked(new Set())}>
           <TaskBulkBar ids={[...picked]} asOf={first?.meta.serverTime} permissions={permissions}

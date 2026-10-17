@@ -202,6 +202,17 @@ describe('Many files and the Vault (1.0.24)', () => {
   });
 });
 
+describe('Storage health (1.0.24)', () => {
+  test('near the limit: a warning with what to do, on the Vault and in Settings', async () => {
+    signInAs('ayush');
+    fakeApi({ 'GET /attachments': () => page([], { server_time: '2026-10-08T09:12:31Z', storage: { database_bytes: 2800000000, vault_bytes: 2500000000, limit_bytes: 3221225472, warn: true } }), 'GET /workspaces': () => ok([]) });
+    renderAt('/vault');
+    expect(await screen.findByRole('alert')).toHaveTextContent('nearly full');
+    expect(screen.getByRole('meter', { name: 'Storage' })).toHaveAttribute('aria-valuenow', '87');
+    expect(screen.getByText(/checked/)).toBeInTheDocument();
+  });
+});
+
 describe('Attachment Vault', () => {
   test('list with where it is used, storage, and filters as query', async () => {
     signInAs('ayush');
@@ -213,6 +224,7 @@ describe('Attachment Vault', () => {
     expect(row).toHaveTextContent('MEHNDI-DECOR-01');
     expect(row).toHaveTextContent('Mehndi › Files');
     expect(screen.getByText('Database 50 MB of 3 GB')).toBeInTheDocument();
+    expect(screen.getByRole('meter', { name: 'Storage' })).toHaveAttribute('aria-valuenow', '2');
     expect(await axe(container)).toHaveNoViolations();
     await user.click(screen.getByRole('radio', { name: 'Video' }));
     await user.click(screen.getByRole('radio', { name: /Favourites/ }));

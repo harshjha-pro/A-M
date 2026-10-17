@@ -5,6 +5,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { History, Pencil, Phone, Trash2 } from 'lucide-react';
 import Screen from '../../components/Screen.jsx';
 import Button from '../../components/Button.jsx';
+import OverflowMenu from '../../components/OverflowMenu.jsx';
 import WhatsAppButton from '../../components/WhatsAppButton.jsx';
 import { Notice } from '../../components/Field.jsx';
 import { api, newIdemKey } from '../../api/client.js';
@@ -75,9 +76,11 @@ export default function VendorDetail() {
       )}
       <DocumentsSection link={{ vendor: id }} linkLabel={v.name} defaultType="contract" />
       <div className="flex flex-col gap-3">
-        <Link to={`/history/vendors/${id}`} className="tap inline-flex items-center justify-center gap-2 font-bold text-primary"><History aria-hidden="true" size={20} />{t('money.history')}</Link>
         {permissions?.edit && <Button variant="secondary" onClick={() => navigate(`/vendors/${id}/edit`)}><Pencil aria-hidden="true" size={20} />{t('money.edit')}</Button>}
-        {permissions?.admin && <Button needsInternet variant="danger" onClick={remove}><Trash2 aria-hidden="true" size={20} />{t('money.deleteVendor')}</Button>}
+        <OverflowMenu>
+          <Link to={`/history/vendors/${id}`} className="tap inline-flex items-center justify-center gap-2 font-bold text-primary"><History aria-hidden="true" size={20} />{t('money.history')}</Link>
+          {permissions?.admin && <Button needsInternet variant="danger" onClick={remove}><Trash2 aria-hidden="true" size={20} />{t('money.deleteVendor')}</Button>}
+        </OverflowMenu>
       </div>
     </Screen>
   );

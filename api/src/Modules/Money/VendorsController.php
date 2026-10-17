@@ -43,15 +43,15 @@ final class VendorsController
             }
             $where[] = 'is_booked = ' . ($q['booked'] === 'true' ? '1' : '0');
         }
-        if (($q['sort'] ?? 'name') !== 'name') {
-            throw HttpError::make(400, 'bad_request');
-        }
+        // 1.0.24: name (default) · type · newest first · not booked first
+        $orders = ['name' => 'name, id', 'category' => 'category, name, id', '-created_at' => 'id DESC', 'booked' => 'is_booked, name, id'];
+        $order = $orders[$q['sort'] ?? 'name'] ?? throw HttpError::make(400, 'bad_request');
         $cursor = new Cursor('vendors', array_diff_key($q, ['cursor' => 1, 'limit' => 1]));
         $limit = Cursor::limit($request);
         $offset = $cursor->offset($request);
         $take = $limit + 1;
         $base = 'FROM vendors WHERE ' . implode(' AND ', $where);
-        $rows = $db->all("SELECT * $base ORDER BY name, id LIMIT $take OFFSET $offset", $args);
+        $rows = $db->all("SELECT * $base ORDER BY $order LIMIT $take OFFSET $offset", $args);
         [$rows, $meta] = $cursor->pageOffset($rows, $limit, $offset);
         $meta['total'] = (int) $db->value("SELECT COUNT(*) $base", $args);
         $refs = new Refs($db, $app->clock->todayIst());

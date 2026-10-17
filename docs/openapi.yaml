@@ -2471,7 +2471,7 @@ paths:
         - { $ref: '#/components/parameters/Q' }
         - { name: category, in: query, schema: { $ref: '#/components/schemas/VendorCategory' } }
         - { name: booked, in: query, schema: { type: boolean } }
-        - { name: sort, in: query, schema: { type: string, enum: [name, -created_at] } }
+        - { name: sort, in: query, schema: { type: string, enum: [name, category, -created_at, booked] } }
         - { $ref: '#/components/parameters/Limit' }
         - { $ref: '#/components/parameters/Cursor' }
       responses:

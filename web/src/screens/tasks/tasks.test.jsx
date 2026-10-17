@@ -126,6 +126,27 @@ describe('Task select mode (1.0.24)', () => {
   });
 });
 
+describe('Sort and More actions (1.0.24)', () => {
+  test('Sort → Due date asks the server for sort=due_date; the task page keeps History and Delete under More actions', async () => {
+    signInAs('ayush');
+    const user = userEvent.setup();
+    const calls = fakeApi({ 'GET /tasks': () => listReply([task()]), 'GET /tags': () => ok([]), 'GET /tasks/{id}': () => ok(full()), 'GET /members': () => ok(members) });
+    renderAt('/tasks');
+    expect(await screen.findByText('1 of 1 shown')).toBeInTheDocument();
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Sort' }), 'Due date');
+    await vi.waitFor(() => expect(calls.mock.calls.some(([u]) => u.startsWith('/api/v1/tasks?') && u.includes('sort=due_date'))).toBe(true));
+
+    renderAt(`/tasks/${T1}`);
+    const more = await screen.findByRole('button', { name: 'More actions' });
+    expect(screen.queryByRole('link', { name: 'History' })).toBeNull();
+    await user.click(more);
+    expect(more).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByRole('link', { name: 'History' })).toHaveAttribute('href', `/history/tasks/${T1}`);
+    await user.keyboard('{Escape}');
+    expect(screen.queryByRole('link', { name: 'History' })).toBeNull();
+  });
+});
+
 describe('Add a task', () => {
   test('AC-TASK-01: + → type → Save sends only the title, once', async () => {
     signInAs('mahi');
@@ -238,6 +259,7 @@ describe('Task detail', () => {
       'GET /tasks': () => listReply([]),
     });
     const { router } = renderAt(`/tasks/${T1}`);
+    await user.click(await screen.findByRole('button', { name: 'More actions' }));
     await user.click(await screen.findByRole('button', { name: 'Delete' }));
     expect(await screen.findByText('Deleted Book tent wala')).toBeInTheDocument();
     expect(router.state.location.pathname).toBe('/tasks');
