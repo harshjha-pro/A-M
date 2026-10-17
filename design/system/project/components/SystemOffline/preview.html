@@ -1,0 +1,4 @@
+<!-- @dsCard group="12 · System states" page height=1034 width=1744 subtitle="Offline & sync \u00b7 Not found" -->
+<div id="root"></div>
+<script>const h=React.createElement;const row=(...k)=>h('div',{style:{display:'flex',gap:12,flexWrap:'wrap',alignItems:'center'}},...k);const col=(...k)=>h('div',{style:{display:'flex',flexDirection:'column',gap:14,maxWidth:420}},...k);
+ReactDOM.createRoot(document.getElementById("root")).render(h(AM.FrameRow,{title:"Offline & sync \u00b7 Not found",note:"You\u2019re offline with items waiting, sending, all caught up; unknown route."},h(AM.Screens.OfflineSync),h(AM.Screens.OfflineSync,{state:'syncing'}),h(AM.Screens.OfflineSync,{state:'done'}),h(AM.Screens.NotFound)));</script>

@@ -1,0 +1,129 @@
+{
+ "v": 3,
+ "layout": "files",
+ "createdOnFiles": {
+  "v": 1,
+  "at": "2026-10-17T05:29:22Z"
+ },
+ "title": "A&M Wedding Planner",
+ "namespace": "AM",
+ "libraries": [
+  {
+   "name": "react",
+   "version": "18"
+  },
+  {
+   "name": "react-dom",
+   "version": "18"
+  }
+ ],
+ "sections": {},
+ "groups": [
+  "Photography"
+ ],
+ "assetGroups": {
+  "Photography": {
+   "name": "Photography",
+   "tile": "m",
+   "order": [
+    "hero-golden-hour.jpg",
+    "engagement-blush.jpg",
+    "mehndi-garden.jpg",
+    "night-lights.jpg",
+    "champagne-drapes.jpg",
+    "reception-candlelight.jpg",
+    "marigold-phere.jpg",
+    "rose-petals.jpg",
+    "lehenga-burgundy.jpg",
+    "sherwani-ivory.jpg",
+    "feast-table.jpg",
+    "stage-florals.jpg"
+   ],
+   "files": {
+    "hero-golden-hour.jpg": {
+     "name": "hero-golden-hour.jpg",
+     "blob": "be37d1ab36cf7b54988b9485a35890ad",
+     "size": 77802,
+     "type": "image/jpeg"
+    },
+    "engagement-blush.jpg": {
+     "name": "engagement-blush.jpg",
+     "blob": "757187117e788780c5f7070ae2ec0d70",
+     "size": 58444,
+     "type": "image/jpeg"
+    },
+    "mehndi-garden.jpg": {
+     "name": "mehndi-garden.jpg",
+     "blob": "9de5a270ad5f971e8b73ad814421f247",
+     "size": 66701,
+     "type": "image/jpeg"
+    },
+    "night-lights.jpg": {
+     "name": "night-lights.jpg",
+     "blob": "3b248fd425b89ca76739151a7e07f4e0",
+     "size": 47581,
+     "type": "image/jpeg"
+    },
+    "champagne-drapes.jpg": {
+     "name": "champagne-drapes.jpg",
+     "blob": "fa0e140870c1c0db584fef5f2576bbf0",
+     "size": 60062,
+     "type": "image/jpeg"
+    },
+    "reception-candlelight.jpg": {
+     "name": "reception-candlelight.jpg",
+     "blob": "8f7542ccaab480c8b193d1870df66a38",
+     "size": 53217,
+     "type": "image/jpeg"
+    },
+    "marigold-phere.jpg": {
+     "name": "marigold-phere.jpg",
+     "blob": "709f456b3b889885872e96b98b177694",
+     "size": 63160,
+     "type": "image/jpeg"
+    },
+    "rose-petals.jpg": {
+     "name": "rose-petals.jpg",
+     "blob": "26d2824a5620840de3eb3bba800e7cce",
+     "size": 90430,
+     "type": "image/jpeg"
+    },
+    "lehenga-burgundy.jpg": {
+     "name": "lehenga-burgundy.jpg",
+     "blob": "fb0b96d299708ba23a00f4e69778fbdb",
+     "size": 48178,
+     "type": "image/jpeg"
+    },
+    "sherwani-ivory.jpg": {
+     "name": "sherwani-ivory.jpg",
+     "blob": "6f02b499f39b3dfb71a065b85907f1fe",
+     "size": 46314,
+     "type": "image/jpeg"
+    },
+    "feast-table.jpg": {
+     "name": "feast-table.jpg",
+     "blob": "5e09a094dfc57f46a832ebdac998c315",
+     "size": 54005,
+     "type": "image/jpeg"
+    },
+    "stage-florals.jpg": {
+     "name": "stage-florals.jpg",
+     "blob": "bf6ea66621985e15a3e97cfbac4d4d83",
+     "size": 86815,
+     "type": "image/jpeg"
+    }
+   }
+  }
+ },
+ "blobs": {},
+ "docs": {
+  "readme": "project/README.md",
+  "sections": []
+ },
+ "lastChange": {
+  "by": "Claude",
+  "at": "2026-10-17T05:29:22Z",
+  "via": "Claude Code",
+  "note": "A&M redesign: tokens, 41 components, 44 screen pages, prototype"
+ }
+}

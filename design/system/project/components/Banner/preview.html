@@ -1,0 +1,4 @@
+<!-- @dsCard group="Feedback" height=330 -->
+<div id="root" class="am-root" style="padding:16px;background:var(--bg);color:var(--text)"></div>
+<script>const h=React.createElement;const row=(...k)=>h('div',{style:{display:'flex',gap:12,flexWrap:'wrap',alignItems:'center'}},...k);const col=(...k)=>h('div',{style:{display:'flex',flexDirection:'column',gap:14,maxWidth:420}},...k);
+ReactDOM.createRoot(document.getElementById("root")).render(h(React.Fragment,null,col(h(AM.Banner,{tone:'offline',title:'No internet.'},'Money, events and imports need internet.'),h(AM.Banner,{tone:'waiting',title:'3 changes waiting to send.',action:'Send now'}),h(AM.Banner,{tone:'error',title:'Couldn’t save.',action:'Try again'},'Your typing is still here.'),h(AM.Banner,{tone:'update',title:'New version available.',action:'Refresh'}))));</script>
