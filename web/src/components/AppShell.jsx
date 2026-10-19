@@ -29,9 +29,8 @@ export default function AppShell() {
   const [searchParams] = useSearchParams();
 
   const isStandaloneWelcome = location.pathname === '/welcome';
-  // Show the royal loading screen for at least 2 seconds on initial mount and every page change
-  const [pageLoading, setPageLoading] = useState(!isTest);
-  const currentPathRef = useRef(location.pathname);
+  // Show the royal loading screen on initial app open (splash screen)
+  const [splashLoading, setSplashLoading] = useState(!isTest);
 
   useEffect(() => {
     askToKeepData();
@@ -42,35 +41,32 @@ export default function AppShell() {
   // Send what's waiting on the phone (PWA §5.2): now, back online, back in front, every 60 s.
   useEffect(() => (user?.id ? startOutboxLoop() : undefined), [user?.id]);
 
-  // Initial load timer: at least 2 seconds
+  // Initial splash screen timer: 2 seconds on app open
   useEffect(() => {
     if (isTest) return undefined;
     const timer = setTimeout(() => {
-      setPageLoading(false);
+      setSplashLoading(false);
     }, 2000);
     return () => clearTimeout(timer);
   }, [isTest]);
 
-  // Page change timer: at least 2 seconds whenever pathname changes
+  // Scroll to top on page navigation without triggering buffering/loading screens
   useEffect(() => {
     if (isTest) return undefined;
-    if (currentPathRef.current !== location.pathname) {
-      currentPathRef.current = location.pathname;
-      window.scrollTo(0, 0);
-      setPageLoading(true);
-      const timer = setTimeout(() => {
-        setPageLoading(false);
-      }, 2000);
-      return () => clearTimeout(timer);
+    if (typeof window !== 'undefined' && typeof window.scrollTo === 'function') {
+      try {
+        window.scrollTo(0, 0);
+      } catch {
+        /* jsdom stub */
+      }
     }
   }, [location.pathname, isTest]);
 
   if (isStandaloneWelcome) {
     return (
       <div className="min-h-dvh bg-[#FBF5ED]">
-        {pageLoading && (
+        {splashLoading && (
           <LoadingScreen
-            key={location.pathname}
             fullScreen
             fadeOut
             duration={2000}
@@ -85,9 +81,8 @@ export default function AppShell() {
 
   return (
     <div className="min-h-dvh bg-bg">
-      {pageLoading && (
+      {splashLoading && (
         <LoadingScreen
-          key={location.pathname}
           fullScreen
           fadeOut
           duration={2000}
