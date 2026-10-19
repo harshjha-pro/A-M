@@ -43,47 +43,16 @@ export function CoverCarousel({ covers = [], monogram = null, overlay = null, na
 
   return (
     <section
-      className="relative h-[85dvh] min-h-[580px] sm:h-[85vh] sm:min-h-[640px] w-full overflow-hidden bg-bg sm:rounded-3xl"
+      className="relative flex flex-col justify-between h-[calc(100dvh-5rem)] max-h-[85dvh] min-h-[520px] sm:h-[85vh] sm:max-h-[860px] w-full overflow-hidden bg-bg"
       aria-roledescription="carousel"
       aria-label={t('home.coverPhotos')}
     >
-      {/* Full-bleed Carousel / Photo Area taking the whole 85% screen */}
-      {n === 0 ? (
-        <div className="absolute inset-0 flex h-full w-full flex-col items-center justify-center bg-gradient-to-br from-primary-soft to-surface-2" data-testid="cover-placeholder">
-          <span className="sr-only">Ayush &amp; Mahi</span>
-        </div>
-      ) : (
-        <div className="absolute inset-0 h-full w-full overflow-hidden">
-          <div
-            ref={track}
-            onScroll={onScroll}
-            className="no-scrollbar flex h-full w-full snap-x snap-mandatory overflow-x-auto"
-            tabIndex={0}
-            aria-live="off"
-          >
-            {covers.map((p, i) => (
-              <img
-                key={p.id}
-                src={p.url}
-                alt={t('home.coverN', { n: i + 1, total: n })}
-                width={p.widthPx || 1600}
-                height={p.heightPx || 1200}
-                loading={i === 0 ? 'eager' : 'lazy'}
-                fetchpriority={i === 0 ? 'high' : undefined}
-                decoding="async"
-                className="h-full w-full shrink-0 snap-center object-cover object-center"
-              />
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Top Header Bar floating over the photo */}
-      <div className="absolute top-0 inset-x-0 z-20 flex w-full items-center justify-between px-4 pt-[calc(0.75rem+env(safe-area-inset-top))] bg-gradient-to-b from-[#FBF7F0]/70 via-[#FBF7F0]/25 to-transparent pb-8">
+      {/* Top Header Bar */}
+      <div className="z-20 flex w-full items-center justify-between px-4 pt-[calc(0.75rem+env(safe-area-inset-top))]">
         <Link
           to="/more"
           aria-label={t('home.menu')}
-          className="tap grid size-11 place-items-center rounded-full bg-white/85 backdrop-blur-md border border-white/60 shadow-xs text-[#861C32] transition hover:bg-white active:scale-95"
+          className="tap grid size-11 place-items-center rounded-full bg-white/85 border border-white/60 shadow-xs text-[#861C32] transition hover:bg-white active:scale-95"
         >
           <Menu aria-hidden="true" size={20} strokeWidth={2.2} />
         </Link>
@@ -92,14 +61,14 @@ export function CoverCarousel({ covers = [], monogram = null, overlay = null, na
             src="/art/loading-monogram.png"
             alt=""
             aria-hidden="true"
-            className="h-10 sm:h-12 w-auto object-contain drop-shadow-2xs"
+            className="h-10 sm:h-12 w-auto object-contain"
           />
-          <span className="mt-0.5 text-[0.62rem] sm:text-[0.68rem] font-bold tracking-[0.22em] text-[#C7A16A] uppercase drop-shadow-2xs">
+          <span className="mt-0.5 text-[0.62rem] sm:text-[0.68rem] font-bold tracking-[0.22em] text-[#C7A16A] uppercase">
             {t('home.logoSub')}
           </span>
         </h1>
         <div
-          className="pointer-events-none relative grid size-11 place-items-center rounded-full bg-white/85 backdrop-blur-md border border-white/60 shadow-xs"
+          className="pointer-events-none relative grid size-11 place-items-center rounded-full bg-white/85 border border-white/60 shadow-xs"
           data-testid="monogram"
         >
           {monogram ? (
@@ -120,30 +89,59 @@ export function CoverCarousel({ covers = [], monogram = null, overlay = null, na
         </div>
       </div>
 
-      {/* Bottom Typography & Countdown Block OVERLAPPING ON THE IMAGE */}
-      <div className="absolute inset-x-0 bottom-0 z-10 flex w-full flex-col items-center px-4 pt-16 pb-4 sm:pb-6 text-center bg-gradient-to-t from-[#FBF7F0] via-[#FBF7F0]/92 via-55% to-transparent">
-        {/* Slide Indicators right above greeting */}
-        {n > 1 && (
-          <div className="flex justify-center gap-1.5 mb-2">
+      {/* Middle: Carousel / Photo Area */}
+      {n === 0 ? (
+        <div className="flex flex-1 w-full flex-col items-center justify-center bg-transparent" data-testid="cover-placeholder">
+          <span className="sr-only">Ayush &amp; Mahi</span>
+        </div>
+      ) : (
+        <div className="relative flex-1 w-full overflow-hidden my-auto min-h-[220px]">
+          <div
+            ref={track}
+            onScroll={onScroll}
+            className="no-scrollbar flex h-full w-full snap-x snap-mandatory overflow-x-auto"
+            tabIndex={0}
+            aria-live="off"
+          >
             {covers.map((p, i) => (
-              <button
+              <img
                 key={p.id}
-                type="button"
-                onClick={() => go(i)}
-                aria-label={t('home.coverN', { n: i + 1, total: n })}
-                aria-current={i === index || undefined}
-                className="grid h-6 w-6 place-items-center"
-              >
-                <span
-                  className={`block h-1.5 rounded-full transition-all shadow-xs ${
-                    i === index ? 'w-5 bg-[#861C32]' : 'w-1.5 bg-[#861C32]/40'
-                  }`}
-                />
-              </button>
+                src={p.url}
+                alt={t('home.coverN', { n: i + 1, total: n })}
+                width={p.widthPx || 1600}
+                height={p.heightPx || 1200}
+                loading={i === 0 ? 'eager' : 'lazy'}
+                fetchpriority={i === 0 ? 'high' : undefined}
+                decoding="async"
+                className="h-full w-full shrink-0 snap-center object-cover"
+              />
             ))}
           </div>
-        )}
+          {n > 1 && (
+            <div className="absolute inset-x-0 bottom-2 flex justify-center gap-1.5 z-10">
+              {covers.map((p, i) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => go(i)}
+                  aria-label={t('home.coverN', { n: i + 1, total: n })}
+                  aria-current={i === index || undefined}
+                  className="grid h-6 w-6 place-items-center"
+                >
+                  <span
+                    className={`block h-1.5 rounded-full transition-all ${
+                      i === index ? 'w-5 bg-[#861C32]' : 'w-1.5 bg-[#861C32]/40'
+                    }`}
+                  />
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
+      {/* Bottom Typography & Countdown Block */}
+      <div className="z-10 flex w-full flex-col items-center px-4 pb-4 sm:pb-6 text-center">
         {name && (
           <p className="text-[0.72rem] sm:text-xs font-bold uppercase tracking-[0.24em] text-[#C7A16A]">
             {t('home.hello', { name })}

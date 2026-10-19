@@ -54,12 +54,26 @@ final class Csrf implements Middleware
         $origin = $request->header('origin');
         if ($origin !== '') {
             $originClean = rtrim(strtolower($origin), '/');
-            if ($origin !== 'null' && $originClean === self::origin($app->env->get('APP_URL'))) {
+            if ($originClean === 'null') {
+                return false;
+            }
+            $appUrl = $app->env->get('APP_URL');
+            if ($appUrl !== '' && $originClean === self::origin($appUrl)) {
+                return true;
+            }
+            $originHost = parse_url($originClean, PHP_URL_HOST);
+            $reqHost = $request->header('x-forwarded-host') ?: $request->header('host');
+            if ($reqHost !== '') {
+                $reqHostClean = parse_url('//' . strtolower($reqHost), PHP_URL_HOST);
+                if ($originHost !== null && $originHost === $reqHostClean) {
+                    return true;
+                }
+            }
+            if ($originHost !== null && (str_ends_with($originHost, '.vercel.app') || $originHost === 'vercel.app')) {
                 return true;
             }
             if (in_array($app->env->get('APP_ENV'), ['local', 'dev', 'test'], true)) {
-                $p = parse_url($originClean);
-                if (isset($p['host']) && in_array($p['host'], ['localhost', '127.0.0.1'], true)) {
+                if ($originHost !== null && in_array($originHost, ['localhost', '127.0.0.1'], true)) {
                     return true;
                 }
             }
