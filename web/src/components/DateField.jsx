@@ -39,12 +39,12 @@ export default function DateField({ label, value, onChange, error }) {
     `tap flex items-center justify-center gap-2 rounded-2xl py-3 px-3 text-sm font-semibold border transition-all ${
       active
         ? 'bg-[#861C32] text-white font-bold border-[#861C32] shadow-xs'
-        : 'bg-white dark:bg-stone-900 border-stone-200/90 dark:border-white/10 text-stone-700 dark:text-stone-300 hover:border-stone-400'
+        : 'bg-white border-stone-200/90 text-stone-700 hover:border-stone-400'
     }`;
 
   return (
     <fieldset className="flex flex-col gap-2.5">
-      <legend className="mb-0.5 font-bold text-stone-900 dark:text-stone-100 text-sm sm:text-base">{label}</legend>
+      <legend className="mb-0.5 font-bold text-stone-900 text-sm sm:text-base">{label}</legend>
       <div className="grid grid-cols-2 gap-2.5">
         <button
           type="button"
@@ -52,7 +52,7 @@ export default function DateField({ label, value, onChange, error }) {
           onClick={() => { setPicking(false); onChange(today); }}
           className={btnClass(chosen === 'today')}
         >
-          <CalendarDays size={16} className={chosen === 'today' ? 'text-white' : 'text-stone-500 dark:text-stone-400'} />
+          <CalendarDays size={16} className={chosen === 'today' ? 'text-white' : 'text-stone-500'} />
           <span>{t('tasks.today')}</span>
         </button>
         <button
@@ -61,7 +61,7 @@ export default function DateField({ label, value, onChange, error }) {
           onClick={() => { setPicking(false); onChange(addDays(today, 1)); }}
           className={btnClass(chosen === 'tomorrow')}
         >
-          <CalendarDays size={16} className={chosen === 'tomorrow' ? 'text-white' : 'text-stone-500 dark:text-stone-400'} />
+          <CalendarDays size={16} className={chosen === 'tomorrow' ? 'text-white' : 'text-stone-500'} />
           <span>{t('tasks.tomorrow')}</span>
         </button>
         <button
@@ -70,7 +70,7 @@ export default function DateField({ label, value, onChange, error }) {
           onClick={() => { setPicking(false); onChange(endOfWeek(today)); }}
           className={btnClass(chosen === 'week')}
         >
-          <CalendarDays size={16} className={chosen === 'week' ? 'text-white' : 'text-stone-500 dark:text-stone-400'} />
+          <CalendarDays size={16} className={chosen === 'week' ? 'text-white' : 'text-stone-500'} />
           <span>{t('tasks.thisWeek')}</span>
         </button>
         <button
@@ -79,7 +79,7 @@ export default function DateField({ label, value, onChange, error }) {
           onClick={() => setPicking(!picking)}
           className={btnClass(chosen === 'pick')}
         >
-          <CalendarDays size={16} className={chosen === 'pick' ? 'text-white' : 'text-stone-500 dark:text-stone-400'} />
+          <CalendarDays size={16} className={chosen === 'pick' ? 'text-white' : 'text-stone-500'} />
           <span>{t('tasks.pickDate')}</span>
         </button>
       </div>
@@ -90,11 +90,11 @@ export default function DateField({ label, value, onChange, error }) {
         onClick={() => { setPicking(false); onChange(''); }}
         className={`tap w-full flex items-center justify-center gap-2 rounded-2xl py-3 px-4 text-sm font-semibold border transition-all ${
           chosen === 'none'
-            ? 'border-rose-200/90 dark:border-rose-900/60 bg-[#FDF2F2] dark:bg-rose-950/30 text-[#861C32] dark:text-[#F2A7AF] font-bold shadow-2xs'
-            : 'bg-white dark:bg-stone-900 border-stone-200/90 dark:border-white/10 text-stone-700 dark:text-stone-300 hover:border-stone-400'
+            ? 'border-rose-200/90 bg-[#FDF2F2] text-[#861C32] font-bold shadow-2xs'
+            : 'bg-white border-stone-200/90 text-stone-700 hover:border-stone-400'
         }`}
       >
-        <Timer size={16} className={chosen === 'none' ? 'text-[#861C32] dark:text-[#F2A7AF]' : 'text-stone-400'} />
+        <Timer size={16} className={chosen === 'none' ? 'text-[#861C32]' : 'text-stone-400'} />
         <span>{t('tasks.noDate')}</span>
       </button>
 
@@ -106,12 +106,12 @@ export default function DateField({ label, value, onChange, error }) {
             type="date"
             value={value || ''}
             onChange={(e) => onChange(e.target.value)}
-            className="tap w-full rounded-2xl border border-stone-200/90 dark:border-white/10 bg-white dark:bg-stone-900/60 px-4 py-2.5 text-sm text-stone-900 dark:text-stone-100 shadow-2xs focus:outline-none focus:ring-2 focus:ring-[#861C32]/30"
+            className="tap w-full rounded-2xl border border-stone-200/90 bg-white px-4 py-2.5 text-sm text-stone-900 shadow-2xs focus:outline-none focus:ring-2 focus:ring-[#861C32]/30"
           />
         </label>
       )}
-      {value && <p className="text-xs font-medium text-stone-500 dark:text-stone-400">{formatDateOnly(value)}</p>}
-      {error && <p className="text-xs font-semibold text-rose-600 dark:text-rose-400">{error}</p>}
+      {value && <p className="text-xs font-medium text-stone-500">{formatDateOnly(value)}</p>}
+      {error && <p className="text-xs font-semibold text-rose-600">{error}</p>}
     </fieldset>
   );
 }

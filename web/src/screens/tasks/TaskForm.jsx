@@ -172,7 +172,7 @@ export default function TaskForm() {
           if (!v.title.trim()) { f.setFieldErrors({ title: t('tasks.titleRequired') }); return; }
           f.submit(e);
         }}
-        className="flex flex-col gap-6 rounded-t-3xl bg-[#FFFDFB] dark:bg-stone-900 border border-stone-200/60 dark:border-white/10 p-4 sm:p-6 -mt-6 relative z-10 shadow-sm"
+        className="flex flex-col gap-6 rounded-t-3xl bg-[#FFFDFB] border border-stone-200/60 p-4 sm:p-6 -mt-6 relative z-10 shadow-sm"
         noValidate
       >
         {f.draft && <DraftBanner time={f.draftTime} onUse={f.useDraft} onDiscard={f.discardDraft} />}
@@ -180,7 +180,7 @@ export default function TaskForm() {
         {f.deleted && <Notice kind="warning">{f.deleted.message}</Notice>}
         {dup && (
           <div role="alert" className="flex flex-col gap-3 rounded-2xl bg-warning-soft p-4 border border-amber-300/60 shadow-xs">
-            <p className="font-medium text-stone-800 dark:text-stone-200">{t('tasks.similar', { title: dup.name })}</p>
+            <p className="font-medium text-stone-800">{t('tasks.similar', { title: dup.name })}</p>
             <div className="flex gap-3">
               {dup.id && <Button variant="secondary" className="flex-1 rounded-full" onClick={() => navigate(`/tasks/${dup.id}`)}>{t('tasks.open')}</Button>}
               <Button className="flex-1 rounded-full bg-[#861C32] text-white" onClick={() => { allowDup.current = true; setDup(null); f.submit(); }}>{t('tasks.addAnyway')}</Button>
@@ -223,7 +223,7 @@ export default function TaskForm() {
         {activeMembers.length > 0 && (
           <MultiChips
             label={t('tasks.assignees')}
-            legendClass="text-[#861C32] dark:text-[#F2A7AF] font-bold text-sm sm:text-base"
+            legendClass="text-[#861C32] font-bold text-sm sm:text-base"
             options={activeMembers.map((m) => ({ value: m.id, label: m.id === user?.id ? `${m.name} (me)` : m.name }))}
             value={v.assigneeIds}
             onChange={f.set('assigneeIds')}
@@ -232,24 +232,24 @@ export default function TaskForm() {
         )}
 
         {/* 5. More details Accordion */}
-        <details className="group overflow-hidden rounded-2xl border border-stone-200/80 dark:border-white/10 shadow-xs" open={Boolean(id || presetEvent || presetWorkspace)}>
+        <details className="group overflow-hidden rounded-2xl border border-stone-200/80 shadow-xs" open={Boolean(id || presetEvent || presetWorkspace)}>
           <summary className="tap cursor-pointer select-none bg-[#861C32] px-4 py-3.5 font-bold text-white flex items-center gap-2 list-none hover:bg-[#771529] transition-colors">
             <ChevronDown aria-hidden="true" size={20} className="transition-transform group-open:rotate-180" />
             <span>{t('tasks.moreDetails')}</span>
           </summary>
-          <div className="flex flex-col gap-5 p-4 sm:p-5 bg-white/95 dark:bg-stone-900/90">
+          <div className="flex flex-col gap-5 p-4 sm:p-5 bg-white/95">
             {v.dueDate && <TextField type="time" label={t('tasks.time')} value={v.dueTime} onChange={f.set('dueTime')} error={errors.dueTime} />}
             
             {/* Event (optional) */}
             {(events.data ?? []).length > 0 && (
               <div className="flex items-start gap-3">
-                <CalendarDays aria-hidden="true" size={20} className="text-[#861C32] dark:text-[#F2A7AF] mt-2.5 shrink-0" strokeWidth={2.2} />
+                <CalendarDays aria-hidden="true" size={20} className="text-[#861C32] mt-2.5 shrink-0" strokeWidth={2.2} />
                 <label className="flex flex-1 flex-col gap-1.5">
-                  <span className="font-bold text-stone-900 dark:text-stone-100 text-sm">{t('tasks.eventLabel')}</span>
+                  <span className="font-bold text-stone-900 text-sm">{t('tasks.eventLabel')}</span>
                   <select
                     value={v.eventId}
                     onChange={(e) => f.set('eventId')(e.target.value)}
-                    className="tap w-full rounded-2xl border border-stone-200/90 dark:border-white/10 bg-white/95 dark:bg-stone-900/60 px-4 py-2.5 text-sm text-stone-900 dark:text-stone-100 shadow-2xs focus:outline-none focus:ring-2 focus:ring-[#861C32]/30"
+                    className="tap w-full rounded-2xl border border-stone-200/90 bg-white/95 px-4 py-2.5 text-sm text-stone-900 shadow-2xs focus:outline-none focus:ring-2 focus:ring-[#861C32]/30"
                   >
                     <option value="">{t('tasks.noEvent')}</option>
                     {events.data.map((ev) => <option key={ev.id} value={ev.id}>{ev.name}</option>)}
@@ -261,13 +261,13 @@ export default function TaskForm() {
             {/* Workspace */}
             {canEditWorkspace(permissions) && (workspaces.data ?? []).length > 0 && (
               <div className="flex items-start gap-3">
-                <Folder aria-hidden="true" size={20} className="text-[#861C32] dark:text-[#F2A7AF] mt-2.5 shrink-0" strokeWidth={2.2} />
+                <Folder aria-hidden="true" size={20} className="text-[#861C32] mt-2.5 shrink-0" strokeWidth={2.2} />
                 <label className="flex flex-1 flex-col gap-1.5">
-                  <span className="font-bold text-stone-900 dark:text-stone-100 text-sm">{t('nav.workspace')}</span>
+                  <span className="font-bold text-stone-900 text-sm">{t('nav.workspace')}</span>
                   <select
                     value={v.workspaceId}
                     onChange={(e) => f.set('workspaceId')(e.target.value)}
-                    className="tap w-full rounded-2xl border border-stone-200/90 dark:border-white/10 bg-white/95 dark:bg-stone-900/60 px-4 py-2.5 text-sm text-stone-900 dark:text-stone-100 shadow-2xs focus:outline-none focus:ring-2 focus:ring-[#861C32]/30"
+                    className="tap w-full rounded-2xl border border-stone-200/90 bg-white/95 px-4 py-2.5 text-sm text-stone-900 shadow-2xs focus:outline-none focus:ring-2 focus:ring-[#861C32]/30"
                   >
                     <option value="">{t('workspace.noEvent')}</option>
                     {workspaces.data.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}
@@ -278,7 +278,7 @@ export default function TaskForm() {
 
             {/* Priority */}
             <div className="flex items-start gap-3">
-              <Flag aria-hidden="true" size={20} className="text-[#861C32] dark:text-[#F2A7AF] mt-2.5 shrink-0" strokeWidth={2.2} />
+              <Flag aria-hidden="true" size={20} className="text-[#861C32] mt-2.5 shrink-0" strokeWidth={2.2} />
               <div className="flex-1">
                 <ChoiceChips
                   label={t('tasks.priorityLabel')}
@@ -301,10 +301,10 @@ export default function TaskForm() {
             {/* Tags */}
             {(tags.data ?? []).length > 0 && (
               <div className="flex items-start gap-3">
-                <Tag aria-hidden="true" size={20} className="text-[#861C32] dark:text-[#F2A7AF] mt-2.5 shrink-0" strokeWidth={2.2} />
+                <Tag aria-hidden="true" size={20} className="text-[#861C32] mt-2.5 shrink-0" strokeWidth={2.2} />
                 <div className="flex-1 flex flex-col gap-3">
                   <fieldset className="flex flex-col gap-2">
-                    <legend className="font-bold text-stone-900 dark:text-stone-100 text-sm">{t('tasks.tags')}</legend>
+                    <legend className="font-bold text-stone-900 text-sm">{t('tasks.tags')}</legend>
                     <div className="flex flex-wrap gap-2">
                       {(tags.data ?? []).slice().sort((a, b) => a.name.localeCompare(b.name)).map((g) => {
                         const on = v.tagIds.includes(g.id);
@@ -317,7 +317,7 @@ export default function TaskForm() {
                             className={`tap inline-flex items-center rounded-full px-4 py-1.5 text-xs font-semibold transition-all ${
                               on
                                 ? 'bg-[#861C32] text-white font-bold border border-[#861C32] shadow-2xs'
-                                : 'bg-[#FFF0F2] dark:bg-rose-950/40 text-stone-700 dark:text-stone-200 border border-[#FCE4E8] dark:border-white/10 hover:border-[#861C32]/40'
+                                : 'bg-[#FFF0F2] text-stone-700 border border-[#FCE4E8] hover:border-[#861C32]/40'
                             }`}
                           >
                             {g.name}
@@ -329,7 +329,7 @@ export default function TaskForm() {
 
                   {/* New tag input row */}
                   <div className="flex flex-col gap-1.5 mt-1">
-                    <span className="font-bold text-stone-900 dark:text-stone-100 text-sm">{t('tasks.newTag')}</span>
+                    <span className="font-bold text-stone-900 text-sm">{t('tasks.newTag')}</span>
                     <div className="flex items-center gap-2">
                       <input
                         type="text"
@@ -338,7 +338,7 @@ export default function TaskForm() {
                         placeholder="Enter tag name"
                         maxLength={30}
                         onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addTag(); } }}
-                        className="tap flex-1 rounded-2xl border border-stone-200/90 dark:border-white/10 bg-white/95 dark:bg-stone-900/60 px-4 py-2.5 text-sm text-stone-900 dark:text-stone-100 placeholder:text-stone-400 shadow-2xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#861C32]/30"
+                        className="tap flex-1 rounded-2xl border border-stone-200/90 bg-white/95 px-4 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 shadow-2xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#861C32]/30"
                       />
                       <button
                         type="button"
@@ -356,16 +356,16 @@ export default function TaskForm() {
 
             {/* Notes */}
             <div className="flex items-start gap-3">
-              <SquarePen aria-hidden="true" size={20} className="text-[#861C32] dark:text-[#F2A7AF] mt-2.5 shrink-0" strokeWidth={2.2} />
+              <SquarePen aria-hidden="true" size={20} className="text-[#861C32] mt-2.5 shrink-0" strokeWidth={2.2} />
               <label className="flex flex-1 flex-col gap-1.5">
-                <span className="font-bold text-stone-900 dark:text-stone-100 text-sm">{t('tasks.notes')}</span>
+                <span className="font-bold text-stone-900 text-sm">{t('tasks.notes')}</span>
                 <textarea
                   value={v.notes}
                   onChange={(e) => f.set('notes')(e.target.value)}
                   rows={4}
                   maxLength={5000}
                   placeholder="Add notes (optional)..."
-                  className="w-full rounded-2xl border border-stone-200/90 dark:border-white/10 bg-white dark:bg-stone-900/60 p-3.5 text-sm text-stone-900 dark:text-stone-100 placeholder:text-stone-400 shadow-2xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#861C32]/30 min-h-[90px]"
+                  className="w-full rounded-2xl border border-stone-200/90 bg-white p-3.5 text-sm text-stone-900 placeholder:text-stone-400 shadow-2xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#861C32]/30 min-h-[90px]"
                 />
               </label>
             </div>
@@ -385,7 +385,7 @@ export default function TaskForm() {
         <Button
           variant="secondary"
           onClick={() => { f.cancel(); navigate(id ? `/tasks/${id}` : '/tasks'); }}
-          className="w-full py-3 rounded-full border-stone-200/90 text-stone-700 dark:text-stone-300 hover:bg-stone-50 text-sm"
+          className="w-full py-3 rounded-full border-stone-200/90 text-stone-700 hover:bg-stone-50 text-sm"
         >
           {t('login.cancel')}
         </Button>

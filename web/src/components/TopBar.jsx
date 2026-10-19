@@ -51,12 +51,12 @@ export default function TopBar({ title, back = false, actions = null, main = fal
 
   if (main) {
     return (
-      <header className="sticky top-0 z-20 border-b border-black/5 dark:border-white/10 bg-white/55 dark:bg-[#211A16]/65 pt-safe backdrop-blur-2xl">
+      <header className="sticky top-0 z-20 border-b border-black/5 bg-white/55 pt-safe backdrop-blur-2xl">
         <div className="mx-auto flex min-h-14 max-w-xl items-center justify-between gap-2 px-4 py-1.5">
           <Link
             to="/more"
             aria-label={t('home.menu')}
-            className="tap grid size-10 sm:size-11 place-items-center rounded-full bg-white/85 border border-white/60 shadow-xs text-[#861C32] transition hover:bg-white active:scale-95 dark:bg-[#2A1F1A]/85 dark:border-white/10 dark:text-[#F2A7AF]"
+            className="tap grid size-10 sm:size-11 place-items-center rounded-full bg-white/85 border border-white/60 shadow-xs text-[#861C32] transition hover:bg-white active:scale-95"
           >
             <Menu aria-hidden="true" size={20} strokeWidth={2.2} />
           </Link>
@@ -75,10 +75,10 @@ export default function TopBar({ title, back = false, actions = null, main = fal
           <div className="flex items-center gap-2">
             {actions}
             <div
-              className="pointer-events-none relative grid size-10 sm:size-11 place-items-center rounded-full bg-white/85 border border-white/60 shadow-xs dark:bg-[#2A1F1A]/85 dark:border-white/10"
+              className="pointer-events-none relative grid size-10 sm:size-11 place-items-center rounded-full bg-white/85 border border-white/60 shadow-xs"
               data-testid="monogram"
             >
-              <span className="font-display text-base font-semibold text-[#861C32] dark:text-[#F2A7AF]" aria-label={t('home.monogram')}>
+              <span className="font-display text-base font-semibold text-[#861C32]" aria-label={t('home.monogram')}>
                 A&amp;M
               </span>
               <span className="absolute top-1 right-1 size-2 rounded-full bg-[#861C32] ring-2 ring-[#FAF6F0]" aria-hidden="true" />
@@ -90,7 +90,7 @@ export default function TopBar({ title, back = false, actions = null, main = fal
   }
 
   return (
-    <header className="sticky top-0 z-20 border-b border-black/5 dark:border-white/10 bg-white/55 dark:bg-[#211A16]/65 pt-safe backdrop-blur-2xl">
+    <header className="sticky top-0 z-20 border-b border-black/5 bg-white/55 pt-safe backdrop-blur-2xl">
       <div className="mx-auto flex min-h-14 max-w-xl items-center justify-between gap-2 px-4">
         <div className="flex items-center gap-2 min-w-0 flex-1">
           {back && (
@@ -98,13 +98,13 @@ export default function TopBar({ title, back = false, actions = null, main = fal
               type="button"
               onClick={goBack}
               aria-label={t('back')}
-              className="tap -ml-1 inline-flex items-center justify-center size-9 rounded-full font-bold text-[#861C32] dark:text-[#F2A7AF] hover:bg-white/40 active:scale-95 transition-colors"
+              className="tap -ml-1 inline-flex items-center justify-center size-9 rounded-full font-bold text-[#861C32] hover:bg-white/40 active:scale-95 transition-colors"
             >
               <ArrowLeft aria-hidden="true" size={22} strokeWidth={2.4} />
               <span className="sr-only sm:inline text-sm font-semibold">{t('back')}</span>
             </button>
           )}
-          <h1 className="min-w-0 flex-1 truncate font-serif text-xl sm:text-2xl font-bold text-[#861C32] dark:text-[#F2A7AF]">
+          <h1 className="min-w-0 flex-1 truncate font-serif text-xl sm:text-2xl font-bold text-[#861C32]">
             {title}
           </h1>
         </div>

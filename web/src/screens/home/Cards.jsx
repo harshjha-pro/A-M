@@ -19,7 +19,7 @@ function TaskTimelineRow({ task, canEdit, onTick, isLast = false }) {
       {/* Vertical connecting timeline line */}
       {!isLast && (
         <span
-          className="absolute left-[11px] top-6 bottom-0 w-[2px] bg-[#861C32]/25 dark:bg-[#F2A7AF]/25"
+          className="absolute left-[11px] top-6 bottom-0 w-[2px] bg-[#861C32]/25"
           aria-hidden="true"
         />
       )}
@@ -29,7 +29,7 @@ function TaskTimelineRow({ task, canEdit, onTick, isLast = false }) {
           type="button"
           onClick={() => onTick(task)}
           aria-label={t('tasks.markDone', { title: task.title })}
-          className="tap relative z-10 grid size-6 shrink-0 place-items-center rounded-full border-2 border-[#861C32] bg-white ring-4 ring-[#861C32]/10 transition-transform hover:scale-110 active:scale-95 dark:border-[#F2A7AF] dark:bg-[#211A16] dark:ring-[#F2A7AF]/15 mt-0.5"
+          className="tap relative z-10 grid size-6 shrink-0 place-items-center rounded-full border-2 border-[#861C32] bg-white ring-4 ring-[#861C32]/10 transition-transform hover:scale-110 active:scale-95 mt-0.5"
         >
           <span className="size-1.5 rounded-full bg-transparent" />
         </button>
@@ -38,7 +38,7 @@ function TaskTimelineRow({ task, canEdit, onTick, isLast = false }) {
           className={`relative z-10 grid size-6 shrink-0 place-items-center rounded-full border-2 mt-0.5 ${
             task.status === 'done'
               ? 'border-success bg-success text-white'
-              : 'border-[#861C32] bg-white dark:border-[#F2A7AF] dark:bg-[#211A16]'
+              : 'border-[#861C32] bg-white'
           }`}
           aria-hidden="true"
         >
@@ -74,7 +74,7 @@ function TaskTimelineRow({ task, canEdit, onTick, isLast = false }) {
             </span>
           )}
           {task.priority === 'urgent' && (
-            <span className="inline-flex items-center gap-1 font-bold text-[#861C32] dark:text-[#F2A7AF]">
+            <span className="inline-flex items-center gap-1 font-bold text-[#861C32]">
               <Flag aria-hidden="true" size={13} strokeWidth={2.5} />
               {t('tasks.priority.urgent')}
             </span>
@@ -117,7 +117,7 @@ export function MyTasksCard({ data }) {
   const title = data.upcoming ? `${t('home.myTasks')} · ${t('home.upcoming')}` : t('home.myTasks');
   const countLabel = data.total === 1 ? '1 task' : `${data.total} tasks`;
   return (
-    <section className="flex flex-col gap-3 rounded-2xl bg-surface p-4 sm:p-5 shadow-card border border-black/5 dark:border-white/10" aria-label={title}>
+    <section className="flex flex-col gap-3 rounded-2xl bg-surface p-4 sm:p-5 shadow-card border border-black/5" aria-label={title}>
       <div className="flex items-baseline justify-between gap-2">
         <h2 className="font-display text-xl sm:text-2xl font-bold text-text">
           <Link to="/tasks?view=mine" className="hover:underline">
@@ -178,7 +178,7 @@ export function OverdueCard({ data }) {
 
   return (
     <section
-      className="flex flex-col gap-3 rounded-3xl bg-white/70 p-4 sm:p-5 shadow-xs border border-black/5 dark:bg-white/5 dark:border-white/10"
+      className="flex flex-col gap-3 rounded-3xl bg-white/70 p-4 sm:p-5 shadow-xs border border-black/5"
       aria-label={t('home.overdueAll')}
     >
       <div className="flex flex-col gap-1.5">
@@ -196,7 +196,7 @@ export function OverdueCard({ data }) {
             </Link>
             <Link
               to="/tasks?view=overdue"
-              className="text-xs sm:text-sm font-semibold text-[#861C32] hover:underline dark:text-[#F2A7AF] shrink-0"
+              className="text-xs sm:text-sm font-semibold text-[#861C32] hover:underline shrink-0"
             >
               See all overdue tasks →
             </Link>
@@ -214,13 +214,13 @@ export function OverdueCard({ data }) {
               <Link
                 key={task.id}
                 to={`/tasks/${task.id}`}
-                className="group flex items-center gap-2.5 sm:gap-3 p-2.5 sm:p-3 rounded-2xl bg-white/80 dark:bg-white/5 border border-stone-200/70 dark:border-white/10 shadow-xs hover:border-[#861C32]/30 hover:shadow-sm transition-all min-w-0"
+                className="group flex items-center gap-2.5 sm:gap-3 p-2.5 sm:p-3 rounded-2xl bg-white/80 border border-stone-200/70 shadow-xs hover:border-[#861C32]/30 hover:shadow-sm transition-all min-w-0"
               >
-                <div className="size-10 sm:size-11 rounded-full bg-[#FBE4E2] dark:bg-rose-950/40 text-[#E03137] dark:text-rose-400 flex items-center justify-center shrink-0">
+                <div className="size-10 sm:size-11 rounded-full bg-[#FBE4E2] text-[#E03137] flex items-center justify-center shrink-0">
                   <Icon size={18} className="sm:size-5" />
                 </div>
                 <div className="flex flex-col min-w-0 flex-1 leading-snug">
-                  <span className="font-bold text-xs sm:text-sm text-text truncate group-hover:text-[#861C32] dark:group-hover:text-[#F2A7AF] transition-colors">
+                  <span className="font-bold text-xs sm:text-sm text-text truncate group-hover:text-[#861C32] transition-colors">
                     {task.title}
                   </span>
                   {code && (
@@ -229,7 +229,7 @@ export function OverdueCard({ data }) {
                     </span>
                   )}
                   {dueLabel && (
-                    <span className="text-xs font-bold text-[#E03137] dark:text-rose-400">
+                    <span className="text-xs font-bold text-[#E03137]">
                       {dueLabel}
                     </span>
                   )}
@@ -329,7 +329,7 @@ export function UpcomingEventsCard({ data }) {
   return (
     <section className="flex flex-col gap-3" aria-label={t('home.upcomingEvents')}>
       <div className="flex items-baseline justify-between px-1">
-        <h2 className="font-display text-xl sm:text-2xl font-bold text-[#861C32] dark:text-[#F2A7AF]">
+        <h2 className="font-display text-xl sm:text-2xl font-bold text-[#861C32]">
           <Link to="/calendar" className="hover:underline">
             {t('home.upcomingEvents')}
           </Link>
@@ -346,19 +346,19 @@ export function UpcomingEventsCard({ data }) {
               <li key={e.id} className={`w-full ${isEven ? 'flex justify-end' : 'flex justify-start'}`}>
                 <Link
                   to={`/calendar/events/${e.id}`}
-                  className="group flex items-center gap-3 w-[94%] sm:w-[90%] rounded-[1.75rem] bg-surface/90 p-2.5 sm:p-3 shadow-card border border-white/70 dark:border-white/10 dark:bg-[#211A16]/90 backdrop-blur-sm transition-all duration-200 hover:shadow-md active:scale-[0.99]"
+                  className="group flex items-center gap-3 w-[94%] sm:w-[90%] rounded-[1.75rem] bg-surface/90 p-2.5 sm:p-3 shadow-card border border-white/70 backdrop-blur-sm transition-all duration-200 hover:shadow-md active:scale-[0.99]"
                 >
                   {isEven ? (
                     <>
                       <div className="flex min-w-0 flex-1 flex-col items-end text-right">
-                        <span className="w-full truncate font-bold text-base text-[#861C32] dark:text-[#F2A7AF] leading-tight">
+                        <span className="w-full truncate font-bold text-base text-[#861C32] leading-tight">
                           {e.name}
                         </span>
-                        <span className="w-full truncate text-xs sm:text-[0.82rem] text-[#5E5048] dark:text-[#C9BBAA] leading-tight mt-0.5">
+                        <span className="w-full truncate text-xs sm:text-[0.82rem] text-[#5E5048] leading-tight mt-0.5">
                           {formatDate(e.startAt)}{!e.allDay && ` · ${timeLabel(istParts(e.startAt).time)}`}
                         </span>
                         {e.venueName && (
-                          <span className="w-full truncate text-xs text-[#8C7A68] dark:text-[#8A7A6A] leading-tight mt-0.5">
+                          <span className="w-full truncate text-xs text-[#8C7A68] leading-tight mt-0.5">
                             {e.venueName}
                           </span>
                         )}
@@ -368,9 +368,9 @@ export function UpcomingEventsCard({ data }) {
                         alt=""
                         width={56}
                         height={56}
-                        className="size-14 sm:size-16 shrink-0 rounded-2xl object-cover shadow-xs border border-white/60 dark:border-white/10 transition-transform duration-300 group-hover:scale-105"
+                        className="size-14 sm:size-16 shrink-0 rounded-2xl object-cover shadow-xs border border-white/60 transition-transform duration-300 group-hover:scale-105"
                       />
-                      <span className="grid size-7 shrink-0 place-items-center rounded-full bg-[#861C32]/10 text-[#861C32] dark:bg-[#F2A7AF]/15 dark:text-[#F2A7AF]">
+                      <span className="grid size-7 shrink-0 place-items-center rounded-full bg-[#861C32]/10 text-[#861C32]">
                         <ChevronRight aria-hidden="true" size={15} strokeWidth={2.5} />
                       </span>
                     </>
@@ -381,22 +381,22 @@ export function UpcomingEventsCard({ data }) {
                         alt=""
                         width={56}
                         height={56}
-                        className="size-14 sm:size-16 shrink-0 rounded-2xl object-cover shadow-xs border border-white/60 dark:border-white/10 transition-transform duration-300 group-hover:scale-105"
+                        className="size-14 sm:size-16 shrink-0 rounded-2xl object-cover shadow-xs border border-white/60 transition-transform duration-300 group-hover:scale-105"
                       />
                       <div className="flex min-w-0 flex-1 flex-col items-start text-left">
-                        <span className="w-full truncate font-bold text-base text-[#861C32] dark:text-[#F2A7AF] leading-tight">
+                        <span className="w-full truncate font-bold text-base text-[#861C32] leading-tight">
                           {e.name}
                         </span>
-                        <span className="w-full truncate text-xs sm:text-[0.82rem] text-[#5E5048] dark:text-[#C9BBAA] leading-tight mt-0.5">
+                        <span className="w-full truncate text-xs sm:text-[0.82rem] text-[#5E5048] leading-tight mt-0.5">
                           {formatDate(e.startAt)}{!e.allDay && ` · ${timeLabel(istParts(e.startAt).time)}`}
                         </span>
                         {e.venueName && (
-                          <span className="w-full truncate text-xs text-[#8C7A68] dark:text-[#8A7A6A] leading-tight mt-0.5">
+                          <span className="w-full truncate text-xs text-[#8C7A68] leading-tight mt-0.5">
                             {e.venueName}
                           </span>
                         )}
                       </div>
-                      <span className="grid size-7 shrink-0 place-items-center rounded-full bg-[#861C32]/10 text-[#861C32] dark:bg-[#F2A7AF]/15 dark:text-[#F2A7AF] ml-auto">
+                      <span className="grid size-7 shrink-0 place-items-center rounded-full bg-[#861C32]/10 text-[#861C32] ml-auto">
                         <ChevronRight aria-hidden="true" size={15} strokeWidth={2.5} />
                       </span>
                     </>
@@ -447,14 +447,14 @@ function CompactTimelineRow({ line, isLast = false }) {
       {/* Vertical connecting line */}
       {!isLast && (
         <span
-          className="absolute left-[4.5px] top-3.5 bottom-0 w-[1.5px] bg-[#861C32]/25 dark:bg-[#F2A7AF]/25"
+          className="absolute left-[4.5px] top-3.5 bottom-0 w-[1.5px] bg-[#861C32]/25"
           aria-hidden="true"
         />
       )}
 
       {/* Solid burgundy node dot */}
       <span
-        className="relative z-10 size-2.5 rounded-full bg-[#861C32] dark:bg-[#F2A7AF] shrink-0 ring-4 ring-[#FAF6F0] dark:ring-[#211A16]"
+        className="relative z-10 size-2.5 rounded-full bg-[#861C32] shrink-0 ring-4 ring-[#FAF6F0]"
         aria-hidden="true"
       />
 
@@ -462,8 +462,8 @@ function CompactTimelineRow({ line, isLast = false }) {
       <div
         className={`size-10 sm:size-11 rounded-full flex items-center justify-center shrink-0 shadow-xs ${
           isDanger
-            ? 'bg-red-100 text-[#E03137] dark:bg-rose-950/60 dark:text-rose-400'
-            : 'bg-[#FBE4E2] text-[#861C32] dark:bg-rose-950/40 dark:text-[#F2A7AF]'
+            ? 'bg-red-100 text-[#E03137]'
+            : 'bg-[#FBE4E2] text-[#861C32]'
         }`}
       >
         <Icon size={19} className="stroke-[2.2]" />
@@ -497,7 +497,7 @@ export function ActivityCard({ data }) {
       )}
       <button
         type="button"
-        className="tap inline-flex items-center gap-1.5 self-start font-bold text-xs sm:text-sm text-[#861C32] dark:text-[#F2A7AF] hover:underline pt-2"
+        className="tap inline-flex items-center gap-1.5 self-start font-bold text-xs sm:text-sm text-[#861C32] hover:underline pt-2"
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
       >

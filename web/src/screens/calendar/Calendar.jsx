@@ -84,18 +84,18 @@ function Agenda({ types, mine, onSwitchToMonth }) {
         <div className="flex items-center gap-2 sm:gap-3">
           <button
             type="button"
-            className="tap grid size-8 place-items-center rounded-full text-[#861C32] dark:text-[#F2A7AF] hover:bg-white/40 transition-colors"
+            className="tap grid size-8 place-items-center rounded-full text-[#861C32] hover:bg-white/40 transition-colors"
             aria-label={t('calendar.prevMonth')}
             onClick={() => setYm(shiftMonth(ym, -1))}
           >
             <ChevronLeft size={20} className="stroke-[2.5]" />
           </button>
-          <span className="font-bold text-base text-[#861C32] dark:text-[#F2A7AF]">
+          <span className="font-bold text-base text-[#861C32]">
             {formatMonth(ym)}
           </span>
           <button
             type="button"
-            className="tap grid size-8 place-items-center rounded-full text-[#861C32] dark:text-[#F2A7AF] hover:bg-white/40 transition-colors"
+            className="tap grid size-8 place-items-center rounded-full text-[#861C32] hover:bg-white/40 transition-colors"
             aria-label={t('calendar.nextMonth')}
             onClick={() => setYm(shiftMonth(ym, 1))}
           >
@@ -108,7 +108,7 @@ function Agenda({ types, mine, onSwitchToMonth }) {
           type="button"
           onClick={onSwitchToMonth}
           aria-label={t('calendar.month')}
-          className="tap size-9 rounded-xl bg-white/70 dark:bg-stone-900/60 backdrop-blur-md border border-[#861C32]/25 flex items-center justify-center text-[#861C32] dark:text-[#F2A7AF] shadow-2xs hover:bg-white hover:scale-105 active:scale-95 transition-all"
+          className="tap size-9 rounded-xl bg-white/70 backdrop-blur-md border border-[#861C32]/25 flex items-center justify-center text-[#861C32] shadow-2xs hover:bg-white hover:scale-105 active:scale-95 transition-all"
         >
           <CalendarDays size={18} className="stroke-[2.2]" />
         </button>
@@ -118,13 +118,13 @@ function Agenda({ types, mine, onSwitchToMonth }) {
       <div className="relative flex flex-col gap-5 pl-2 pt-1">
         {/* Continuous vertical timeline stem */}
         <div
-          className="absolute left-[7px] top-3 bottom-6 w-[2px] bg-[#861C32]/25 dark:bg-rose-500/25 pointer-events-none"
+          className="absolute left-[7px] top-3 bottom-6 w-[2px] bg-[#861C32]/25 pointer-events-none"
           aria-hidden="true"
         />
 
         <button
           type="button"
-          className="tap self-start pl-6 font-bold text-xs sm:text-sm text-[#861C32] dark:text-[#F2A7AF] hover:underline"
+          className="tap self-start pl-6 font-bold text-xs sm:text-sm text-[#861C32] hover:underline"
           onClick={() => setPast(past + 1)}
         >
           {t('calendar.showPast')}
@@ -144,7 +144,7 @@ function Agenda({ types, mine, onSwitchToMonth }) {
 
         <button
           type="button"
-          className="tap self-start pl-6 font-bold text-xs sm:text-sm text-[#861C32] dark:text-[#F2A7AF] hover:underline"
+          className="tap self-start pl-6 font-bold text-xs sm:text-sm text-[#861C32] hover:underline"
           onClick={() => setLater(later + 1)}
         >
           {t('calendar.showLater')}
@@ -174,23 +174,23 @@ function Month({ types, mine }) {
   return (
     <div className="flex flex-col gap-5">
       {/* Transparent Frosted Glass Calendar Card */}
-      <div className="flex flex-col gap-4 rounded-[2rem] bg-white/45 dark:bg-stone-900/40 backdrop-blur-2xl border border-white/60 dark:border-white/10 p-4 sm:p-6 shadow-xl shadow-stone-900/5">
+      <div className="flex flex-col gap-4 rounded-[2rem] bg-white/45 backdrop-blur-2xl border border-white/60 p-4 sm:p-6 shadow-xl shadow-stone-900/5">
         {/* Month Navigation */}
         <div className="flex items-center justify-between px-2">
           <button
             type="button"
-            className="tap grid size-9 place-items-center rounded-full text-[#861C32] dark:text-[#F2A7AF] hover:bg-white/40 transition-colors"
+            className="tap grid size-9 place-items-center rounded-full text-[#861C32] hover:bg-white/40 transition-colors"
             aria-label={t('calendar.prevMonth')}
             onClick={() => { setYm(shiftMonth(ym, -1)); setPicked(null); }}
           >
             <ChevronLeft aria-hidden="true" size={24} strokeWidth={2.5} />
           </button>
-          <h2 className="text-xl sm:text-2xl font-bold font-serif text-[#3B2C27] dark:text-stone-100 tracking-tight">
+          <h2 className="text-xl sm:text-2xl font-bold font-serif text-[#3B2C27] tracking-tight">
             {formatMonth(ym)}
           </h2>
           <button
             type="button"
-            className="tap grid size-9 place-items-center rounded-full text-[#861C32] dark:text-[#F2A7AF] hover:bg-white/40 transition-colors"
+            className="tap grid size-9 place-items-center rounded-full text-[#861C32] hover:bg-white/40 transition-colors"
             aria-label={t('calendar.nextMonth')}
             onClick={() => { setYm(shiftMonth(ym, 1)); setPicked(null); }}
           >
@@ -201,7 +201,7 @@ function Month({ types, mine }) {
         {/* Days of Week and Day Grid */}
         <div className="grid grid-cols-7 gap-1 text-center" role="group" aria-label={formatMonth(ym)}>
           {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d) => (
-            <div key={d} className="text-xs sm:text-sm font-semibold text-stone-500 dark:text-stone-400 py-1" aria-hidden="true">
+            <div key={d} className="text-xs sm:text-sm font-semibold text-stone-500 py-1" aria-hidden="true">
               {d}
             </div>
           ))}
@@ -230,8 +230,8 @@ function Month({ types, mine }) {
                     isSelected
                       ? 'bg-[#861C32] text-white font-bold shadow-md scale-105'
                       : isToday
-                      ? 'border-2 border-[#861C32] font-bold text-[#861C32] dark:text-[#F2A7AF]'
-                      : 'font-medium text-stone-800 dark:text-stone-200 group-hover:bg-white/40'
+                      ? 'border-2 border-[#861C32] font-bold text-[#861C32]'
+                      : 'font-medium text-stone-800 group-hover:bg-white/40'
                   }`}
                 >
                   {dayNum}
@@ -250,7 +250,7 @@ function Month({ types, mine }) {
                     );
                   })}
                   {items.length > 3 && (
-                    <span className="text-[10px] font-bold text-[#861C32] dark:text-[#F2A7AF] leading-none">
+                    <span className="text-[10px] font-bold text-[#861C32] leading-none">
                       +{items.length - 3}
                     </span>
                   )}
@@ -267,7 +267,7 @@ function Month({ types, mine }) {
           <DayList day={day} />
         ) : (
           <section
-            className="flex flex-col overflow-hidden rounded-[1.75rem] bg-white/80 dark:bg-stone-900/80 backdrop-blur-xl border border-stone-200/60 dark:border-white/10 shadow-lg shadow-stone-900/5 transition-all"
+            className="flex flex-col overflow-hidden rounded-[1.75rem] bg-white/80 backdrop-blur-xl border border-stone-200/60 shadow-lg shadow-stone-900/5 transition-all"
             aria-label={formatDateOnly(picked)}
           >
             <div className="bg-[#861C32] px-4 py-3 sm:px-5 sm:py-3.5 flex items-center gap-2.5 text-white shadow-xs">
@@ -276,7 +276,7 @@ function Month({ types, mine }) {
                 {formatDateOnly(picked)}
               </h2>
             </div>
-            <div className="bg-[#FAF7F2]/90 dark:bg-stone-900/70 p-6 text-center text-sm text-stone-500 dark:text-stone-400">
+            <div className="bg-[#FAF7F2]/90 p-6 text-center text-sm text-stone-500">
               No events or tasks on this day.
             </div>
           </section>
@@ -326,7 +326,7 @@ export default function Calendar() {
             className={`tap inline-flex items-center gap-1 rounded-full px-3.5 py-1.5 text-xs sm:text-sm transition-all ${
               view === 'month'
                 ? 'bg-[#861C32] text-white font-bold shadow-xs'
-                : 'bg-white/80 dark:bg-white/10 text-[#861C32] dark:text-[#F2A7AF] font-semibold border border-white/80 dark:border-white/10 hover:bg-white'
+                : 'bg-white/80 text-[#861C32] font-semibold border border-white/80 hover:bg-white'
             }`}
           >
             {view === 'month' && <span aria-hidden="true">✓</span>}
@@ -340,7 +340,7 @@ export default function Calendar() {
             className={`tap inline-flex items-center gap-1 rounded-full px-3.5 py-1.5 text-xs sm:text-sm transition-all ${
               view === 'agenda'
                 ? 'bg-[#861C32] text-white font-bold shadow-xs'
-                : 'bg-white/80 dark:bg-white/10 text-[#861C32] dark:text-[#F2A7AF] font-semibold border border-white/80 dark:border-white/10 hover:bg-white'
+                : 'bg-white/80 text-[#861C32] font-semibold border border-white/80 hover:bg-white'
             }`}
           >
             {view === 'agenda' && <span aria-hidden="true">✓</span>}
@@ -360,8 +360,8 @@ export default function Calendar() {
                 onClick={() => setTypes(on ? types.filter((x) => x !== k) : [...types, k])}
                 className={`tap inline-flex items-center gap-1 rounded-full px-3.5 py-1.5 text-xs sm:text-sm transition-all ${
                   on
-                    ? 'bg-white/90 dark:bg-white/15 text-[#861C32] dark:text-[#F2A7AF] font-bold border border-white/80 dark:border-white/10 shadow-xs'
-                    : 'bg-white/60 dark:bg-white/5 text-stone-500 dark:text-stone-400 font-medium border border-white/40 dark:border-white/5'
+                    ? 'bg-white/90 text-[#861C32] font-bold border border-white/80 shadow-xs'
+                    : 'bg-white/60 text-stone-500 font-medium border border-white/40'
                 }`}
               >
                 {on && <span aria-hidden="true">✓</span>}
@@ -380,8 +380,8 @@ export default function Calendar() {
             onClick={() => setMine(true)}
             className={`tap inline-flex items-center gap-1 rounded-full px-3.5 py-1.5 text-xs sm:text-sm transition-all ${
               mine
-                ? 'bg-white/90 dark:bg-white/15 text-[#861C32] dark:text-[#F2A7AF] font-bold border border-white/80 dark:border-white/10 shadow-xs'
-                : 'bg-white/60 dark:bg-white/5 text-stone-500 dark:text-stone-400 font-medium border border-white/40 dark:border-white/5'
+                ? 'bg-white/90 text-[#861C32] font-bold border border-white/80 shadow-xs'
+                : 'bg-white/60 text-stone-500 font-medium border border-white/40'
             }`}
           >
             {mine && <span aria-hidden="true">✓</span>}
@@ -394,8 +394,8 @@ export default function Calendar() {
             onClick={() => setMine(false)}
             className={`tap inline-flex items-center gap-1 rounded-full px-3.5 py-1.5 text-xs sm:text-sm transition-all ${
               !mine
-                ? 'bg-white/95 dark:bg-white/15 text-[#861C32] dark:text-[#F2A7AF] font-bold border border-[#861C32]/40 shadow-xs'
-                : 'bg-white/60 dark:bg-white/5 text-stone-500 dark:text-stone-400 font-medium border border-white/40 dark:border-white/5'
+                ? 'bg-white/95 text-[#861C32] font-bold border border-[#861C32]/40 shadow-xs'
+                : 'bg-white/60 text-stone-500 font-medium border border-white/40'
             }`}
           >
             {!mine && <span aria-hidden="true">✓</span>}

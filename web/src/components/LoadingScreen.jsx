@@ -62,7 +62,7 @@ export default function LoadingScreen({
       role="status"
       aria-live="polite"
       aria-label={message}
-      className={`relative flex flex-col items-center justify-center select-none overflow-hidden bg-[#FBF7F0] dark:bg-[#17120F] transition-all duration-300 ${
+      className={`relative flex flex-col items-center justify-center select-none overflow-hidden bg-[#FBF7F0] transition-all duration-300 ${
         isFadingOut ? 'opacity-0 scale-[0.99] pointer-events-none' : 'opacity-100 scale-100'
       } ${
         fullScreen ? 'fixed inset-0 z-50 min-h-dvh w-full' : 'w-full py-12'
@@ -70,7 +70,7 @@ export default function LoadingScreen({
     >
       {/* Subtle ambient luxury backdrop glow */}
       <div
-        className="pointer-events-none absolute inset-0 opacity-40 dark:opacity-20"
+        className="pointer-events-none absolute inset-0 opacity-40"
         style={{
           background: 'radial-gradient(circle at 50% 45%, rgba(232, 163, 23, 0.18) 0%, rgba(138, 28, 43, 0.05) 45%, transparent 70%)',
         }}
@@ -120,7 +120,7 @@ export default function LoadingScreen({
             }}
           />
           <div style={{ display: 'none' }} className="flex-col items-center">
-            <span className="font-display text-2xl tracking-widest text-[#8A1C2B] dark:text-[#F2A7AF]">A&amp;M</span>
+            <span className="font-display text-2xl tracking-widest text-[#8A1C2B]">A&amp;M</span>
             <div className="mt-1 h-[1px] w-12 bg-gradient-to-r from-transparent via-[#C9A86A] to-transparent" />
           </div>
         </div>
@@ -129,7 +129,7 @@ export default function LoadingScreen({
         <div className="relative my-2 flex items-center justify-center">
           {/* Subtle pulsating golden halo */}
           <div
-            className="pointer-events-none absolute h-52 w-52 rounded-full opacity-30 blur-2xl dark:opacity-20"
+            className="pointer-events-none absolute h-52 w-52 rounded-full opacity-30 blur-2xl"
             style={{
               background: 'radial-gradient(circle, rgba(201, 168, 106, 0.5) 0%, rgba(138, 28, 43, 0.2) 60%, transparent 80%)',
             }}
@@ -210,7 +210,7 @@ export default function LoadingScreen({
             }}
           >
             {/* Inner track */}
-            <div className="relative h-full w-full overflow-hidden rounded-full bg-[#FAF5EC] dark:bg-[#201815]">
+            <div className="relative h-full w-full overflow-hidden rounded-full bg-[#FAF5EC]">
               {/* Fill bar with deep burgundy to royal crimson gradient */}
               <div
                 className="h-full rounded-full transition-all duration-75 ease-out"
@@ -249,7 +249,7 @@ export default function LoadingScreen({
 
         {/* 5. Elegant Typography: "Preparing Your Wedding Journey…" */}
         <p
-          className="font-display text-lg tracking-[0.04em] text-[#8A1C2B] dark:text-[#F2A7AF] sm:text-xl transition-colors"
+          className="font-display text-lg tracking-[0.04em] text-[#8A1C2B] sm:text-xl transition-colors"
           style={{
             textShadow: '0 1px 2px rgba(138, 28, 43, 0.08)',
           }}
@@ -260,7 +260,7 @@ export default function LoadingScreen({
         {/* Subtle decorative dot flourish */}
         <div className="mt-2 flex items-center justify-center gap-1.5 opacity-60">
           <span className="h-1 w-1 rounded-full bg-[#C9A86A]" />
-          <span className="h-1.5 w-1.5 rounded-full bg-[#8A1C2B] dark:bg-[#F2A7AF]" />
+          <span className="h-1.5 w-1.5 rounded-full bg-[#8A1C2B]" />
           <span className="h-1 w-1 rounded-full bg-[#C9A86A]" />
         </div>
       </div>

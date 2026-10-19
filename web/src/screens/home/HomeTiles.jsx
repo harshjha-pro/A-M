@@ -68,9 +68,9 @@ function SegmentedProgress({ percent = 0 }) {
   return (
     <div className="flex w-full gap-1.5 mt-3" aria-hidden="true">
       {segments.map((fill, i) => (
-        <div key={i} className="h-1.5 flex-1 overflow-hidden rounded-full bg-[#F3DCD7] dark:bg-[#3D1D22]">
+        <div key={i} className="h-1.5 flex-1 overflow-hidden rounded-full bg-[#F3DCD7]">
           <div
-            className="h-full rounded-full bg-[#861C32] dark:bg-[#F2A7AF] transition-all duration-500"
+            className="h-full rounded-full bg-[#861C32] transition-all duration-500"
             style={{ width: `${fill}%` }}
           />
         </div>
@@ -84,7 +84,7 @@ function Tile({ to, Icon, value, label, sub, percent = 0, className = '' }) {
     <li className={className}>
       <Link
         to={to}
-        className="group flex h-full flex-col justify-between rounded-2xl bg-surface p-3.5 sm:p-4 shadow-card border border-black/5 dark:border-white/10 transition-all duration-200 hover:shadow-md active:scale-[0.99]"
+        className="group flex h-full flex-col justify-between rounded-2xl bg-surface p-3.5 sm:p-4 shadow-card border border-black/5 transition-all duration-200 hover:shadow-md active:scale-[0.99]"
       >
         <div className="flex items-center gap-3">
           <span className="grid size-11 shrink-0 place-items-center rounded-full bg-primary-soft text-primary transition-transform duration-300 group-hover:scale-105">

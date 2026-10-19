@@ -199,21 +199,21 @@ export function ItemRow({ item }) {
     <li className="last:border-b-0">
       <Link
         to={k.to(item)}
-        className="group flex min-h-16 items-center gap-3.5 px-4 py-3 sm:px-5 sm:py-3.5 hover:bg-black/[0.02] dark:hover:bg-white/[0.02] transition-colors"
+        className="group flex min-h-16 items-center gap-3.5 px-4 py-3 sm:px-5 sm:py-3.5 hover:bg-black/[0.02] transition-colors"
       >
         <span
-          className="flex size-11 sm:size-12 shrink-0 items-center justify-center rounded-full bg-[#E5EEF5] text-[#204970] dark:bg-sky-950/40 dark:text-sky-300 shadow-xs"
+          className="flex size-11 sm:size-12 shrink-0 items-center justify-center rounded-full bg-[#E5EEF5] text-[#204970] shadow-xs"
           aria-hidden="true"
         >
           <Icon size={20} className="stroke-[1.8]" />
         </span>
 
         <span className="flex min-w-0 flex-1 flex-col justify-center">
-          <span className="truncate text-[15px] sm:text-base font-bold text-stone-900 dark:text-stone-100 group-hover:text-[#861C32] dark:group-hover:text-[#F2A7AF] transition-colors">
+          <span className="truncate text-[15px] sm:text-base font-bold text-stone-900 group-hover:text-[#861C32] transition-colors">
             {item.title}
           </span>
-          <span className="flex flex-wrap items-center gap-x-1.5 text-xs text-stone-500 dark:text-stone-400 mt-0.5 leading-normal">
-            <span className="font-semibold text-stone-600 dark:text-stone-300">
+          <span className="flex flex-wrap items-center gap-x-1.5 text-xs text-stone-500 mt-0.5 leading-normal">
+            <span className="font-semibold text-stone-600">
               {t(`calendar.type.${item.type}`)}
             </span>
             {timeStr && (
@@ -225,7 +225,7 @@ export function ItemRow({ item }) {
             {item.overdue && (
               <>
                 <span className="text-stone-400 select-none">·</span>
-                <span className="inline-flex items-center gap-1 font-bold text-[#C23B38] dark:text-rose-400">
+                <span className="inline-flex items-center gap-1 font-bold text-[#C23B38]">
                   <TriangleAlert aria-hidden="true" size={13} className="stroke-[2.5]" />
                   <span>{t('tasks.overdue')}</span>
                 </span>
@@ -234,7 +234,7 @@ export function ItemRow({ item }) {
             {linked && (
               <>
                 <span className="text-stone-400 select-none">·</span>
-                <span className="truncate max-w-[150px] text-stone-600 dark:text-stone-400">
+                <span className="truncate max-w-[150px] text-stone-600">
                   {linked.name}{linked.deleted ? ' (deleted event)' : ''}
                 </span>
               </>
@@ -242,7 +242,7 @@ export function ItemRow({ item }) {
             {item.workspace && (
               <>
                 <span className="text-stone-400 select-none">·</span>
-                <span className="rounded-full bg-[#861C32]/10 dark:bg-white/10 px-1.5 py-0.5 text-[10px] font-bold text-[#861C32] dark:text-[#F2A7AF]">
+                <span className="rounded-full bg-[#861C32]/10 px-1.5 py-0.5 text-[10px] font-bold text-[#861C32]">
                   {t('workspace.badge')}
                 </span>
               </>
@@ -253,7 +253,7 @@ export function ItemRow({ item }) {
         <ChevronRight
           aria-hidden="true"
           size={18}
-          className="text-stone-400 dark:text-stone-500 shrink-0 stroke-[2] group-hover:text-stone-600 group-hover:translate-x-0.5 transition-all"
+          className="text-stone-400 shrink-0 stroke-[2] group-hover:text-stone-600 group-hover:translate-x-0.5 transition-all"
         />
       </Link>
     </li>
@@ -264,7 +264,7 @@ export function ItemRow({ item }) {
 export function DayList({ day }) {
   return (
     <section
-      className="flex flex-col overflow-hidden rounded-[1.75rem] bg-white/80 dark:bg-stone-900/80 backdrop-blur-xl border border-stone-200/60 dark:border-white/10 shadow-lg shadow-stone-900/5 transition-all"
+      className="flex flex-col overflow-hidden rounded-[1.75rem] bg-white/80 backdrop-blur-xl border border-stone-200/60 shadow-lg shadow-stone-900/5 transition-all"
       aria-label={formatDateOnly(day.date)}
     >
       <div className="bg-[#861C32] px-4 py-3 sm:px-5 sm:py-3.5 flex items-center gap-2.5 text-white shadow-xs">
@@ -274,7 +274,7 @@ export function DayList({ day }) {
         </h2>
       </div>
 
-      <ul className="bg-[#FAF7F2]/90 dark:bg-stone-900/70 divide-y divide-stone-200/70 dark:divide-white/5">
+      <ul className="bg-[#FAF7F2]/90 divide-y divide-stone-200/70">
         {day.items.map((i) => <ItemRow key={`${i.type}-${i.id}`} item={i} />)}
       </ul>
     </section>
@@ -285,7 +285,7 @@ export function UndatedList({ events }) {
   if (!events?.length) return null;
   return (
     <section
-      className="flex flex-col overflow-hidden rounded-[1.75rem] bg-white/80 dark:bg-stone-900/80 backdrop-blur-xl border border-stone-200/60 dark:border-white/10 shadow-lg shadow-stone-900/5 transition-all"
+      className="flex flex-col overflow-hidden rounded-[1.75rem] bg-white/80 backdrop-blur-xl border border-stone-200/60 shadow-lg shadow-stone-900/5 transition-all"
     >
       <div className="bg-[#861C32] px-4 py-3 sm:px-5 sm:py-3.5 flex items-center gap-2.5 text-white shadow-xs">
         <CalendarDays size={20} className="text-white/95 shrink-0 stroke-[2]" aria-hidden="true" />
@@ -294,7 +294,7 @@ export function UndatedList({ events }) {
         </h2>
       </div>
 
-      <ul className="bg-[#FAF7F2]/90 dark:bg-stone-900/70 divide-y divide-stone-200/70 dark:divide-white/5">
+      <ul className="bg-[#FAF7F2]/90 divide-y divide-stone-200/70">
         {events.map((e) => (
           <ItemRow
             key={e.id}
@@ -326,7 +326,7 @@ export function AgendaCard({ item }) {
   return (
     <Link
       to={k.to(item)}
-      className="group flex items-center gap-3.5 sm:gap-4 rounded-2xl bg-white/80 dark:bg-stone-900/75 backdrop-blur-xl border border-white/80 dark:border-white/10 p-3 sm:p-3.5 shadow-sm hover:shadow-md hover:border-[#861C32]/30 dark:hover:border-rose-400/30 transition-all min-w-0"
+      className="group flex items-center gap-3.5 sm:gap-4 rounded-2xl bg-white/80 backdrop-blur-xl border border-white/80 p-3 sm:p-3.5 shadow-sm hover:shadow-md hover:border-[#861C32]/30 transition-all min-w-0"
     >
       {/* Thumbnail */}
       <img
@@ -334,39 +334,39 @@ export function AgendaCard({ item }) {
         alt=""
         width={72}
         height={72}
-        className="size-16 sm:size-20 rounded-xl sm:rounded-2xl object-cover shrink-0 shadow-2xs border border-stone-200/50 dark:border-white/10"
+        className="size-16 sm:size-20 rounded-xl sm:rounded-2xl object-cover shrink-0 shadow-2xs border border-stone-200/50"
       />
 
       {/* Content */}
       <div className="flex min-w-0 flex-1 flex-col justify-center">
         {/* Title */}
-        <span className="truncate text-sm sm:text-base font-bold text-stone-900 dark:text-stone-100 group-hover:text-[#861C32] dark:group-hover:text-[#F2A7AF] transition-colors leading-snug">
+        <span className="truncate text-sm sm:text-base font-bold text-stone-900 group-hover:text-[#861C32] transition-colors leading-snug">
           {item.title}
         </span>
 
         {/* Time */}
         {timeStr && (
-          <span className="text-xs sm:text-sm text-stone-600 dark:text-stone-300 font-medium mt-0.5">
+          <span className="text-xs sm:text-sm text-stone-600 font-medium mt-0.5">
             {timeStr}
           </span>
         )}
 
         {/* Subtitle / Venue / Note */}
         {sub && (
-          <span className="text-xs text-stone-500 dark:text-stone-400 truncate mt-0.5">
+          <span className="text-xs text-stone-500 truncate mt-0.5">
             {sub}
           </span>
         )}
 
         {/* Badges & Type for test/accessibility */}
-        <div className="flex flex-wrap items-center gap-x-1.5 text-[11px] text-stone-500 dark:text-stone-400 mt-1">
-          <span className="font-semibold text-stone-600 dark:text-stone-300">
+        <div className="flex flex-wrap items-center gap-x-1.5 text-[11px] text-stone-500 mt-1">
+          <span className="font-semibold text-stone-600">
             {t(`calendar.type.${item.type}`)}
           </span>
           {item.overdue && (
             <>
               <span className="text-stone-400 select-none">·</span>
-              <span className="inline-flex items-center gap-1 font-bold text-[#C23B38] dark:text-rose-400">
+              <span className="inline-flex items-center gap-1 font-bold text-[#C23B38]">
                 <TriangleAlert aria-hidden="true" size={12} className="stroke-[2.5]" />
                 <span>{t('tasks.overdue')}</span>
               </span>
@@ -381,7 +381,7 @@ export function AgendaCard({ item }) {
           {item.workspace && (
             <>
               <span className="text-stone-400 select-none">·</span>
-              <span className="rounded-full bg-[#861C32]/10 dark:bg-white/10 px-1.5 py-0.5 text-[10px] font-bold text-[#861C32] dark:text-[#F2A7AF]">
+              <span className="rounded-full bg-[#861C32]/10 px-1.5 py-0.5 text-[10px] font-bold text-[#861C32]">
                 {t('workspace.badge')}
               </span>
             </>
@@ -402,10 +402,10 @@ export function AgendaDayList({ day }) {
       {/* Node and Date Header on the timeline stem */}
       <div className="flex items-center gap-3 relative z-10 -ml-[5px]">
         <span
-          className="size-3 rounded-full bg-[#861C32] dark:bg-[#F2A7AF] ring-4 ring-[#FAF4EC] dark:ring-[#211A16] shrink-0"
+          className="size-3 rounded-full bg-[#861C32] ring-4 ring-[#FAF4EC] shrink-0"
           aria-hidden="true"
         />
-        <h2 className="text-xs sm:text-sm font-bold text-[#861C32] dark:text-[#F2A7AF] tracking-tight">
+        <h2 className="text-xs sm:text-sm font-bold text-[#861C32] tracking-tight">
           {formatDateOnly(day.date)}
         </h2>
       </div>
@@ -427,10 +427,10 @@ export function AgendaUndatedList({ events }) {
     <section className="relative flex flex-col gap-2.5">
       <div className="flex items-center gap-3 relative z-10 -ml-[5px]">
         <span
-          className="size-3 rounded-full bg-stone-400 dark:bg-stone-500 ring-4 ring-[#FAF4EC] dark:ring-[#211A16] shrink-0"
+          className="size-3 rounded-full bg-stone-400 ring-4 ring-[#FAF4EC] shrink-0"
           aria-hidden="true"
         />
-        <h2 className="text-xs sm:text-sm font-bold text-stone-600 dark:text-stone-300 tracking-tight">
+        <h2 className="text-xs sm:text-sm font-bold text-stone-600 tracking-tight">
           {t('calendar.dateNotSet')}
         </h2>
       </div>

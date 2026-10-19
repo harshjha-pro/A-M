@@ -35,13 +35,13 @@ export function ActivityRow({ line }) {
   const isDanger = tone === 'danger';
 
   return (
-    <li className="flex items-center justify-between gap-3 p-3 rounded-2xl bg-white/80 dark:bg-white/5 border border-stone-200/60 dark:border-white/10 shadow-xs">
+    <li className="flex items-center justify-between gap-3 p-3 rounded-2xl bg-white/80 border border-stone-200/60 shadow-xs">
       <div className="flex items-center gap-3 min-w-0 flex-1">
         <div
           className={`size-10 sm:size-11 rounded-2xl flex items-center justify-center shrink-0 ${
             isDanger
-              ? 'bg-red-100 text-[#E03137] dark:bg-rose-950/60 dark:text-rose-400'
-              : 'bg-[#FBE4E2] text-[#861C32] dark:bg-rose-950/40 dark:text-[#F2A7AF]'
+              ? 'bg-red-100 text-[#E03137]'
+              : 'bg-[#FBE4E2] text-[#861C32]'
           }`}
         >
           <Icon size={19} className="stroke-[2.2]" />
@@ -52,7 +52,7 @@ export function ActivityRow({ line }) {
       </div>
 
       <div className="flex items-center gap-2.5 shrink-0 pl-1">
-        <div className="h-7 w-[1px] bg-stone-200 dark:bg-stone-700" aria-hidden="true" />
+        <div className="h-7 w-[1px] bg-stone-200" aria-hidden="true" />
         <span className="text-[11px] sm:text-xs text-text-muted font-medium whitespace-nowrap">
           {formatDateTime(line.at)}{line.device ? ` · ${line.device}` : ''}
         </span>

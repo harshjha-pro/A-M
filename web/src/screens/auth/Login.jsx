@@ -18,10 +18,10 @@ export default function Login() {
   if (session.status === 'in') return <Navigate to={next} replace />;
   const notice = session.reason ? t(`login.ended.${session.reason}`) : null;
   return (
-    <main className="relative mx-auto flex min-h-dvh w-full flex-col items-center justify-center overflow-x-hidden overflow-y-auto px-4 py-8 sm:px-6 bg-[#FAF6F0] dark:bg-[#17120F] transition-colors duration-500">
+    <main className="relative mx-auto flex min-h-dvh w-full flex-col items-center justify-center overflow-x-hidden overflow-y-auto px-4 py-8 sm:px-6 bg-[#FAF6F0] transition-colors duration-500">
       {/* Ambient soft blush & warm glow */}
       <div
-        className="pointer-events-none fixed inset-0 opacity-60 dark:opacity-20"
+        className="pointer-events-none fixed inset-0 opacity-60"
         style={{
           background:
             'radial-gradient(circle at 15% 15%, rgba(247, 215, 220, 0.65) 0%, transparent 45%), radial-gradient(circle at 85% 15%, rgba(247, 215, 220, 0.65) 0%, transparent 45%), radial-gradient(circle at 15% 85%, rgba(247, 215, 220, 0.65) 0%, transparent 45%), radial-gradient(circle at 85% 85%, rgba(247, 215, 220, 0.65) 0%, transparent 45%), radial-gradient(circle at 50% 50%, rgba(254, 243, 230, 0.5) 0%, transparent 60%)',
@@ -104,7 +104,7 @@ export default function Login() {
               }}
             />
             <div style={{ display: 'none' }} className="flex-col items-center">
-              <span className="font-display text-4xl font-bold tracking-widest text-[#8A1C2B] dark:text-[#F2A7AF]">
+              <span className="font-display text-4xl font-bold tracking-widest text-[#8A1C2B]">
                 A&amp;M
               </span>
               <div className="mt-1 h-[1.5px] w-14 bg-gradient-to-r from-transparent via-[#C9A86A] to-transparent" />
@@ -114,18 +114,18 @@ export default function Login() {
           {/* WEDDING PLANNER */}
           <h1
             aria-label={t('appName')}
-            className="text-[0.72rem] font-bold uppercase tracking-[0.26em] text-[#9E7D47] dark:text-[#E2C275]"
+            className="text-[0.72rem] font-bold uppercase tracking-[0.26em] text-[#9E7D47]"
           >
             {t('home.logoSub')}
           </h1>
 
           {/* Welcome back */}
-          <h2 className="mt-4 font-display text-[2.6rem] font-bold leading-tight tracking-[0.01em] text-[#4A0E17] dark:text-[#F8D2D7] sm:text-5xl">
+          <h2 className="mt-4 font-display text-[2.6rem] font-bold leading-tight tracking-[0.01em] text-[#4A0E17] sm:text-5xl">
             {t('login.welcome')}
           </h2>
 
           {/* Plan your beautiful tomorrow */}
-          <p className="mt-1.5 text-base text-[#7A6A65] dark:text-[#B3A29B]">
+          <p className="mt-1.5 text-base text-[#7A6A65]">
             {t('login.tagline')}
           </p>
         </div>
@@ -133,7 +133,7 @@ export default function Login() {
         <h2 className="sr-only">{t('login.title')}</h2>
 
         {/* Glassmorphic Form Card */}
-        <div className="glass-card w-full rounded-[2rem] border border-white/70 bg-white/45 p-6 shadow-[0_20px_50px_rgba(138,28,43,0.08),inset_0_1px_2px_rgba(255,255,255,0.7)] backdrop-blur-xl dark:border-white/10 dark:bg-[#1E1714]/60 dark:shadow-[0_20px_50px_rgba(0,0,0,0.5)] sm:p-8">
+        <div className="glass-card w-full rounded-[2rem] border border-white/70 bg-white/45 p-6 shadow-[0_20px_50px_rgba(138,28,43,0.08),inset_0_1px_2px_rgba(255,255,255,0.7)] backdrop-blur-xl sm:p-8">
           <LoginForm
             notice={notice?.startsWith('login.') ? null : notice}
             onDone={() => navigate(next, { replace: true })}

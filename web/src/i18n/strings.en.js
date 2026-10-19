@@ -794,8 +794,6 @@ export const strings = {
     newPassword: 'New password',
     savePassword: 'Change password',
     passwordChanged: 'Password changed. Your other phones are logged out.',
-    theme: 'Colours',
-    themes: { follow: 'Same as my phone', light: 'Light', dark: 'Dark' },
     phones: 'My phones',
     thisPhone: 'This phone',
     logout: 'Log out',

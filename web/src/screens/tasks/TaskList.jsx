@@ -131,7 +131,7 @@ export function TaskRow({ task, canEdit, onTick, selecting = false, checked = fa
   if (selecting) {
     return (
       <li className="list-none">
-        <label className={`flex min-h-16 cursor-pointer items-center gap-3.5 p-3 sm:p-3.5 rounded-2xl bg-white/80 dark:bg-stone-900/70 backdrop-blur-xl border ${checked ? 'border-[#861C32] bg-[#FBE4E2]/40 ring-2 ring-[#861C32]/20' : 'border-white/80 dark:border-white/10'} shadow-xs transition-all`}>
+        <label className={`flex min-h-16 cursor-pointer items-center gap-3.5 p-3 sm:p-3.5 rounded-2xl bg-white/80 backdrop-blur-xl border ${checked ? 'border-[#861C32] bg-[#FBE4E2]/40 ring-2 ring-[#861C32]/20' : 'border-white/80'} shadow-xs transition-all`}>
           <input
             type="checkbox"
             checked={checked}
@@ -139,14 +139,14 @@ export function TaskRow({ task, canEdit, onTick, selecting = false, checked = fa
             aria-label={t('bulk.choose', { name: task.title })}
             className="size-5 shrink-0 accent-[#861C32]"
           />
-          <div className="flex size-11 sm:size-12 shrink-0 items-center justify-center rounded-full bg-[#FDECEB] text-[#861C32] dark:bg-rose-950/40 dark:text-rose-300">
+          <div className="flex size-11 sm:size-12 shrink-0 items-center justify-center rounded-full bg-[#FDECEB] text-[#861C32]">
             <Icon size={20} className="stroke-[1.8]" />
           </div>
           <div className="flex min-w-0 flex-1 flex-col">
-            <span className={`truncate text-sm sm:text-base font-bold ${closed ? 'text-text-muted line-through' : 'text-stone-900 dark:text-stone-100'}`}>
+            <span className={`truncate text-sm sm:text-base font-bold ${closed ? 'text-text-muted line-through' : 'text-stone-900'}`}>
               {task.title}
             </span>
-            <span className="text-xs text-stone-500 dark:text-stone-400 mt-0.5">
+            <span className="text-xs text-stone-500 mt-0.5">
               {task.code ? `${task.code} · ` : ''}{dueStr}{task.assignees?.length > 0 ? ` · ${task.assignees.map((a) => a.name).join(', ')}` : ''}
             </span>
           </div>
@@ -157,21 +157,21 @@ export function TaskRow({ task, canEdit, onTick, selecting = false, checked = fa
 
   return (
     <li className="list-none">
-      <div className="group flex items-center justify-between gap-3 p-3.5 sm:p-4 rounded-2xl bg-white/90 dark:bg-stone-900/80 backdrop-blur-xl border border-stone-200/60 dark:border-white/10 shadow-xs hover:shadow-md hover:border-[#861C32]/30 transition-all">
+      <div className="group flex items-center justify-between gap-3 p-3.5 sm:p-4 rounded-2xl bg-white/90 backdrop-blur-xl border border-stone-200/60 shadow-xs hover:shadow-md hover:border-[#861C32]/30 transition-all">
         {/* Left circular blush badge (interactive mark done if editable) */}
         {canEdit && !closed ? (
           <button
             type="button"
             onClick={() => onTick(task)}
             aria-label={t('tasks.markDone', { title: task.title })}
-            className="tap group/tick relative flex size-12 shrink-0 items-center justify-center rounded-full bg-[#FDF0ED] text-[#861C32] dark:bg-rose-950/40 dark:text-rose-300 border border-[#FCE2DC] hover:bg-[#FBE4E0] transition-all active:scale-95 shadow-2xs"
+            className="tap group/tick relative flex size-12 shrink-0 items-center justify-center rounded-full bg-[#FDF0ED] text-[#861C32] border border-[#FCE2DC] hover:bg-[#FBE4E0] transition-all active:scale-95 shadow-2xs"
           >
             <Icon size={20} className="stroke-[1.8] group-hover/tick:scale-110 transition-transform" />
             <span className="absolute inset-0 rounded-full border-2 border-transparent group-hover/tick:border-[#861C32]/40" />
           </button>
         ) : (
           <span
-            className="flex size-12 shrink-0 items-center justify-center rounded-full bg-[#FDF0ED] text-[#861C32] dark:bg-rose-950/40 dark:text-rose-300 border border-[#FCE2DC] shadow-2xs"
+            className="flex size-12 shrink-0 items-center justify-center rounded-full bg-[#FDF0ED] text-[#861C32] border border-[#FCE2DC] shadow-2xs"
             aria-hidden="true"
           >
             <Icon size={20} className="stroke-[1.8]" />
@@ -180,11 +180,11 @@ export function TaskRow({ task, canEdit, onTick, selecting = false, checked = fa
 
         {/* Middle Content */}
         <Link to={`/tasks/${task.id}`} className="flex min-w-0 flex-1 flex-col justify-center">
-          <span className={`truncate text-sm sm:text-base font-bold text-stone-900 dark:text-stone-100 group-hover:text-[#861C32] dark:group-hover:text-[#F2A7AF] transition-colors ${closed ? 'text-text-muted line-through' : ''}`}>
+          <span className={`truncate text-sm sm:text-base font-bold text-stone-900 group-hover:text-[#861C32] transition-colors ${closed ? 'text-text-muted line-through' : ''}`}>
             {task.title}
           </span>
-          {task.code && <span className="font-mono text-xs text-stone-400 dark:text-stone-500 sr-only">{task.code}</span>}
-          <div className="flex flex-wrap items-center gap-x-1.5 text-xs text-stone-500 dark:text-stone-400 mt-0.5 leading-normal">
+          {task.code && <span className="font-mono text-xs text-stone-400 sr-only">{task.code}</span>}
+          <div className="flex flex-wrap items-center gap-x-1.5 text-xs text-stone-500 mt-0.5 leading-normal">
             {dueStr && <span>{dueStr}</span>}
             {task.itemCount > 0 && <span>· ☑ {t('tasks.items', { done: task.itemsDone, n: task.itemCount })}</span>}
             <WaitingMark entity={`/tasks/${task.id}`} />
@@ -197,7 +197,7 @@ export function TaskRow({ task, canEdit, onTick, selecting = false, checked = fa
             {badgeText}
           </span>
           <Link to={`/tasks/${task.id}`} aria-hidden="true" tabIndex={-1}>
-            <ChevronRight size={18} className="text-stone-400 dark:text-stone-500 stroke-[2] group-hover:text-stone-600 group-hover:translate-x-0.5 transition-all" />
+            <ChevronRight size={18} className="text-stone-400 stroke-[2] group-hover:text-stone-600 group-hover:translate-x-0.5 transition-all" />
           </Link>
         </div>
       </div>
@@ -292,7 +292,7 @@ export default function TaskList() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder={t('tasks.search')}
-            className="tap w-full rounded-2xl border border-stone-200/80 dark:border-white/10 bg-white/95 dark:bg-stone-900/60 backdrop-blur-xl pl-10 pr-4 py-2.5 text-sm text-stone-900 dark:text-stone-100 placeholder:text-stone-400 shadow-2xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#861C32]/30"
+            className="tap w-full rounded-2xl border border-stone-200/80 bg-white/95 backdrop-blur-xl pl-10 pr-4 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 shadow-2xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#861C32]/30"
           />
         </div>
 

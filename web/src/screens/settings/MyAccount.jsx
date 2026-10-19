@@ -15,11 +15,8 @@ import { ValidationError, ConflictError } from '../../api/errors.js';
 import { useSession } from '../../api/session.js';
 import { logout, logoutEverywhere, changePassword, loadSession } from '../../api/auth.js';
 import { useSave } from '../../forms/useSave.js';
-import { getTheme, setTheme } from '../../pwa/theme.js';
 import { formatDateTime } from '../../format/ist.js';
 import { t } from '../../i18n/strings.en.js';
-
-const themeOptions = ['follow', 'light', 'dark'].map((v) => ({ value: v, label: t(`account.themes.${v}`) }));
 
 export default function MyAccount() {
   const navigate = useNavigate();
@@ -32,7 +29,6 @@ export default function MyAccount() {
   const [pw, setPw] = useState({ current: '', next: '' });
   const [pwFields, setPwFields] = useState({});
   const [pwDone, setPwDone] = useState(false);
-  const [theme, setThemeState] = useState(getTheme);
   const [confirm, setConfirm] = useState(null);
   const [lose, setLose] = useState(false);
   const outbox = useOutbox();
@@ -97,9 +93,6 @@ export default function MyAccount() {
         <Button type="submit" variant="secondary" loading={savePw.status === 'saving'} disabled={!pw.current || !pw.next}>{t('account.savePassword')}</Button>
       </form>
 
-      <section className="flex flex-col gap-3 rounded-md bg-surface p-4 shadow-card">
-        <ChoiceChips label={t('account.theme')} options={themeOptions} value={theme} onChange={(v) => { setTheme(v); setThemeState(v); }} />
-      </section>
 
       <section className="flex flex-col gap-2 rounded-md bg-surface p-4 shadow-card">
         <h2 className="text-lg font-bold">{t('account.phones')}</h2>
