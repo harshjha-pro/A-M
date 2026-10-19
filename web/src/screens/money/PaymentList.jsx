@@ -8,7 +8,7 @@ import { Receipt, TriangleAlert, CalendarX, Paperclip, CheckSquare, Tags, PartyP
 import SelectBar from '../../components/SelectBar.jsx';
 import SortSelect from '../../components/SortSelect.jsx';
 import BulkActions, { useSelection } from '../../components/BulkActions.jsx';
-import Screen from '../../components/Screen.jsx';
+import Screen, { ScreenLoader } from '../../components/Screen.jsx';
 import ChipFilter from '../../components/ChipFilter.jsx';
 import AddButton from '../../components/AddButton.jsx';
 import EmptyState from '../../components/EmptyState.jsx';
@@ -107,7 +107,7 @@ export default function PaymentList() {
           <p className="text-sm text-text-muted">{t('money.bulk.oneAtATime')}</p>
         </SelectBar>
       )}
-      {list.isPending && <p aria-busy="true">…</p>}
+      {list.isPending && <ScreenLoader />}
       {list.isError && <Notice kind="danger">{list.error.message || t('errors.loadFailed')}</Notice>}
       {list.isSuccess && rows.length === 0 && <EmptyState Icon={Receipt} text={status === 'all' ? t('money.emptyPayments') : t('money.emptyFilter')} />}
       {rows.length > 0 && <ul className="overflow-hidden rounded-md bg-surface shadow-card">{rows.map((p) => <PaymentRow key={p.id} p={p} sel={sel} />)}</ul>}

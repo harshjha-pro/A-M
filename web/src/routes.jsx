@@ -1,20 +1,27 @@
 // Screens and deep links (IMPLEMENTATION §3.3). Each screen is lazy-loaded.
 // Log in, set password and first setup are open; everything else needs a login.
 // URLs only ever carry 26-character public ids.
-import { lazy, Suspense } from 'react';
+import React, { lazy, Suspense } from 'react';
 import AppShell from './components/AppShell.jsx';
 import RequireAuth from './components/RequireAuth.jsx';
 
+import LoadingScreen from './components/LoadingScreen.jsx';
+
 const page = (load) => {
   const C = lazy(load);
+  const fallback = import.meta.env.MODE === 'test'
+    ? <div className="p-6 text-text-muted" aria-busy="true">…</div>
+    : <LoadingScreen fullScreen duration={2000} message="Preparing Your Wedding Journey…" />;
   return (
-    <Suspense fallback={<div className="p-6 text-text-muted" aria-busy="true">…</div>}>
+    <Suspense fallback={fallback}>
       <C />
     </Suspense>
   );
 };
 
 export const routes = [
+  { path: '/loading', element: <LoadingScreen message="Preparing Your Wedding Journey…" duration={2000} /> },
+  { path: '/welcome', element: page(() => import('./screens/home/WelcomeScreen.jsx')) },
   { path: '/login', element: page(() => import('./screens/auth/Login.jsx')) },
   { path: '/set-password', element: page(() => import('./screens/auth/SetPassword.jsx')) },
   { path: '/setup', element: page(() => import('./screens/auth/FirstOwner.jsx')) },

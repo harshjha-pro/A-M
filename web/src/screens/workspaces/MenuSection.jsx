@@ -3,7 +3,7 @@
 // from the Vault, and Copy menu from another workspace (one Undo).
 import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { ChevronRight, Copy, Pencil, Plus, Star, Trash2 } from 'lucide-react';
+import { ChevronRight, Copy, Pencil, Plus, Star, Trash2, UtensilsCrossed, FileText } from 'lucide-react';
 import Sheet from '../../components/Sheet.jsx';
 import Button from '../../components/Button.jsx';
 import { TextField, ChoiceChips, Toggle } from '../../components/Field.jsx';
@@ -135,43 +135,116 @@ export default function MenuSection({ ws, title }) {
   }
 
   return (
-    <section id="menu" aria-labelledby="ws-menu" className="flex flex-col gap-4 rounded-md bg-surface p-4 shadow-card">
-      <div className="flex items-center justify-between gap-2">
-        <h2 id="ws-menu" className="text-lg font-bold">{title}</h2>
-        <Button variant="text" onClick={() => setSheet({ kind: 'copy' })}><Copy aria-hidden="true" size={18} />{t('menu.copy')}</Button>
+    <section id="menu" aria-labelledby="ws-menu" className="flex flex-col gap-4 rounded-2xl bg-white p-4 shadow-sm border border-black/5">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <span className="grid size-10 shrink-0 place-items-center rounded-full bg-[#FBEAEB] text-[#861C32]" aria-hidden="true">
+            <UtensilsCrossed size={20} />
+          </span>
+          <h2 id="ws-menu" className="text-lg font-bold text-gray-900">{title}</h2>
+        </div>
+        <Button variant="text" onClick={() => setSheet({ kind: 'copy' })} className="text-xs font-semibold text-[#861C32] hover:underline inline-flex items-center gap-1.5 shrink-0">
+          <Copy aria-hidden="true" size={16} />{t('menu.copy')}
+        </Button>
       </div>
-      <VendorSelect label={t('menu.caterer')} none={t('menu.noCaterer')} value={menu.caterer?.id ?? ''} onChange={setCaterer} />
-      {menu.counts.items > 0 && <p className="text-sm text-text-muted">{t('menu.summary', { items: menu.counts.items, jain: menu.counts.jain })}</p>}
-      {menu.categories.length === 0 && <p className="text-text-muted">{t('menu.empty')}</p>}
+
+      {/* Caterer selector */}
+      <div className="rounded-xl bg-surface-2/60 p-3 border border-black/5">
+        <VendorSelect label={t('menu.caterer')} none={t('menu.noCaterer')} value={menu.caterer?.id ?? ''} onChange={setCaterer} />
+      </div>
+
+      {menu.counts.items > 0 && (
+        <p className="text-xs text-text-muted font-medium px-1">
+          {t('menu.summary', { items: menu.counts.items, jain: menu.counts.jain })}
+        </p>
+      )}
+
+      {menu.categories.length === 0 && (
+        <p className="text-xs text-text-muted px-1">{t('menu.empty')}</p>
+      )}
+
       {menu.categories.map((c) => (
-        <div key={c.id} className="flex flex-col gap-2 border-t border-border pt-3">
+        <div key={c.id} className="flex flex-col gap-2.5 border-t border-gray-100 pt-3">
           <div className="flex items-center justify-between gap-2">
-            <h3 className="font-bold">{c.name}</h3>
-            <button type="button" onClick={() => setSheet({ kind: 'cat', id: c.id })} aria-label={t('menu.moreOptions', { name: c.name })} className="tap grid min-h-12 min-w-12 place-items-center text-primary"><Pencil aria-hidden="true" size={18} /></button>
+            <h3 className="font-bold text-gray-900 text-sm">{c.name}</h3>
+            <button
+              type="button"
+              onClick={() => setSheet({ kind: 'cat', id: c.id })}
+              aria-label={t('menu.moreOptions', { name: c.name })}
+              className="tap size-8 rounded-full grid place-items-center text-text-muted hover:text-primary transition"
+            >
+              <Pencil aria-hidden="true" size={16} />
+            </button>
           </div>
-          {c.items.length === 0 && <p className="text-sm text-text-muted">{t('menu.noDishes')}</p>}
-          <ul className="flex flex-col" aria-label={c.name}>
+
+          {c.items.length === 0 && <p className="text-xs text-text-muted">{t('menu.noDishes')}</p>}
+
+          <ul className="flex flex-col divide-y divide-gray-100" aria-label={c.name}>
             {c.items.map((i) => (
               <li key={i.id}>
-                <button type="button" onClick={() => setSheet({ kind: 'dish', id: i.id })} className="flex min-h-12 w-full items-center gap-2 rounded-sm px-1 text-left">
-                  {i.isMustHave && <Star aria-label={t('menu.mustHave')} size={16} className="shrink-0 fill-current text-warning" />}
+                <button
+                  type="button"
+                  onClick={() => setSheet({ kind: 'dish', id: i.id })}
+                  className="flex min-h-12 w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left hover:bg-surface-2/50 transition-colors"
+                >
+                  {i.isMustHave && (
+                    <Star aria-label={t('menu.mustHave')} size={16} className="shrink-0 fill-current text-warning" />
+                  )}
                   <span className="flex min-w-0 flex-1 flex-col">
-                    <span className="truncate">{i.name}</span>
-                    {i.note && <span className="truncate text-sm text-text-muted">{i.note}</span>}
+                    <span className="truncate text-sm font-medium text-gray-900">{i.name}</span>
+                    {i.note && <span className="truncate text-xs text-text-muted">{i.note}</span>}
                   </span>
-                  {i.diet === 'jain' && <span className="rounded-full bg-success-soft px-2 text-sm font-bold text-success">{t('menu.diets.jain')}</span>}
-                  <span className="text-sm text-text-muted">{i.attachments.length ? `📎 ${i.attachments.length} ` : ''}{i.tasks.length ? `✓ ${i.tasks.length}` : ''}</span>
-                  <ChevronRight aria-hidden="true" size={18} className="text-text-muted" />
+                  {i.diet === 'jain' && (
+                    <span className="rounded-full bg-success-soft px-2 py-0.5 text-xs font-bold text-success shrink-0">
+                      {t('menu.diets.jain')}
+                    </span>
+                  )}
+                  <span className="text-xs text-text-muted shrink-0">
+                    {i.attachments.length ? `📎 ${i.attachments.length} ` : ''}
+                    {i.tasks.length ? `✓ ${i.tasks.length}` : ''}
+                  </span>
+                  <ChevronRight aria-hidden="true" size={16} className="text-text-muted shrink-0" />
                 </button>
               </li>
             ))}
           </ul>
-          <Button variant="secondary" needsInternet onClick={() => setSheet({ kind: 'dish', categoryId: c.id })} aria-label={`${t('menu.addDish')}: ${c.name}`}><Plus aria-hidden="true" size={20} />{t('menu.addDish')}</Button>
+
+          <Button
+            variant="secondary"
+            needsInternet
+            onClick={() => setSheet({ kind: 'dish', categoryId: c.id })}
+            aria-label={`${t('menu.addDish')}: ${c.name}`}
+            className="rounded-full bg-[#FBEAEB] border border-[#F5C2C7] text-[#861C32] px-3.5 py-1.5 text-xs font-semibold hover:bg-[#F5D5D8] transition active:scale-95 self-start shadow-xs mt-1"
+          >
+            <Plus aria-hidden="true" size={15} />
+            {t('menu.addDish')}
+          </Button>
         </div>
       ))}
-      <Button variant="secondary" needsInternet onClick={() => setSheet({ kind: 'addCat' })}><Plus aria-hidden="true" size={20} />{t('menu.addCategory')}</Button>
-      <div className="flex flex-col gap-2 border-t border-border pt-3">
-        <h3 className="font-bold">{t('menu.board')}</h3>
+
+      <Button
+        variant="secondary"
+        needsInternet
+        onClick={() => setSheet({ kind: 'addCat' })}
+        className="w-full rounded-full bg-[#FBEAEB] border border-[#F5C2C7] text-[#861C32] py-2.5 text-sm font-semibold hover:bg-[#F5D5D8] transition active:scale-95 flex items-center justify-center gap-1.5 shadow-xs"
+      >
+        <Plus aria-hidden="true" size={17} />
+        {t('menu.addCategory')}
+      </Button>
+
+      {/* Menu files */}
+      <div className="flex flex-col gap-2.5 border-t border-gray-100 pt-3">
+        <div className="flex items-center gap-3">
+          <span className="grid size-10 shrink-0 place-items-center rounded-full bg-[#EFF6FF] text-[#1D4ED8]" aria-hidden="true">
+            <FileText size={20} />
+          </span>
+          <div className="flex flex-col">
+            <h3 className="text-sm font-bold text-gray-900">{t('menu.board')}</h3>
+            {(!ws.boards?.menu || ws.boards.menu.length === 0) && (
+              <span className="text-xs text-text-muted">Nothing attached yet.</span>
+            )}
+          </div>
+        </div>
         <AttachBlock place={{ workspaceId: ws.id, section: 'menu' }} attachments={ws.boards?.menu ?? []} refresh={refresh} />
       </div>
 

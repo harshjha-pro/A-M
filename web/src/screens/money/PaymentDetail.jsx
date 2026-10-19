@@ -53,7 +53,7 @@ export default function PaymentDetail() {
   }
 
   if (lost) return <Screen title={t('money.payments')} back="/money/payments"><Notice kind="danger">{t('money.noAccess')}</Notice></Screen>;
-  if (q.isPending) return <Screen title={t('money.payments')} back="/money/payments"><p aria-busy="true">…</p></Screen>;
+  if (q.isPending) return <Screen title={t('money.payments')} back="/money/payments" loading />;
   if (q.isError) return <Screen title={t('money.payments')} back="/money/payments"><Notice kind="danger">{q.error.message || t('errors.loadFailed')}</Notice></Screen>;
 
   async function remove() {

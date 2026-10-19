@@ -3,7 +3,7 @@
 // outfit's: timeline, moodboard, props, notes, tasks and the decorator.
 import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { Pencil } from 'lucide-react';
+import { Pencil, Palette, Image } from 'lucide-react';
 import Sheet from '../../components/Sheet.jsx';
 import Button from '../../components/Button.jsx';
 import { TextField } from '../../components/Field.jsx';
@@ -45,24 +45,66 @@ export default function DecorSection({ ws, title }) {
   const [editing, setEditing] = useState(false);
   const refresh = () => { qc.invalidateQueries({ queryKey: ['workspace'] }); qc.invalidateQueries({ queryKey: ['attachments'] }); };
   return (
-    <section id="decor" aria-labelledby="ws-decor" className="flex flex-col gap-4 rounded-md bg-surface p-4 shadow-card">
-      <h2 id="ws-decor" className="text-lg font-bold">{title}</h2>
-      <div className="flex items-start justify-between gap-2 rounded-sm bg-surface-2 p-3">
-        <div className="flex min-w-0 flex-col">
-          <span className="text-sm text-text-muted">{t('decor.theme')}</span>
-          {ws.themeName || ws.themeColours
-            ? <><span className="font-bold">{ws.themeName || '—'}</span>{ws.themeColours && <span>{t('decor.colours')}: {ws.themeColours}</span>}</>
-            : <span className="text-text-muted">{t('decor.noTheme')}</span>}
+    <section id="decor" aria-labelledby="ws-decor" className="flex flex-col gap-4 rounded-2xl bg-white p-4 shadow-sm border border-black/5">
+      <h2 id="ws-decor" className="text-lg font-bold text-gray-900">{title}</h2>
+      
+      {/* Theme summary */}
+      <div className="flex items-center justify-between gap-3 rounded-xl bg-surface-2/60 p-3 border border-black/5">
+        <div className="flex items-center gap-3 min-w-0 flex-1">
+          <span className="grid size-10 shrink-0 place-items-center rounded-full bg-[#F3E8FF] text-[#7E22CE]" aria-hidden="true">
+            <Palette size={20} />
+          </span>
+          <div className="flex min-w-0 flex-1 flex-col">
+            <span className="text-xs font-semibold text-text-muted">{t('decor.theme')}</span>
+            {ws.themeName || ws.themeColours ? (
+              <>
+                <span className="truncate font-bold text-gray-900 text-sm">{ws.themeName || '—'}</span>
+                {ws.themeColours && <span className="text-xs text-text-muted">{t('decor.colours')}: {ws.themeColours}</span>}
+              </>
+            ) : (
+              <span className="text-sm text-text-muted">{t('decor.noTheme')}</span>
+            )}
+          </div>
         </div>
-        <button type="button" onClick={() => setEditing(true)} aria-label={t('decor.editTheme')} className="tap grid min-h-12 min-w-12 place-items-center text-primary"><Pencil aria-hidden="true" size={20} /></button>
+        <button
+          type="button"
+          onClick={() => setEditing(true)}
+          aria-label={t('decor.editTheme')}
+          className="tap size-9 rounded-full grid place-items-center text-[#861C32] hover:bg-[#861C32]/10 transition shrink-0"
+        >
+          <Pencil aria-hidden="true" size={18} />
+        </button>
       </div>
-      <div className="flex flex-col gap-2">
-        <h3 className="font-bold">{t('decor.board')}</h3>
+
+      {/* Theme Board */}
+      <div className="flex flex-col gap-2.5 border-t border-gray-100 pt-3">
+        <div className="flex items-center gap-3">
+          <span className="grid size-10 shrink-0 place-items-center rounded-full bg-[#EFF6FF] text-[#1D4ED8]" aria-hidden="true">
+            <Image size={20} />
+          </span>
+          <div className="flex flex-col">
+            <h3 className="text-sm font-bold text-gray-900">{t('decor.board')}</h3>
+            {(!ws.boards?.decor || ws.boards.decor.length === 0) && (
+              <span className="text-xs text-text-muted">Nothing attached yet.</span>
+            )}
+          </div>
+        </div>
         <AttachBlock place={{ workspaceId: ws.id, section: 'decor' }} attachments={ws.boards?.decor ?? []} refresh={refresh} grid />
       </div>
-      <div className="border-t border-border pt-3">
-        <OutfitCards ws={ws} person="decor" heading={t('decor.items')} level={3} addLabel={t('decor.add')} nameLabel={t('decor.nameLabel')} none={t('decor.none')} />
+
+      {/* Decor Items */}
+      <div className="flex flex-col gap-2.5 border-t border-gray-100 pt-3">
+        <OutfitCards
+          ws={ws}
+          person="decor"
+          heading={t('decor.items')}
+          level={3}
+          addLabel={t('decor.add')}
+          nameLabel={t('decor.nameLabel')}
+          none={t('decor.none')}
+        />
       </div>
+
       {editing && <ThemeSheet ws={ws} onClose={() => setEditing(false)} />}
     </section>
   );

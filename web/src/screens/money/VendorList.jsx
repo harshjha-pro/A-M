@@ -8,7 +8,7 @@ import { Search, Store, CircleCheck, CheckSquare, Tags, BadgeCheck, Trash2 } fro
 import SelectBar from '../../components/SelectBar.jsx';
 import SortSelect from '../../components/SortSelect.jsx';
 import BulkActions, { useSelection } from '../../components/BulkActions.jsx';
-import Screen from '../../components/Screen.jsx';
+import Screen, { ScreenLoader } from '../../components/Screen.jsx';
 import AddButton from '../../components/AddButton.jsx';
 import EmptyState from '../../components/EmptyState.jsx';
 import { Notice, ChoiceChips } from '../../components/Field.jsx';
@@ -68,7 +68,7 @@ export default function VendorList() {
             onDone={() => { sel.clear(); qc.invalidateQueries({ queryKey: ['vendors'] }); }} />
         </SelectBar>
       )}
-      {list.isPending && <p aria-busy="true">…</p>}
+      {list.isPending && <ScreenLoader />}
       {list.isError && <Notice kind="danger">{list.error.message || t('errors.loadFailed')}</Notice>}
       {list.isSuccess && list.data.length === 0 && <EmptyState Icon={Store} text={t('money.vendorsEmpty')} />}
       {list.data?.length > 0 && (

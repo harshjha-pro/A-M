@@ -5,6 +5,15 @@ import { canEditWorkspace } from '../../api/workspaceAccess.js';
 import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  MoreVertical,
+  CalendarDays,
+  Folder,
+  Flag,
+  Tag,
+  SquarePen,
+  ChevronDown,
+} from 'lucide-react';
 import Screen from '../../components/Screen.jsx';
 import { TextField, ChoiceChips, FixSummary, Notice } from '../../components/Field.jsx';
 import { MultiChips } from '../../components/ChipFilter.jsx';
@@ -113,9 +122,19 @@ export default function TaskForm() {
   });
 
   const title = id ? t('tasks.editTask') : t('tasks.addTask');
-  if (!id && permissions && !permissions.admin) return <Screen title={title} back="/tasks"><Notice>{t('tasks.onlyAdminsAdd')}</Notice></Screen>;
-  if (id && q.isError) return <Screen title={title} back="/tasks"><Notice kind="danger">{q.error.message || t('errors.loadFailed')}</Notice></Screen>;
-  if (!f.editing) return <Screen title={title} back="/tasks"><p aria-busy="true">…</p></Screen>;
+  const headerActions = (
+    <button
+      type="button"
+      aria-label="More options"
+      className="tap grid size-9 place-items-center rounded-full text-white/90 hover:bg-white/15 active:scale-95 transition-colors"
+    >
+      <MoreVertical size={20} strokeWidth={2.2} />
+    </button>
+  );
+
+  if (!id && permissions && !permissions.admin) return <Screen variant="burgundy" title={title} back="/tasks"><Notice>{t('tasks.onlyAdminsAdd')}</Notice></Screen>;
+  if (id && q.isError) return <Screen variant="burgundy" title={title} back="/tasks"><Notice kind="danger">{q.error.message || t('errors.loadFailed')}</Notice></Screen>;
+  if (!f.editing) return <Screen variant="burgundy" title={title} back="/tasks"><p aria-busy="true">…</p></Screen>;
 
   const tagName = Object.fromEntries((tags.data ?? []).map((g) => [g.id, g.name]));
   const memberName = Object.fromEntries((members.data ?? []).map((m) => [m.id, m.name]));
@@ -144,8 +163,7 @@ export default function TaskForm() {
   };
 
   return (
-    <Screen title={title} back={id ? `/tasks/${id}` : '/tasks'}>
-      {f.draft && <DraftBanner time={f.draftTime} onUse={f.useDraft} onDiscard={f.discardDraft} />}
+    <Screen variant="burgundy" title={title} back={id ? `/tasks/${id}` : '/tasks'} actions={headerActions}>
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -154,70 +172,223 @@ export default function TaskForm() {
           if (!v.title.trim()) { f.setFieldErrors({ title: t('tasks.titleRequired') }); return; }
           f.submit(e);
         }}
-        className="flex flex-col gap-5" noValidate
+        className="flex flex-col gap-6 rounded-t-3xl bg-[#FFFDFB] dark:bg-stone-900 border border-stone-200/60 dark:border-white/10 p-4 sm:p-6 -mt-6 relative z-10 shadow-sm"
+        noValidate
       >
+        {f.draft && <DraftBanner time={f.draftTime} onUse={f.useDraft} onDiscard={f.discardDraft} />}
         <FixSummary fields={errors} />
         {f.deleted && <Notice kind="warning">{f.deleted.message}</Notice>}
         {dup && (
-          <div role="alert" className="flex flex-col gap-3 rounded-md bg-warning-soft p-3">
-            <p>{t('tasks.similar', { title: dup.name })}</p>
+          <div role="alert" className="flex flex-col gap-3 rounded-2xl bg-warning-soft p-4 border border-amber-300/60 shadow-xs">
+            <p className="font-medium text-stone-800 dark:text-stone-200">{t('tasks.similar', { title: dup.name })}</p>
             <div className="flex gap-3">
-              {dup.id && <Button variant="secondary" className="flex-1" onClick={() => navigate(`/tasks/${dup.id}`)}>{t('tasks.open')}</Button>}
-              <Button className="flex-1" onClick={() => { allowDup.current = true; setDup(null); f.submit(); }}>{t('tasks.addAnyway')}</Button>
+              {dup.id && <Button variant="secondary" className="flex-1 rounded-full" onClick={() => navigate(`/tasks/${dup.id}`)}>{t('tasks.open')}</Button>}
+              <Button className="flex-1 rounded-full bg-[#861C32] text-white" onClick={() => { allowDup.current = true; setDup(null); f.submit(); }}>{t('tasks.addAnyway')}</Button>
             </div>
           </div>
         )}
-        <TextField label={t('tasks.titleLabel')} value={v.title} onChange={f.set('title')} error={errors.title} maxLength={200} autoFocus={!id} />
-        <CodeField value={v.code ?? ''} onChange={f.set('code')} except={id} error={errors.code} endpoint="/tasks/check-code" help={t('tasks.codeHelp')} label={t('tasks.codeLabel')} />
-        <DateField label={t('tasks.due')} value={v.dueDate} onChange={(d) => { f.set('dueDate')(d); if (!d) f.set('dueTime')(''); }} error={errors.dueDate} />
+
+        {/* 1. What needs doing? */}
+        <TextField
+          label={t('tasks.titleLabel')}
+          value={v.title}
+          onChange={f.set('title')}
+          error={errors.title}
+          maxLength={200}
+          autoFocus={!id}
+          placeholder="Enter task details..."
+        />
+
+        {/* 2. Task ID */}
+        <CodeField
+          value={v.code ?? ''}
+          onChange={f.set('code')}
+          except={id}
+          error={errors.code}
+          endpoint="/tasks/check-code"
+          help={t('tasks.codeHelp')}
+          label={t('tasks.codeLabel')}
+          placeholder="Enter task ID (optional)"
+        />
+
+        {/* 3. Due date (2x2 grid + full width No date) */}
+        <DateField
+          label={t('tasks.due')}
+          value={v.dueDate}
+          onChange={(d) => { f.set('dueDate')(d); if (!d) f.set('dueTime')(''); }}
+          error={errors.dueDate}
+        />
+
+        {/* 4. Assigned to */}
         {activeMembers.length > 0 && (
-          <MultiChips label={t('tasks.assignees')} options={activeMembers.map((m) => ({ value: m.id, label: m.id === user?.id ? `${m.name} (me)` : m.name }))}
-            value={v.assigneeIds} onChange={f.set('assigneeIds')} error={errors.assigneeIds} />
+          <MultiChips
+            label={t('tasks.assignees')}
+            legendClass="text-[#861C32] dark:text-[#F2A7AF] font-bold text-sm sm:text-base"
+            options={activeMembers.map((m) => ({ value: m.id, label: m.id === user?.id ? `${m.name} (me)` : m.name }))}
+            value={v.assigneeIds}
+            onChange={f.set('assigneeIds')}
+            error={errors.assigneeIds}
+          />
         )}
-        <details className="flex flex-col gap-5 rounded-md bg-surface p-4 shadow-card" open={Boolean(id || presetEvent || presetWorkspace)}>
-          <summary className="tap cursor-pointer font-bold text-primary">{t('tasks.moreDetails')}</summary>
-          <div className="mt-4 flex flex-col gap-5">
+
+        {/* 5. More details Accordion */}
+        <details className="group overflow-hidden rounded-2xl border border-stone-200/80 dark:border-white/10 shadow-xs" open={Boolean(id || presetEvent || presetWorkspace)}>
+          <summary className="tap cursor-pointer select-none bg-[#861C32] px-4 py-3.5 font-bold text-white flex items-center gap-2 list-none hover:bg-[#771529] transition-colors">
+            <ChevronDown aria-hidden="true" size={20} className="transition-transform group-open:rotate-180" />
+            <span>{t('tasks.moreDetails')}</span>
+          </summary>
+          <div className="flex flex-col gap-5 p-4 sm:p-5 bg-white/95 dark:bg-stone-900/90">
             {v.dueDate && <TextField type="time" label={t('tasks.time')} value={v.dueTime} onChange={f.set('dueTime')} error={errors.dueTime} />}
+            
+            {/* Event (optional) */}
             {(events.data ?? []).length > 0 && (
-              <label className="flex flex-col gap-1">
-                <span className="font-bold">{t('tasks.eventLabel')}</span>
-                <select value={v.eventId} onChange={(e) => f.set('eventId')(e.target.value)} className="tap rounded-sm border-[1.5px] border-border-strong bg-surface px-3 text-base text-text">
-                  <option value="">{t('tasks.noEvent')}</option>
-                  {events.data.map((ev) => <option key={ev.id} value={ev.id}>{ev.name}</option>)}
-                </select>
-              </label>
+              <div className="flex items-start gap-3">
+                <CalendarDays aria-hidden="true" size={20} className="text-[#861C32] dark:text-[#F2A7AF] mt-2.5 shrink-0" strokeWidth={2.2} />
+                <label className="flex flex-1 flex-col gap-1.5">
+                  <span className="font-bold text-stone-900 dark:text-stone-100 text-sm">{t('tasks.eventLabel')}</span>
+                  <select
+                    value={v.eventId}
+                    onChange={(e) => f.set('eventId')(e.target.value)}
+                    className="tap w-full rounded-2xl border border-stone-200/90 dark:border-white/10 bg-white/95 dark:bg-stone-900/60 px-4 py-2.5 text-sm text-stone-900 dark:text-stone-100 shadow-2xs focus:outline-none focus:ring-2 focus:ring-[#861C32]/30"
+                  >
+                    <option value="">{t('tasks.noEvent')}</option>
+                    {events.data.map((ev) => <option key={ev.id} value={ev.id}>{ev.name}</option>)}
+                  </select>
+                </label>
+              </div>
             )}
+
+            {/* Workspace */}
             {canEditWorkspace(permissions) && (workspaces.data ?? []).length > 0 && (
-              <label className="flex flex-col gap-1">
-                <span className="font-bold">{t('nav.workspace')}</span>
-                <select value={v.workspaceId} onChange={(e) => f.set('workspaceId')(e.target.value)} className="tap rounded-sm border-[1.5px] border-border-strong bg-surface px-3 text-base text-text">
-                  <option value="">{t('workspace.noEvent')}</option>
-                  {workspaces.data.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}
-                </select>
-              </label>
+              <div className="flex items-start gap-3">
+                <Folder aria-hidden="true" size={20} className="text-[#861C32] dark:text-[#F2A7AF] mt-2.5 shrink-0" strokeWidth={2.2} />
+                <label className="flex flex-1 flex-col gap-1.5">
+                  <span className="font-bold text-stone-900 dark:text-stone-100 text-sm">{t('nav.workspace')}</span>
+                  <select
+                    value={v.workspaceId}
+                    onChange={(e) => f.set('workspaceId')(e.target.value)}
+                    className="tap w-full rounded-2xl border border-stone-200/90 dark:border-white/10 bg-white/95 dark:bg-stone-900/60 px-4 py-2.5 text-sm text-stone-900 dark:text-stone-100 shadow-2xs focus:outline-none focus:ring-2 focus:ring-[#861C32]/30"
+                  >
+                    <option value="">{t('workspace.noEvent')}</option>
+                    {workspaces.data.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}
+                  </select>
+                </label>
+              </div>
             )}
-            <ChoiceChips label={t('tasks.priorityLabel')} options={['urgent', 'normal', 'low'].map((p) => ({ value: p, label: t(`tasks.priority.${p}`) }))} value={v.priority} onChange={f.set('priority')} />
-            {id && <ChoiceChips label={t('tasks.statusLabel')} options={['todo', 'doing', 'waiting', 'done', 'cancelled'].map((s) => ({ value: s, label: t(`tasks.status.${s}`) }))} value={v.status} onChange={f.set('status')} />}
-            {(tags.data ?? []).length > 0 && (
-              <MultiChips label={t('tasks.tags')} options={(tags.data ?? []).slice().sort((a, b) => a.name.localeCompare(b.name)).map((g) => ({ value: g.id, label: g.name }))}
-                value={v.tagIds} onChange={f.set('tagIds')} error={errors.tagIds} />
-            )}
-            {v.newTags.length > 0 && <p className="text-sm">{t('tasks.newTag')}: {v.newTags.join(', ')}</p>}
-            <div className="flex items-end gap-2">
-              <div className="flex-1"><TextField label={t('tasks.newTag')} value={tagText} onChange={setTagText} maxLength={30} error={errors.newTags}
-                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addTag(); } }} /></div>
-              <Button variant="secondary" onClick={addTag}>{t('tasks.addTag')}</Button>
+
+            {/* Priority */}
+            <div className="flex items-start gap-3">
+              <Flag aria-hidden="true" size={20} className="text-[#861C32] dark:text-[#F2A7AF] mt-2.5 shrink-0" strokeWidth={2.2} />
+              <div className="flex-1">
+                <ChoiceChips
+                  label={t('tasks.priorityLabel')}
+                  options={['urgent', 'normal', 'low'].map((p) => ({ value: p, label: t(`tasks.priority.${p}`) }))}
+                  value={v.priority}
+                  onChange={f.set('priority')}
+                />
+              </div>
             </div>
-            <label className="flex flex-col gap-1">
-              <span className="font-bold">{t('tasks.notes')}</span>
-              <textarea value={v.notes} onChange={(e) => f.set('notes')(e.target.value)} rows={4} maxLength={5000}
-                className="w-full rounded-sm border-[1.5px] border-border-strong bg-surface p-3 text-base text-text" />
-            </label>
+
+            {id && (
+              <ChoiceChips
+                label={t('tasks.statusLabel')}
+                options={['todo', 'doing', 'waiting', 'done', 'cancelled'].map((s) => ({ value: s, label: t(`tasks.status.${s}`) }))}
+                value={v.status}
+                onChange={f.set('status')}
+              />
+            )}
+
+            {/* Tags */}
+            {(tags.data ?? []).length > 0 && (
+              <div className="flex items-start gap-3">
+                <Tag aria-hidden="true" size={20} className="text-[#861C32] dark:text-[#F2A7AF] mt-2.5 shrink-0" strokeWidth={2.2} />
+                <div className="flex-1 flex flex-col gap-3">
+                  <fieldset className="flex flex-col gap-2">
+                    <legend className="font-bold text-stone-900 dark:text-stone-100 text-sm">{t('tasks.tags')}</legend>
+                    <div className="flex flex-wrap gap-2">
+                      {(tags.data ?? []).slice().sort((a, b) => a.name.localeCompare(b.name)).map((g) => {
+                        const on = v.tagIds.includes(g.id);
+                        return (
+                          <button
+                            key={g.id}
+                            type="button"
+                            aria-pressed={on}
+                            onClick={() => f.set('tagIds')(on ? v.tagIds.filter((x) => x !== g.id) : [...v.tagIds, g.id])}
+                            className={`tap inline-flex items-center rounded-full px-4 py-1.5 text-xs font-semibold transition-all ${
+                              on
+                                ? 'bg-[#861C32] text-white font-bold border border-[#861C32] shadow-2xs'
+                                : 'bg-[#FFF0F2] dark:bg-rose-950/40 text-stone-700 dark:text-stone-200 border border-[#FCE4E8] dark:border-white/10 hover:border-[#861C32]/40'
+                            }`}
+                          >
+                            {g.name}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </fieldset>
+
+                  {/* New tag input row */}
+                  <div className="flex flex-col gap-1.5 mt-1">
+                    <span className="font-bold text-stone-900 dark:text-stone-100 text-sm">{t('tasks.newTag')}</span>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={tagText}
+                        onChange={(e) => setTagText(e.target.value)}
+                        placeholder="Enter tag name"
+                        maxLength={30}
+                        onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addTag(); } }}
+                        className="tap flex-1 rounded-2xl border border-stone-200/90 dark:border-white/10 bg-white/95 dark:bg-stone-900/60 px-4 py-2.5 text-sm text-stone-900 dark:text-stone-100 placeholder:text-stone-400 shadow-2xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#861C32]/30"
+                      />
+                      <button
+                        type="button"
+                        onClick={addTag}
+                        className="tap rounded-2xl bg-[#861C32] hover:bg-[#6e1628] text-white px-5 py-2.5 font-bold text-sm shadow-xs active:scale-95 transition-all shrink-0"
+                      >
+                        {t('tasks.addTag')}
+                      </button>
+                    </div>
+                    {v.newTags.length > 0 && <p className="text-xs text-stone-500">{t('tasks.newTag')}: {v.newTags.join(', ')}</p>}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Notes */}
+            <div className="flex items-start gap-3">
+              <SquarePen aria-hidden="true" size={20} className="text-[#861C32] dark:text-[#F2A7AF] mt-2.5 shrink-0" strokeWidth={2.2} />
+              <label className="flex flex-1 flex-col gap-1.5">
+                <span className="font-bold text-stone-900 dark:text-stone-100 text-sm">{t('tasks.notes')}</span>
+                <textarea
+                  value={v.notes}
+                  onChange={(e) => f.set('notes')(e.target.value)}
+                  rows={4}
+                  maxLength={5000}
+                  placeholder="Add notes (optional)..."
+                  className="w-full rounded-2xl border border-stone-200/90 dark:border-white/10 bg-white dark:bg-stone-900/60 p-3.5 text-sm text-stone-900 dark:text-stone-100 placeholder:text-stone-400 shadow-2xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#861C32]/30 min-h-[90px]"
+                />
+              </label>
+            </div>
           </div>
         </details>
+
         <SavedIndicator {...f.save} />
-        <Button type="submit" loading={f.save.status === 'saving'}>{t('tasks.save')}</Button>
-        <Button variant="secondary" onClick={() => { f.cancel(); navigate(id ? `/tasks/${id}` : '/tasks'); }}>{t('login.cancel')}</Button>
+
+        {/* Full-width Save task button */}
+        <Button
+          type="submit"
+          loading={f.save.status === 'saving'}
+          className="w-full py-4 rounded-full bg-[#861C32] hover:bg-[#6e1628] text-white font-bold text-base shadow-md active:scale-98 transition-all"
+        >
+          {t('tasks.save')}
+        </Button>
+        <Button
+          variant="secondary"
+          onClick={() => { f.cancel(); navigate(id ? `/tasks/${id}` : '/tasks'); }}
+          className="w-full py-3 rounded-full border-stone-200/90 text-stone-700 dark:text-stone-300 hover:bg-stone-50 text-sm"
+        >
+          {t('login.cancel')}
+        </Button>
       </form>
     </Screen>
   );

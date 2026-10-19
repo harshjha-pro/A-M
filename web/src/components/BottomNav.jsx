@@ -25,8 +25,8 @@ export default function BottomNav() {
   const { pathname } = useLocation();
   const { permissions } = useSession();
   return (
-    <nav aria-label={t('nav.label')} className="fixed inset-x-0 bottom-0 z-30 px-3 pb-[calc(0.5rem+env(safe-area-inset-bottom))]">
-      <ul className="glass mx-auto grid !bg-glass-sheet max-w-xl grid-cols-5 rounded-[1.75rem] px-1 py-1">
+    <nav aria-label={t('nav.label')} className="fixed inset-x-0 bottom-0 z-30 px-3 pb-[calc(0.5rem+env(safe-area-inset-bottom))] pointer-events-none">
+      <ul className="mx-auto grid max-w-xl grid-cols-5 rounded-[1.75rem] px-1 py-1 bg-white/45 dark:bg-[#211A16]/55 backdrop-blur-2xl border border-white/60 dark:border-white/10 shadow-lg shadow-[#861C32]/5 pointer-events-auto">
         {navItems(canSeeWorkspace(permissions)).map(({ to, label, Icon, end }) => (
           <li key={to}>
             <NavLink
@@ -40,10 +40,10 @@ export default function BottomNav() {
             >
               {({ isActive }) => (
                 <>
-                  <span className={`flex h-8 w-14 items-center justify-center rounded-full ${isActive ? 'bg-primary-soft text-primary' : ''}`}>
-                    <Icon aria-hidden="true" size={26} strokeWidth={2} />
+                  <span className={`flex h-8 w-14 items-center justify-center rounded-full transition-colors ${isActive ? 'bg-[#FBE4E2] dark:bg-rose-950/50 text-[#861C32] dark:text-[#F2A7AF]' : 'hover:bg-white/30 text-stone-600 dark:text-stone-300'}`}>
+                    <Icon aria-hidden="true" size={24} strokeWidth={2.2} />
                   </span>
-                  <span className={isActive ? 'font-bold text-text' : ''}>{t(label)}</span>
+                  <span className={`text-[11px] sm:text-xs transition-colors ${isActive ? 'font-bold text-[#861C32] dark:text-[#F2A7AF]' : 'text-stone-600 dark:text-stone-400'}`}>{t(label)}</span>
                 </>
               )}
             </NavLink>

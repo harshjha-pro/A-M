@@ -26,7 +26,7 @@ export default function VendorDetail() {
   const q = useQuery({ queryKey: ['vendor', id], queryFn: () => api('GET', `/vendors/${id}`).then((r) => r.data) });
   const pays = useQuery({ queryKey: ['payments', 'vendor', id], queryFn: () => api('GET', '/payments', { query: { vendor: id } }).then((r) => r.data), enabled: Boolean(permissions?.money) });
   const v = q.data;
-  if (q.isPending) return <Screen title={t('money.vendorTitle')} back="/vendors"><p aria-busy="true">…</p></Screen>;
+  if (q.isPending) return <Screen title={t('money.vendorTitle')} back="/vendors" loading />;
   if (q.isError) return <Screen title={t('money.vendorTitle')} back="/vendors"><Notice kind="danger">{q.error.message || t('errors.loadFailed')}</Notice></Screen>;
 
   async function remove() {

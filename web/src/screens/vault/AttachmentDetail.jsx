@@ -51,7 +51,7 @@ export default function AttachmentDetail() {
   const [place, setPlace] = useState({ ws: '', section: 'general' });
   const a = q.data;
   if (!canSeeWorkspace(permissions)) return <Screen title={t('vault.title')} back="/more"><Notice>{t('workspace.onlyAdmins')}</Notice></Screen>;
-  if (q.isPending) return <Screen title={t('vault.title')} back="/vault"><p aria-busy="true">…</p></Screen>;
+  if (q.isPending) return <Screen title={t('vault.title')} back="/vault" loading />;
   if (q.isError) return <Screen title={t('vault.title')} back="/vault"><Notice kind="danger">{q.error.message || t('errors.loadFailed')}</Notice></Screen>;
   const refresh = () => { qc.invalidateQueries({ queryKey: ['attachment', id] }); qc.invalidateQueries({ queryKey: ['attachments'] }); qc.invalidateQueries({ queryKey: ['workspace'] }); };
   const f = form ?? { code: a.code, title: a.title, note: a.note ?? '', url: a.url ?? '', body: a.body ?? '', isFavourite: a.isFavourite, vendorId: a.vendor?.id ?? '' };

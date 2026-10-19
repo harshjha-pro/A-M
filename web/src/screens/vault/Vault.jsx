@@ -4,7 +4,7 @@
 import { canSeeWorkspace } from '../../api/workspaceAccess.js';
 import { useState } from 'react';
 import { Archive } from 'lucide-react';
-import Screen from '../../components/Screen.jsx';
+import Screen, { ScreenLoader } from '../../components/Screen.jsx';
 import ChipFilter from '../../components/ChipFilter.jsx';
 import EmptyState from '../../components/EmptyState.jsx';
 import AddButton from '../../components/AddButton.jsx';
@@ -49,7 +49,7 @@ export default function Vault() {
         </select>
       </label>
       <StorageCard storage={storage} checkedAt={list.data?.meta?.serverTime} />
-      {list.isPending && <p aria-busy="true">…</p>}
+      {list.isPending && <ScreenLoader />}
       {list.isError && <Notice kind="danger">{list.error.message || t('errors.loadFailed')}</Notice>}
       {list.data && list.data.items.length === 0 && <EmptyState Icon={Archive} text={filtered ? t('vault.emptyFilter') : t('vault.empty')} />}
       {list.data && list.data.items.length > 0 && (

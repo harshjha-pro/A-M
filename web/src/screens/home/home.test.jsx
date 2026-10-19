@@ -9,6 +9,7 @@ import { createMemoryRouter, RouterProvider } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { axe } from '../../test/axe.js';
 import { routes } from '../../routes.jsx';
+import './Home.jsx';
 import { fakeApi, ok, signInAs, signOut, PEOPLE } from '../../test/helpers.js';
 import { dismiss } from '../../undo/undoStore.js';
 import { monthsDaysHours } from './countdownMath.js';

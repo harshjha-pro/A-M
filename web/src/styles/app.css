@@ -22,6 +22,8 @@
   --c-primary-hover:#6F1622; --c-accent-soft:#FBEFD3;
   --c-glass:rgb(255 255 255/.62); --c-glass-blush:rgb(247 228 230/.78); --c-glass-sheet:rgb(255 252 248/.94);
   --c-glass-border:rgb(255 255 255/.75); --c-scrim:rgb(42 31 26/.55);
+  --c-glass-card:rgba(255, 255, 255, 0.45); --c-glass-card-border:rgba(255, 255, 255, 0.75);
+  --shadow-glass-card: 0 20px 50px rgba(138, 28, 43, 0.08), inset 0 1px 2px rgba(255, 255, 255, 0.7);
   --shadow-card-v: 0 0 0 1px var(--c-border), 0 1px 2px rgb(42 31 26/.05), 0 4px 14px rgb(42 31 26/.06);
   --shadow-glass-v: 0 8px 24px rgb(138 28 43/.10), inset 0 1px 0 rgb(255 255 255/.6);
   --shadow-sheet-v: 0 -8px 24px rgb(42 31 26/.14);
@@ -29,45 +31,6 @@
   color-scheme: light;
 }
 
-/* Dark: follows the phone unless My account forces light (DESIGN D4). */
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --c-bg:#17120F; --c-surface:#211A16; --c-surface-2:#2B231E;
-    --c-text:#F5EEE4; --c-text-muted:#C9BBAA;
-    --c-border:#3D332C; --c-border-strong:#8A7A6A;
-    --c-primary:#F2A7AF; --c-on-primary:#3A0B12; --c-primary-soft:#3D1D22;
-    --c-accent:#F2B84B; --c-on-accent:#17120F;
-    --c-success:#86C991; --c-success-soft:#1D3322;
-    --c-warning:#FFC266; --c-warning-soft:#3A2C12;
-    --c-danger:#FF8A80;  --c-danger-soft:#3D1B19;
-    --c-info:#93C5F0;    --c-info-soft:#16293A;
-    --c-focus:#93C5F0;
-    --shadow-card-v:0 0 0 1px var(--c-border); --shadow-sheet-v:none; --shadow-fab-v:none;
-    --c-primary-hover:#F6C0C6; --c-accent-soft:#3A2C12;
-    --c-glass:rgb(33 26 22/.62); --c-glass-blush:rgb(61 29 34/.78); --c-glass-sheet:rgb(33 26 22/.94);
-    --c-glass-border:rgb(255 255 255/.14); --c-scrim:rgb(0 0 0/.6);
-    --shadow-glass-v: 0 8px 24px rgb(0 0 0/.35);
-    color-scheme: dark;
-  }
-}
-:root[data-theme="dark"] {
-  --c-bg:#17120F; --c-surface:#211A16; --c-surface-2:#2B231E;
-  --c-text:#F5EEE4; --c-text-muted:#C9BBAA;
-  --c-border:#3D332C; --c-border-strong:#8A7A6A;
-  --c-primary:#F2A7AF; --c-on-primary:#3A0B12; --c-primary-soft:#3D1D22;
-  --c-accent:#F2B84B; --c-on-accent:#17120F;
-  --c-success:#86C991; --c-success-soft:#1D3322;
-  --c-warning:#FFC266; --c-warning-soft:#3A2C12;
-  --c-danger:#FF8A80;  --c-danger-soft:#3D1B19;
-  --c-info:#93C5F0;    --c-info-soft:#16293A;
-  --c-focus:#93C5F0;
-  --shadow-card-v:0 0 0 1px var(--c-border); --shadow-sheet-v:none; --shadow-fab-v:none;
-  --c-primary-hover:#F6C0C6; --c-accent-soft:#3A2C12;
-  --c-glass:rgb(33 26 22/.62); --c-glass-blush:rgb(61 29 34/.78); --c-glass-sheet:rgb(33 26 22/.94);
-  --c-glass-border:rgb(255 255 255/.14); --c-scrim:rgb(0 0 0/.6);
-  --shadow-glass-v: 0 8px 24px rgb(0 0 0/.35);
-  color-scheme: dark;
-}
 
 @theme inline {
   --color-bg:var(--c-bg); --color-surface:var(--c-surface); --color-surface-2:var(--c-surface-2);
@@ -120,6 +83,93 @@ body { @apply bg-bg text-text font-sans text-base antialiased; margin:0; min-hei
 @utility glass { background:var(--c-glass); border:1px solid var(--c-glass-border); box-shadow:var(--shadow-glass-v); backdrop-filter:blur(18px) saturate(1.25); -webkit-backdrop-filter:blur(18px) saturate(1.25); }
 @utility glass-blush { background:var(--c-glass-blush); border:1px solid var(--c-primary); box-shadow:var(--shadow-glass-v); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); }
 @utility glass-sheet { background:var(--c-glass-sheet); border:1px solid var(--c-glass-border); backdrop-filter:blur(18px); -webkit-backdrop-filter:blur(18px); }
+@utility glass-card { background:rgba(255, 255, 255, 0.45); border:1px solid rgba(255, 255, 255, 0.75); box-shadow:0 20px 50px rgba(138, 28, 43, 0.08), inset 0 1px 2px rgba(255, 255, 255, 0.7); backdrop-filter:blur(20px) saturate(1.3); -webkit-backdrop-filter:blur(20px) saturate(1.3); }
 @utility scrim-b { background:linear-gradient(180deg, rgb(42 31 26/0) 25%, var(--c-scrim) 100%); }
 @utility scrim-tb { background:linear-gradient(180deg, var(--c-scrim) 0%, rgb(42 31 26/0) 30%, rgb(42 31 26/0) 40%, var(--c-scrim) 100%); }
 @utility font-display { font-family:var(--font-display); font-weight:700; font-variant-numeric:lining-nums proportional-nums; font-feature-settings:"lnum" 1, "pnum" 1; }
+
+/* Luxury A&M Loading Screen Animations */
+@keyframes am-royal-trot {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  20% {
+    transform: translateY(-5px) rotate(-0.6deg);
+  }
+  40% {
+    transform: translateY(-1px) rotate(0.4deg);
+  }
+  60% {
+    transform: translateY(-6px) rotate(-0.5deg);
+  }
+  80% {
+    transform: translateY(-2px) rotate(0.3deg);
+  }
+}
+
+@keyframes am-horse-shadow {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.24;
+  }
+  20% {
+    transform: scale(0.92);
+    opacity: 0.16;
+  }
+  40% {
+    transform: scale(0.98);
+    opacity: 0.22;
+  }
+  60% {
+    transform: scale(0.90);
+    opacity: 0.15;
+  }
+  80% {
+    transform: scale(0.97);
+    opacity: 0.21;
+  }
+}
+
+@keyframes am-petal-drift {
+  0% {
+    transform: translate(0, 0) rotate(0deg) scale(0.8);
+    opacity: 0;
+  }
+  15% {
+    opacity: 0.85;
+  }
+  80% {
+    opacity: 0.8;
+  }
+  100% {
+    transform: translate(24px, 38px) rotate(140deg) scale(0.95);
+    opacity: 0;
+  }
+}
+
+@keyframes am-progress-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.am-royal-trot {
+  animation: am-royal-trot 2.2s ease-in-out infinite;
+  transform-origin: center bottom;
+}
+
+.am-horse-shadow {
+  animation: am-horse-shadow 2.2s ease-in-out infinite;
+}
+
+.am-petal-drift {
+  animation: am-petal-drift linear infinite;
+}
+
+.am-progress-shimmer {
+  animation: am-progress-shimmer 2.2s linear infinite;
+}
+

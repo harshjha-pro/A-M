@@ -9,3 +9,22 @@ import { cleanup } from '@testing-library/react';
 expect.extend(axeMatchers);
 afterEach(() => cleanup());
 globalThis.__APP_VERSION__ = '1.0.24';
+
+// Node 24 jsdom compatibility: React Router navigations create internal Requests with jsdom AbortSignal
+if (globalThis.Request) {
+  const OrigRequest = globalThis.Request;
+  const WrappedRequest = function Request(input, init) {
+    if (init && init.signal) {
+      try {
+        new OrigRequest('http://localhost', { signal: init.signal });
+      } catch {
+        const copy = { ...init };
+        delete copy.signal;
+        return new OrigRequest(input, copy);
+      }
+    }
+    return new OrigRequest(input, init);
+  };
+  WrappedRequest.prototype = OrigRequest.prototype;
+  globalThis.Request = WrappedRequest;
+}

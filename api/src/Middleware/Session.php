@@ -24,7 +24,7 @@ final class Session implements Middleware
     public function process(Request $request, App $app, callable $next): Response
     {
         $request->attributes['user'] = null;
-        $token = $request->cookies[Sessions::COOKIE] ?? '';
+        $token = $request->cookies[Sessions::COOKIE] ?? $request->cookies['am_session'] ?? '';
         if ($token === '' || strlen($token) > 100) {
             return $next($request);
         }

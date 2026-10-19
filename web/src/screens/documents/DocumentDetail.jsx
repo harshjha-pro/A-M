@@ -26,7 +26,7 @@ export default function DocumentDetail() {
   const qc = useQueryClient();
   const q = useQuery({ queryKey: ['document', id], queryFn: () => api('GET', `/documents/${id}`).then((r) => r.data) });
   const d = q.data;
-  if (q.isPending) return <Screen title={t('documents.title')} back="/documents"><p aria-busy="true">…</p></Screen>;
+  if (q.isPending) return <Screen title={t('documents.title')} back="/documents" loading />;
   if (q.isError) return <Screen title={t('documents.title')} back="/documents"><Notice kind="danger">{q.error.message || t('errors.loadFailed')}</Notice></Screen>;
 
   async function remove() {

@@ -53,7 +53,17 @@ final class Csrf implements Middleware
     {
         $origin = $request->header('origin');
         if ($origin !== '') {
-            return $origin !== 'null' && rtrim(strtolower($origin), '/') === self::origin($app->env->get('APP_URL'));
+            $originClean = rtrim(strtolower($origin), '/');
+            if ($origin !== 'null' && $originClean === self::origin($app->env->get('APP_URL'))) {
+                return true;
+            }
+            if (in_array($app->env->get('APP_ENV'), ['local', 'dev', 'test'], true)) {
+                $p = parse_url($originClean);
+                if (isset($p['host']) && in_array($p['host'], ['localhost', '127.0.0.1'], true)) {
+                    return true;
+                }
+            }
+            return false;
         }
         $site = strtolower($request->header('sec-fetch-site'));
         return $site === 'same-origin';

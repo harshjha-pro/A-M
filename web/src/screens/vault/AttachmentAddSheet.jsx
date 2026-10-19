@@ -16,7 +16,7 @@ import { sendFile, createAttachment, CODE_RE, kindOf } from '../../data/vault.js
 import { t } from '../../i18n/strings.en.js';
 
 /** The editable unique ID, checked while typing. endpoint: attachments (default) or tasks (1.0.22). */
-export function CodeField({ value, onChange, except, error, endpoint = '/attachments/check-code', help = t('vault.codeHelp'), label = t('vault.code') }) {
+export function CodeField({ value, onChange, except, error, endpoint = '/attachments/check-code', help = t('vault.codeHelp'), label = t('vault.code'), placeholder }) {
   const [check, setCheck] = useState(null);
   useEffect(() => {
     const code = value.trim();
@@ -28,7 +28,7 @@ export function CodeField({ value, onChange, except, error, endpoint = '/attachm
     return () => clearTimeout(id);
   }, [value, except, endpoint, help]);
   return (
-    <TextField label={label} value={value} onChange={onChange} autoCapitalize="characters" spellCheck={false}
+    <TextField label={label} value={value} onChange={onChange} autoCapitalize="characters" spellCheck={false} placeholder={placeholder}
       help={check?.available ? t('vault.codeFree') : help} error={error || (check && !check.available ? check.message : null)} />
   );
 }

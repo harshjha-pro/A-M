@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { FileText, Search } from 'lucide-react';
-import Screen from '../../components/Screen.jsx';
+import Screen, { ScreenLoader } from '../../components/Screen.jsx';
 import AddButton from '../../components/AddButton.jsx';
 import EmptyState from '../../components/EmptyState.jsx';
 import ChipFilter from '../../components/ChipFilter.jsx';
@@ -41,7 +41,7 @@ export default function DocumentList() {
       </label>
       <ChipFilter label={t('documents.type')} value={type} onChange={setType}
         options={[{ value: 'all', label: t('documents.all') }, ...DOC_TYPES.map((d) => ({ value: d, label: t(`documents.types.${d}`) }))]} />
-      {list.isPending && <p aria-busy="true">…</p>}
+      {list.isPending && <ScreenLoader />}
       {list.isError && <Notice kind="danger">{list.error.message || t('errors.loadFailed')}</Notice>}
       {list.isSuccess && rows.length === 0 && <EmptyState Icon={FileText} text={filtered ? t('documents.emptyFilter') : t('documents.empty')} />}
       {rows.length > 0 && <ul className="overflow-hidden rounded-md bg-surface shadow-card">{rows.map((d) => <DocumentRow key={d.id} doc={d} />)}</ul>}

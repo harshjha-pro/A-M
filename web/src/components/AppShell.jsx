@@ -5,8 +5,8 @@
 // Safari only (PWA §3.3). After login we also ask the phone to keep our data (§5.6),
 // keep its offline copy fresh (§5.1), say so when a screen shows that copy, and send
 // the changes waiting on the phone (§5.2) with a bar while there are any (§5.4).
-import { useEffect, useState } from 'react';
-import { Outlet } from 'react-router-dom';
+import { useEffect, useState, useRef } from 'react';
+import { Outlet, useLocation, useSearchParams } from 'react-router-dom';
 import BottomNav from './BottomNav.jsx';
 import UndoSnackbar from './UndoSnackbar.jsx';
 import AndroidInstallBanner from '../pwa/AndroidInstallBanner.jsx';
@@ -18,17 +18,82 @@ import { startSyncLoop } from '../offline/startSync.js';
 import OutboxBar from '../offline/OutboxBar.jsx';
 import { startOutboxLoop } from '../offline/save.js';
 import { useSession } from '../api/session.js';
+import LoadingScreen from './LoadingScreen.jsx';
+
+const isTest = typeof import.meta !== 'undefined' && import.meta.env?.MODE === 'test';
 
 export default function AppShell() {
   const [iosGuide, setIosGuide] = useState(() => shouldAutoOpenIosGuide());
   const { user } = useSession();
-  useEffect(() => { askToKeepData(); }, []);
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
+
+  const isStandaloneWelcome = location.pathname === '/welcome';
+  // Show the royal loading screen for at least 2 seconds on initial mount and every page change
+  const [pageLoading, setPageLoading] = useState(!isTest);
+  const currentPathRef = useRef(location.pathname);
+
+  useEffect(() => {
+    askToKeepData();
+  }, []);
+
   // Keep the phone's copy fresh for reading without internet (PWA §5.1).
   useEffect(() => (user?.id ? startSyncLoop(user.id) : undefined), [user?.id]);
   // Send what's waiting on the phone (PWA §5.2): now, back online, back in front, every 60 s.
   useEffect(() => (user?.id ? startOutboxLoop() : undefined), [user?.id]);
+
+  // Initial load timer: at least 2 seconds
+  useEffect(() => {
+    if (isTest) return undefined;
+    const timer = setTimeout(() => {
+      setPageLoading(false);
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, [isTest]);
+
+  // Page change timer: at least 2 seconds whenever pathname changes
+  useEffect(() => {
+    if (isTest) return undefined;
+    if (currentPathRef.current !== location.pathname) {
+      currentPathRef.current = location.pathname;
+      window.scrollTo(0, 0);
+      setPageLoading(true);
+      const timer = setTimeout(() => {
+        setPageLoading(false);
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [location.pathname, isTest]);
+
+  if (isStandaloneWelcome) {
+    return (
+      <div className="min-h-dvh bg-[#FBF5ED]">
+        {pageLoading && (
+          <LoadingScreen
+            key={location.pathname}
+            fullScreen
+            fadeOut
+            duration={2000}
+            message="Preparing Your Wedding Journey…"
+          />
+        )}
+        <Outlet />
+        {iosGuide && <IosInstallGuide onClose={() => setIosGuide(false)} />}
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-dvh bg-bg">
+      {pageLoading && (
+        <LoadingScreen
+          key={location.pathname}
+          fullScreen
+          fadeOut
+          duration={2000}
+          message="Preparing Your Wedding Journey…"
+        />
+      )}
       <OfflineBanner />
       <OutboxBar />
       <OldPhoneNotice />

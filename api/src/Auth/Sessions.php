@@ -75,12 +75,15 @@ final class Sessions
 
     public function cookieHeader(string $token): string
     {
-        return self::COOKIE . '=' . $token . '; Max-Age=' . self::LIFETIME . '; Path=/; Secure; HttpOnly; SameSite=Lax';
+        $isLocal = in_array($this->app->env->get('APP_ENV'), ['local', 'dev', 'test'], true);
+        $name = $isLocal ? 'am_session' : self::COOKIE;
+        $secure = $isLocal ? '' : '; Secure';
+        return $name . '=' . $token . '; Max-Age=' . self::LIFETIME . '; Path=/; HttpOnly; SameSite=Lax' . $secure;
     }
 
     public static function clearCookieHeader(): string
     {
-        return self::COOKIE . '=; Max-Age=0; Path=/; Secure; HttpOnly; SameSite=Lax';
+        return 'am_session=; Max-Age=0; Path=/; HttpOnly; SameSite=Lax, ' . self::COOKIE . '=; Max-Age=0; Path=/; Secure; HttpOnly; SameSite=Lax';
     }
 
     public function attachCookie(Response $response, string $token): Response
@@ -91,7 +94,14 @@ final class Sessions
 
     public static function deviceLabel(Request $request): ?string
     {
-        $d = trim((string) preg_replace('/[\x00-\x1F\x7F]/', '', $request->header('x-device')));
+        $raw = $request->header('x-device');
+        if ($raw === '') {
+            return null;
+        }
+        if (!mb_check_encoding($raw, 'UTF-8')) {
+            $raw = mb_convert_encoding($raw, 'UTF-8', 'ISO-8859-1');
+        }
+        $d = trim((string) preg_replace('/[\x00-\x1F\x7F]/', '', $raw));
         return $d === '' ? null : mb_substr($d, 0, 60);
     }
 

@@ -43,7 +43,7 @@ export default function ReminderStepper() {
 
   const rows = list.data ?? [];
   const title = t('guests.stepperTitle');
-  if (list.isPending) return <Screen title={title} back="/guests"><p aria-busy="true">…</p></Screen>;
+  if (list.isPending) return <Screen title={title} back="/guests" loading />;
   if (list.isError) return <Screen title={title} back="/guests"><Notice kind="danger">{list.error.message || t('errors.loadFailed')}</Notice></Screen>;
   if (rows.length === 0) return <Screen title={title} back="/guests"><p>{t('guests.stepperEmpty')}</p></Screen>;
   if (pos >= rows.length) {

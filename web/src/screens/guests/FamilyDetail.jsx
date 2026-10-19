@@ -61,7 +61,7 @@ export default function FamilyDetail() {
   const h = q.data;
   const canEdit = Boolean(permissions?.edit);
 
-  if (q.isPending) return <Screen title={t('guests.familyTitle')} back="/guests"><p aria-busy="true">…</p></Screen>;
+  if (q.isPending) return <Screen title={t('guests.familyTitle')} back="/guests" loading />;
   if (q.isError) return <Screen title={t('guests.familyTitle')} back="/guests"><Notice kind="danger">{q.error.message || t('errors.loadFailed')}</Notice></Screen>;
 
   const refresh = () => { qc.invalidateQueries({ queryKey: ['households'] }); qc.invalidateQueries({ queryKey: ['events'] }); qc.invalidateQueries({ queryKey: ['household', id] }); };

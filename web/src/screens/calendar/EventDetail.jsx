@@ -40,7 +40,7 @@ export default function EventDetail() {
   const [preview, setPreview] = useState(null);
   const e = q.data;
 
-  if (q.isPending) return <Screen title={t('events.title')} back="/calendar"><p aria-busy="true">…</p></Screen>;
+  if (q.isPending) return <Screen title={t('events.title')} back="/calendar" loading />;
   if (q.isError) return <Screen title={t('events.title')} back="/calendar"><Notice kind="danger">{q.error.message || t('errors.loadFailed')}</Notice></Screen>;
 
   async function askDelete() {

@@ -30,20 +30,37 @@ import { t } from '../../i18n/strings.en.js';
 
 function TaskStrip({ ws }) {
   return (
-    <section aria-labelledby="ws-tasks" className="flex flex-col gap-2">
+    <section aria-labelledby="ws-tasks" className="flex flex-col gap-2.5 mt-2">
       <div className="flex items-center justify-between">
-        <h2 id="ws-tasks" className="text-lg font-bold">{t('workspace.tasks')}</h2>
-        <Link to={`/tasks/new?workspace=${ws.id}`} className="tap inline-flex items-center gap-1 font-bold text-primary"><Plus aria-hidden="true" size={20} />{t('workspace.addTask')}</Link>
+        <h2 id="ws-tasks" className="text-lg font-bold text-gray-900">{t('workspace.tasks')}</h2>
+        <Link
+          to={`/tasks/new?workspace=${ws.id}`}
+          className="tap inline-flex items-center gap-1 text-sm font-semibold text-[#861C32] hover:text-[#5b0e1d] transition-colors"
+        >
+          <Plus aria-hidden="true" size={18} />
+          {t('workspace.addTask')}
+        </Link>
       </div>
-      {ws.tasks.length === 0 ? <p className="text-text-muted">{t('workspace.noTasks')}</p> : (
-        <ul className="no-scrollbar -mx-4 flex snap-x gap-2 overflow-x-auto px-4 pb-1" aria-label={t('workspace.tasks')}>
+      {ws.tasks.length === 0 ? (
+        <p className="text-sm text-text-muted">{t('workspace.noTasks')}</p>
+      ) : (
+        <ul className="no-scrollbar -mx-4 flex snap-x gap-3 overflow-x-auto px-4 pb-2" aria-label={t('workspace.tasks')}>
           {ws.tasks.map((task) => {
             const done = task.status === 'done' || task.status === 'cancelled';
             return (
-              <li key={task.id} className="snap-start">
-                <Link to={`/tasks/${task.id}`} className={`flex h-24 w-48 flex-col justify-between rounded-md p-3 shadow-card ${done ? 'bg-surface-2 text-text-muted' : 'bg-surface'}`}>
-                  <span className={`line-clamp-2 font-bold ${done ? 'line-through' : ''}`}>{task.title}</span>
-                  <span className={`text-sm ${task.overdue ? 'font-bold text-danger' : 'text-text-muted'}`}>
+              <li key={task.id} className="snap-start shrink-0">
+                <Link
+                  to={`/tasks/${task.id}`}
+                  className={`flex h-24 w-52 flex-col justify-between rounded-xl p-3 shadow-xs border transition-all hover:shadow-md ${
+                    done
+                      ? 'bg-surface-2/70 border-border text-text-muted'
+                      : 'bg-white border-black/5 text-gray-900'
+                  }`}
+                >
+                  <span className={`line-clamp-2 text-sm font-semibold leading-snug ${done ? 'line-through text-text-muted' : ''}`}>
+                    {task.title}
+                  </span>
+                  <span className={`text-xs ${task.overdue ? 'font-bold text-danger' : 'text-text-muted'}`}>
                     {task.dueDate ? formatDateOnly(task.dueDate).replace(/^\w+, /, '') : t('tasks.noDate')}
                     {task.workspaceSection && task.workspaceSection !== 'general' ? ` · ${SECTIONS[task.workspaceSection]}` : ''}
                   </span>
@@ -62,35 +79,65 @@ function FilesSection({ ws }) {
   const q = useAttachments({ workspace: ws.id, section: 'general', limit: 200 });
   const refresh = () => ['attachments', 'workspace', 'workspaces'].forEach((k) => qc.invalidateQueries({ queryKey: [k] }));
   return (
-    <section id="general" aria-labelledby="ws-files" className="flex flex-col gap-3 rounded-md bg-surface p-4 shadow-card">
-      <h2 id="ws-files" className="text-lg font-bold">{SECTIONS.general}</h2>
+    <section id="general" aria-labelledby="ws-files" className="flex flex-col gap-3 rounded-2xl bg-white p-4 shadow-sm border border-black/5">
+      <h2 id="ws-files" className="text-lg font-bold text-gray-900">{SECTIONS.general}</h2>
       {q.isPending && <p aria-busy="true">…</p>}
       {q.data && <AttachBlock place={{ workspaceId: ws.id, section: 'general' }} attachments={q.data.items} refresh={refresh} />}
     </section>
   );
 }
 
-// Hero (1.0.23 redesign): name in the display face, its calendar event and days to go.
+// Hero (1.0.23 redesign): cover art with overlaid floating card, event date & countdown pill
 function WorkspaceHero({ ws }) {
   const days = ws.event?.startAt ? Math.ceil((Date.parse(ws.event.startAt) - Date.now()) / 86_400_000) : null;
+  const displayName = ws.name.toLowerCase().startsWith('the ') ? ws.name : `The ${ws.name}`;
+
   return (
-    <section className="relative flex min-h-56 items-end gap-3 overflow-hidden rounded-xl p-4 shadow-card">
-      <img src={artForName(ws.name)} alt="" className="absolute inset-0 h-full w-full object-cover" />
-      <div className="scrim-b absolute inset-0" aria-hidden="true" />
-      <div className="relative flex min-w-0 flex-1 flex-col gap-1 text-white">
-        <p className="font-display text-[2.5rem] leading-none drop-shadow" aria-hidden="true">{ws.name}</p>
-        {ws.event && (
-          <Link to={`/calendar/events/${ws.event.id}`} className="glass inline-flex items-center gap-2 self-start rounded-full px-3 py-1 text-sm font-bold text-text">
-            <CalendarDays aria-hidden="true" size={20} />{t('workspace.onCalendar', { name: ws.event.name })}{ws.event.startAt ? ` · ${formatDate(ws.event.startAt)}` : ''}
-          </Link>
+    <section className="flex flex-col">
+      {/* Cover image banner */}
+      <div className="relative overflow-hidden rounded-2xl shadow-sm aspect-[16/9] max-h-64 sm:max-h-72 w-full bg-surface-2">
+        <img
+          src={artForName(ws.name)}
+          alt=""
+          className="h-full w-full object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/15 to-transparent pointer-events-none" aria-hidden="true" />
+      </div>
+
+      {/* Overlaid Floating Card matching reference image */}
+      <div className="relative -mt-10 mx-2 sm:mx-3 rounded-2xl bg-white/95 backdrop-blur-md p-4 shadow-lg border border-black/5 flex items-center justify-between gap-3">
+        <div className="flex min-w-0 flex-1 flex-col gap-1">
+          <p className="font-serif text-xl sm:text-2xl font-bold text-gray-900 truncate">
+            {displayName}
+          </p>
+          {ws.event ? (
+            <Link
+              to={`/calendar/events/${ws.event.id}`}
+              aria-label={`${t('workspace.onCalendar', { name: ws.event.name })}${ws.event.startAt ? ` · ${formatDate(ws.event.startAt)}` : ''}`}
+              className="inline-flex items-center gap-1.5 text-xs text-text-muted hover:text-[#861C32] transition-colors"
+            >
+              <CalendarDays aria-hidden="true" size={14} className="text-[#861C32] shrink-0" />
+              <span className="truncate">{ws.event.startAt ? formatDate(ws.event.startAt) : t('workspace.onCalendar', { name: ws.event.name })}</span>
+            </Link>
+          ) : (
+            <span className="text-xs text-text-muted">{t('workspace.noEvent') || 'No calendar event linked'}</span>
+          )}
+        </div>
+
+        {days !== null ? (
+          <div className="shrink-0 inline-flex items-center gap-1.5 rounded-full bg-[#FBEAEB] border border-[#F5C2C7] px-3.5 py-1.5 text-xs font-semibold text-[#861C32] shadow-xs">
+            <CalendarDays aria-hidden="true" size={13} />
+            <span>
+              {days > 0 ? `${days} ${days === 1 ? t('workspace.dayToGo') : t('workspace.daysToGo')}` : days === 0 ? 'Today' : 'Past'}
+            </span>
+          </div>
+        ) : ws.event?.startAt ? null : (
+          <div className="shrink-0 inline-flex items-center gap-1.5 rounded-full bg-surface-2 border border-border px-3 py-1.5 text-xs font-medium text-text-muted">
+            <CalendarDays aria-hidden="true" size={13} />
+            <span>No date set</span>
+          </div>
         )}
       </div>
-      {days > 0 && (
-        <p className="glass relative shrink-0 rounded-lg px-3 py-2 text-center">
-          <span className="block font-display text-3xl leading-none">{days}</span>
-          <span className="text-sm font-bold">{days === 1 ? t('workspace.dayToGo') : t('workspace.daysToGo')}</span>
-        </p>
-      )}
     </section>
   );
 }
@@ -104,7 +151,7 @@ export default function WorkspaceDetail() {
   const [editing, setEditing] = useState(false);
   const [confirm, setConfirm] = useState(false);
   if (!canSeeWorkspace(permissions)) return <Screen title={t('workspace.title')} back="/workspaces"><Notice>{t('workspace.onlyAdmins')}</Notice></Screen>;
-  if (q.isPending) return <Screen title={t('workspace.title')} back="/workspaces"><p aria-busy="true">…</p></Screen>;
+  if (q.isPending) return <Screen title={t('workspace.title')} back="/workspaces" loading />;
   if (q.isError) return <Screen title={t('workspace.title')} back="/workspaces"><Notice kind="danger">{q.error.message || t('errors.loadFailed')}</Notice></Screen>;
   const ws = q.data;
 
@@ -131,8 +178,17 @@ export default function WorkspaceDetail() {
       <FilesSection ws={ws} />
       <ContactsSection ws={ws} title={SECTIONS.contacts} />
       <GuestsSection key={ws.version} ws={ws} title={SECTIONS.guests} />
-      <TimelineSection ws={ws} title={SECTIONS.timeline} />
-      <Button variant="danger" needsInternet onClick={() => setConfirm(true)}><Trash2 aria-hidden="true" size={20} />{t('workspace.delete')}</Button>
+      <TimelineSection ws={ws} title={SECTIONS.timeline}>
+        <Button
+          variant="danger"
+          needsInternet
+          onClick={() => setConfirm(true)}
+          className="w-full rounded-full bg-[#FBEAEB] border border-[#F5C2C7] text-[#861C32] hover:bg-red-50 hover:text-danger hover:border-danger/40 py-2.5 text-sm font-semibold transition active:scale-95 shadow-xs flex items-center justify-center gap-2"
+        >
+          <Trash2 aria-hidden="true" size={18} />
+          {t('workspace.delete')}
+        </Button>
+      </TimelineSection>
       {editing && <WorkspaceSheet workspace={ws} onClose={() => setEditing(false)} />}
       {confirm && <ConfirmDialog title={t('workspace.delete')} body={t('workspace.deleteBody')} confirmLabel={t('workspace.delete')} danger onConfirm={remove} onCancel={() => setConfirm(false)} />}
     </Screen>

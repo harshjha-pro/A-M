@@ -4,7 +4,7 @@
 import { useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { ImagePlus, ChevronLeft, ChevronRight, X } from 'lucide-react';
-import Screen from '../../components/Screen.jsx';
+import Screen, { ScreenLoader } from '../../components/Screen.jsx';
 import Button from '../../components/Button.jsx';
 import { Notice } from '../../components/Field.jsx';
 import { api, newIdemKey } from '../../api/client.js';
@@ -28,7 +28,7 @@ export default function HomePhotos() {
     <Screen title={t('homePhotos.title')} back="/settings">
       <p className="text-text-muted">{t('homePhotos.intro')}</p>
       {!admin && <Notice>{t('homePhotos.onlyAdmins')}</Notice>}
-      {q.isPending && <p aria-busy="true">…</p>}
+      {q.isPending && <ScreenLoader />}
       {q.isError && <Notice kind="danger">{q.error.message || t('errors.loadFailed')}</Notice>}
       {q.data && SECTIONS.map((s) => <Section key={s.slot} {...s} photos={q.data[s.slot]} admin={admin} />)}
     </Screen>

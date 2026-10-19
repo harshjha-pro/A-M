@@ -3,9 +3,9 @@
 // (Ayush and Mahi see a link to Settings › Home photos).
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ImagePlus, Menu, Heart } from 'lucide-react';
+import { ImagePlus, Menu } from 'lucide-react';
 import { useHomePhotos } from '../../data/homePhotos.js';
-import Countdown from './Countdown.jsx';
+import Countdown, { HeartDivider } from './Countdown.jsx';
 import { t } from '../../i18n/strings.en.js';
 
 const SLIDE_MS = 5000;
@@ -42,72 +42,224 @@ export function CoverCarousel({ covers = [], monogram = null, overlay = null, na
   };
 
   return (
-    <section className="relative overflow-hidden rounded-b-[2rem] shadow-card sm:rounded-[2rem]" aria-roledescription="carousel" aria-label={t('home.coverPhotos')}>
+    <section
+      className="relative flex flex-col justify-between h-[calc(100dvh-5rem)] max-h-[85dvh] min-h-[520px] sm:h-[85vh] sm:max-h-[860px] w-full overflow-hidden bg-bg"
+      aria-roledescription="carousel"
+      aria-label={t('home.coverPhotos')}
+    >
+      {/* Top Header Bar */}
+      <div className="z-20 flex w-full items-center justify-between px-4 pt-[calc(0.75rem+env(safe-area-inset-top))]">
+        <Link
+          to="/more"
+          aria-label={t('home.menu')}
+          className="tap grid size-11 place-items-center rounded-full bg-white/85 border border-white/60 shadow-xs text-[#861C32] transition hover:bg-white active:scale-95 dark:bg-[#2A1F1A]/85 dark:border-white/10 dark:text-[#F2A7AF]"
+        >
+          <Menu aria-hidden="true" size={20} strokeWidth={2.2} />
+        </Link>
+        <h1 aria-label={t('home.title')} className="pointer-events-none flex flex-1 flex-col items-center leading-none">
+          <img
+            src="/art/loading-monogram.png"
+            alt=""
+            aria-hidden="true"
+            className="h-10 sm:h-12 w-auto object-contain"
+          />
+          <span className="mt-0.5 text-[0.62rem] sm:text-[0.68rem] font-bold tracking-[0.22em] text-[#C7A16A] uppercase">
+            {t('home.logoSub')}
+          </span>
+        </h1>
+        <div
+          className="pointer-events-none relative grid size-11 place-items-center rounded-full bg-white/85 border border-white/60 shadow-xs dark:bg-[#2A1F1A]/85 dark:border-white/10"
+          data-testid="monogram"
+        >
+          {monogram ? (
+            <img
+              src={monogram.url}
+              alt={t('home.monogram')}
+              width={44}
+              height={44}
+              decoding="async"
+              className="size-9 rounded-full object-contain"
+            />
+          ) : (
+            <span className="font-display text-base font-semibold text-[#861C32] dark:text-[#F2A7AF]" aria-label={t('home.monogram')}>
+              A&amp;M
+            </span>
+          )}
+          <span className="absolute top-1 right-1 size-2 rounded-full bg-[#861C32] ring-2 ring-[#FAF6F0]" aria-hidden="true" />
+        </div>
+      </div>
+
+      {/* Middle: Carousel / Photo Area */}
       {n === 0 ? (
-        <div className="flex aspect-[4/5] w-full flex-col items-center gap-1 bg-gradient-to-br from-primary-soft to-surface-2 px-4 pt-24 text-center sm:aspect-[16/10]" data-testid="cover-placeholder">
-          <span className="font-display text-4xl text-primary">{t('home.coupleNames')}</span>
-          <span className="text-text-muted">{t('home.subtitle')}</span>
+        <div className="flex flex-1 w-full flex-col items-center justify-center bg-transparent" data-testid="cover-placeholder">
+          <span className="sr-only">Ayush &amp; Mahi</span>
         </div>
       ) : (
-        <div ref={track} onScroll={onScroll} className="no-scrollbar flex aspect-[4/5] max-h-[78dvh] w-full snap-x snap-mandatory overflow-x-auto sm:aspect-[16/10]" tabIndex={0} aria-live="off">
-          {covers.map((p, i) => (
-            <img key={p.id} src={p.url} alt={t('home.coverN', { n: i + 1, total: n })} width={p.widthPx || 1600} height={p.heightPx || 1200}
-              loading={i === 0 ? 'eager' : 'lazy'} fetchpriority={i === 0 ? 'high' : undefined} decoding="async"
-              className="h-full w-full shrink-0 snap-center object-cover" />
-          ))}
+        <div className="relative flex-1 w-full overflow-hidden my-auto min-h-[220px]">
+          <div
+            ref={track}
+            onScroll={onScroll}
+            className="no-scrollbar flex h-full w-full snap-x snap-mandatory overflow-x-auto"
+            tabIndex={0}
+            aria-live="off"
+          >
+            {covers.map((p, i) => (
+              <img
+                key={p.id}
+                src={p.url}
+                alt={t('home.coverN', { n: i + 1, total: n })}
+                width={p.widthPx || 1600}
+                height={p.heightPx || 1200}
+                loading={i === 0 ? 'eager' : 'lazy'}
+                fetchpriority={i === 0 ? 'high' : undefined}
+                decoding="async"
+                className="h-full w-full shrink-0 snap-center object-cover"
+              />
+            ))}
+          </div>
+          {n > 1 && (
+            <div className="absolute inset-x-0 bottom-2 flex justify-center gap-1.5 z-10">
+              {covers.map((p, i) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => go(i)}
+                  aria-label={t('home.coverN', { n: i + 1, total: n })}
+                  aria-current={i === index || undefined}
+                  className="grid h-6 w-6 place-items-center"
+                >
+                  <span
+                    className={`block h-1.5 rounded-full transition-all ${
+                      i === index ? 'w-5 bg-[#861C32]' : 'w-1.5 bg-[#861C32]/40'
+                    }`}
+                  />
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
-      {n > 0 && <div className="scrim-tb pointer-events-none absolute inset-0" aria-hidden="true" />}
-      <div className={`absolute inset-x-0 top-0 flex items-center gap-2 px-3 pt-[calc(0.5rem+env(safe-area-inset-top))] ${n > 0 ? 'text-white' : 'text-text'}`}>
-        <Link to="/more" aria-label={t('home.menu')} className="glass tap grid size-12 place-items-center rounded-full text-text"><Menu aria-hidden="true" size={22} /></Link>
-        <h1 aria-label={t('home.title')} className="pointer-events-none flex flex-1 flex-col items-center leading-none">
-          <span className="inline-flex items-center gap-1 font-display text-[1.75rem] drop-shadow">A&amp;M<Heart aria-hidden="true" size={16} className="fill-current text-primary-soft" /></span>
-          <span className="mt-0.5 text-[0.7rem] font-bold uppercase tracking-[0.18em] drop-shadow">{t('home.logoSub')}</span>
-        </h1>
-        <span className="size-12" aria-hidden="true" />
-      </div>
-      <div className="glass pointer-events-none absolute right-3 top-[calc(0.5rem+env(safe-area-inset-top))] grid size-12 place-items-center overflow-hidden rounded-full" data-testid="monogram">
-        {monogram
-          ? <img src={monogram.url} alt={t('home.monogram')} width={48} height={48} decoding="async" className="size-11 object-contain" />
-          : <span className="font-display text-base text-primary" aria-label={t('home.monogram')}>A&amp;M</span>}
-      </div>
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 flex flex-col gap-3 p-4 pb-14">
-        <div className={n > 0 ? 'text-white' : 'text-text'}>
-          {name && <p className="mb-1 text-sm font-bold">{t('home.hello', { name })}</p>}
-          <p className="whitespace-pre-line font-display text-[2.25rem] leading-[1.02] drop-shadow sm:text-5xl">{t('home.headline').replace(', ', ',\n')}</p>
-          {n > 0 && <p className="mt-1 text-sm font-bold">{t('home.subtitle')}</p>}
+
+      {/* Bottom Typography & Countdown Block */}
+      <div className="z-10 flex w-full flex-col items-center px-4 pb-4 sm:pb-6 text-center">
+        {name && (
+          <p className="text-[0.72rem] sm:text-xs font-bold uppercase tracking-[0.24em] text-[#C7A16A]">
+            {t('home.hello', { name })}
+          </p>
+        )}
+        <HeartDivider className="my-1" />
+        <p className="whitespace-pre-line font-display text-[1.85rem] sm:text-[2.2rem] font-bold leading-tight text-[#861C32] dark:text-[#F2A7AF]">
+          {t('home.headline').replace(', ', ',\n')}
+        </p>
+        <div className="mt-1 flex flex-col items-center">
+          <p className="font-serif text-sm font-semibold tracking-wide text-[#493C38] dark:text-[#C9BBAA]">
+            {t('home.coupleNames')}
+          </p>
+          <p className="text-[0.75rem] text-[#5E5048] dark:text-[#A8988B]">
+            Bhilwara · 14–16 Feb 2027
+          </p>
         </div>
-        {overlay}
+        {overlay && <div className="mt-3 w-full max-w-sm">{overlay}</div>}
       </div>
-      {n > 1 && (
-        <div className="absolute inset-x-0 top-20 flex justify-center gap-1">
-          {covers.map((p, i) => (
-            <button key={p.id} type="button" onClick={() => go(i)} aria-label={t('home.coverN', { n: i + 1, total: n })} aria-current={i === index || undefined}
-              className="grid h-6 w-6 place-items-center">
-              <span className={`block h-2 rounded-full transition-all ${i === index ? 'w-5 bg-on-primary' : 'w-2 bg-on-primary/60'}`} />
-            </button>
-          ))}
-        </div>
-      )}
     </section>
   );
 }
 
-export function CouplePhotos({ photos = [], admin = false }) {
-  const slots = photos.length ? photos : [null, null, null];
+const ROTATIONS = [
+  '-rotate-3 hover:rotate-0',
+  'rotate-0.5 hover:rotate-0',
+  'rotate-3 hover:rotate-0',
+  'rotate-2 hover:rotate-0',
+  '-rotate-2.5 hover:rotate-0',
+];
+
+function PolaroidItem({ photo, index, rotation, className = '' }) {
   return (
-    <section aria-label={t('home.couplePhotos')} className="flex flex-col gap-2">
-      <ul className={`grid gap-2 ${slots.length === 4 ? 'grid-cols-4' : slots.length === 2 ? 'grid-cols-2' : slots.length === 1 ? 'grid-cols-1' : 'grid-cols-3'}`}>
-        {slots.map((p, i) => (
-          <li key={p?.id ?? `empty-${i}`} className="aspect-square overflow-hidden rounded-lg bg-surface-2 shadow-card">
-            {p
-              ? <img src={p.url} alt={t('home.coupleN', { n: i + 1 })} width={p.widthPx || 400} height={p.heightPx || 400} loading="lazy" decoding="async" className="h-full w-full object-cover" />
-              : <span className="grid h-full w-full place-items-center text-text-muted" aria-hidden="true"><ImagePlus size={24} /></span>}
-          </li>
-        ))}
-      </ul>
-      {admin && photos.length === 0 && (
-        <Link to="/settings/home-photos" className="tap inline-flex items-center gap-2 self-start font-bold text-primary">{t('home.addPhotos')} →</Link>
+    <li
+      className={`relative flex flex-col rounded-sm bg-white dark:bg-stone-800 p-2 sm:p-2.5 pb-4 sm:pb-6 shadow-md shadow-stone-900/10 dark:shadow-black/40 border border-stone-200/60 dark:border-white/10 transition-transform duration-200 hover:scale-105 hover:z-20 ${rotation} ${className}`}
+    >
+      {/* Washi tape at top center */}
+      <span
+        className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-7 sm:w-9 h-2.5 sm:h-3 bg-[#EADCC8]/85 dark:bg-[#5C4D3C]/70 border border-[#D9CBB0]/60 shadow-xs z-10 rounded-[1px] rotate-[-1deg]"
+        aria-hidden="true"
+      />
+      {/* Photo frame */}
+      <div className="aspect-square w-full overflow-hidden rounded-xs bg-[#FAF5EE] dark:bg-stone-900/80 flex items-center justify-center">
+        {photo ? (
+          <img
+            src={photo.url}
+            alt={t('home.coupleN', { n: index + 1 })}
+            width={photo.widthPx || 400}
+            height={photo.heightPx || 400}
+            loading="lazy"
+            decoding="async"
+            className="h-full w-full object-cover"
+          />
+        ) : (
+          <ImagePlus
+            aria-hidden="true"
+            className="size-5 sm:size-6 text-[#861C32]/35 dark:text-[#F2A7AF]/40 stroke-[1.6]"
+          />
+        )}
+      </div>
+    </li>
+  );
+}
+
+export function CouplePhotos({ photos = [], admin = false }) {
+  const count = Math.max(5, photos.length);
+  const slots = Array.from({ length: count }, (_, i) => photos[i] ?? null);
+
+  return (
+    <section
+      aria-label={t('home.couplePhotos')}
+      className="relative flex flex-col gap-3 rounded-3xl bg-white/70 p-4 sm:p-5 shadow-xs border border-black/5 dark:bg-white/5 dark:border-white/10 overflow-hidden"
+    >
+      {/* Decorative corner botanicals */}
+      <img
+        src="/art/welcome-floral-br-clean.webp"
+        alt=""
+        aria-hidden="true"
+        className="pointer-events-none absolute -top-4 -right-4 w-24 sm:w-28 opacity-25 select-none rotate-180"
+      />
+      <img
+        src="/art/welcome-floral-bl-clean.webp"
+        alt=""
+        aria-hidden="true"
+        className="pointer-events-none absolute -bottom-4 -left-4 w-24 sm:w-28 opacity-25 select-none"
+      />
+
+      <h2 className="text-lg font-bold text-text tracking-tight relative z-10">
+        {t('home.moments')}
+      </h2>
+
+      {/* 5 Polaroids: 3 on top row, 2 centered on bottom row */}
+      <div className="relative z-10 flex flex-col gap-2.5 sm:gap-3 py-1">
+        <ul className="grid grid-cols-3 gap-2.5 sm:gap-3.5 px-1 pt-1">
+          {slots.slice(0, 3).map((p, i) => (
+            <PolaroidItem key={p?.id ?? `empty-${i}`} photo={p} index={i} rotation={ROTATIONS[i % ROTATIONS.length]} />
+          ))}
+        </ul>
+        <ul className="flex justify-center gap-2.5 sm:gap-3.5 -mt-1 sm:-mt-1.5 px-1">
+          {slots.slice(3, 5).map((p, i) => (
+            <PolaroidItem
+              key={p?.id ?? `empty-${i + 3}`}
+              photo={p}
+              index={i + 3}
+              rotation={ROTATIONS[(i + 3) % ROTATIONS.length]}
+              className="w-[31%] max-w-[130px]"
+            />
+          ))}
+        </ul>
+      </div>
+
+      {admin && (
+        <Link
+          to="/settings/home-photos"
+          className="tap relative z-10 inline-flex items-center gap-1.5 self-start font-bold text-sm sm:text-base text-[#861C32] dark:text-[#F2A7AF] hover:underline mt-2"
+        >
+          {t('home.addPhotos')} →
+        </Link>
       )}
     </section>
   );

@@ -5,7 +5,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowDown, ArrowUp, ChevronRight, MessageCircle, Phone, Plus, Sparkles, Trash2, Users } from 'lucide-react';
+import { ArrowDown, ArrowUp, Camera, ChevronRight, CircleDot, Flower2, MessageCircle, Phone, Plus, Sparkles, Trash2, Users, UtensilsCrossed } from 'lucide-react';
 import Sheet from '../../components/Sheet.jsx';
 import Button from '../../components/Button.jsx';
 import { TextField } from '../../components/Field.jsx';
@@ -101,31 +101,39 @@ export function ContactsSection({ ws, title }) {
   const p = ws.planning ?? { contacts: [], alsoUsed: [] };
   const [sheet, setSheet] = useState(null); // {contact?, vendor?}
   return (
-    <section id="contacts" aria-labelledby="ws-contacts" className="flex flex-col gap-3 rounded-md bg-surface p-4 shadow-card">
+    <section id="contacts" aria-labelledby="ws-contacts" className="flex flex-col gap-3 rounded-2xl bg-white p-4 shadow-sm border border-black/5">
       <div className="flex items-center justify-between gap-2">
-        <h2 id="ws-contacts" className="text-lg font-bold">{title}</h2>
-        <Button variant="secondary" needsInternet onClick={() => setSheet({})}><Plus aria-hidden="true" size={20} />{t('contacts.add')}</Button>
+        <h2 id="ws-contacts" className="text-lg font-bold text-gray-900">{title}</h2>
+        <Button
+          variant="secondary"
+          needsInternet
+          onClick={() => setSheet({})}
+          className="rounded-full bg-[#FBEAEB] border border-[#F5C2C7] text-[#861C32] px-3.5 py-1.5 text-xs font-semibold hover:bg-[#F5D5D8] transition active:scale-95 shadow-xs"
+        >
+          <Plus aria-hidden="true" size={15} />
+          {t('contacts.add')}
+        </Button>
       </div>
-      {p.contacts.length === 0 && <p className="text-text-muted">{t('contacts.none')}</p>}
+      {p.contacts.length === 0 && <p className="text-xs text-text-muted">{t('contacts.none')}</p>}
       {p.contacts.length > 0 && (
-        <ul className="flex flex-col divide-y divide-border" aria-label={title}>
+        <ul className="flex flex-col divide-y divide-gray-100" aria-label={title}>
           {p.contacts.map((c) => c.vendor && (
             <li key={c.id}>
               <VendorLine v={c.vendor} role={c.role}>
-                <button type="button" onClick={() => setSheet({ contact: c })} aria-label={`${t('outfit.rename')}: ${c.vendor.name}`} className="tap grid min-h-12 min-w-12 place-items-center text-text-muted"><ChevronRight aria-hidden="true" size={20} /></button>
+                <button type="button" onClick={() => setSheet({ contact: c })} aria-label={`${t('outfit.rename')}: ${c.vendor.name}`} className="tap grid min-h-10 min-w-10 place-items-center text-text-muted hover:text-primary transition"><ChevronRight aria-hidden="true" size={18} /></button>
               </VendorLine>
             </li>
           ))}
         </ul>
       )}
       {p.alsoUsed.length > 0 && (
-        <div className="flex flex-col gap-1 border-t border-border pt-3">
-          <h3 className="font-bold">{t('contacts.alsoUsed')}</h3>
-          <ul className="flex flex-col divide-y divide-border" aria-label={t('contacts.alsoUsed')}>
+        <div className="flex flex-col gap-1 border-t border-gray-100 pt-3">
+          <h3 className="font-bold text-gray-900 text-sm">{t('contacts.alsoUsed')}</h3>
+          <ul className="flex flex-col divide-y divide-gray-100" aria-label={t('contacts.alsoUsed')}>
             {p.alsoUsed.map((a) => (
               <li key={a.vendor.id}>
                 <VendorLine v={a.vendor} role={a.where.join(', ')}>
-                  <Button variant="text" onClick={() => setSheet({ vendor: a.vendor.id })} aria-label={`${t('contacts.addThis')}: ${a.vendor.name}`}><Plus aria-hidden="true" size={18} /></Button>
+                  <Button variant="text" onClick={() => setSheet({ vendor: a.vendor.id })} aria-label={`${t('contacts.addThis')}: ${a.vendor.name}`} className="text-xs font-semibold text-[#861C32]"><Plus aria-hidden="true" size={16} /></Button>
                 </VendorLine>
               </li>
             ))}
@@ -152,31 +160,54 @@ export function GuestsSection({ ws, title }) {
   }
   const tiles = g ? [[t('guestsWs.invited'), g.familiesInvited], [t('guestsWs.coming'), g.familiesComing], [t('guestsWs.notComing'), g.familiesNotComing], [t('guestsWs.waiting'), g.familiesWaiting]] : [];
   return (
-    <section id="guests" aria-labelledby="ws-guests" className="flex flex-col gap-3 rounded-md bg-surface p-4 shadow-card">
-      <h2 id="ws-guests" className="text-lg font-bold">{title}</h2>
-      {!ws.event && <p className="text-text-muted">{t('guestsWs.noEvent')}</p>}
-      {ws.event && !g && <p className="text-text-muted">{t('guestsWs.noGuests')}</p>}
+    <section id="guests" aria-labelledby="ws-guests" className="flex flex-col gap-4 rounded-2xl bg-white p-4 shadow-sm border border-black/5">
+      <h2 id="ws-guests" className="text-lg font-bold text-gray-900">{title}</h2>
+      {!ws.event && <p className="text-xs text-text-muted">{t('guestsWs.noEvent')}</p>}
+      {ws.event && !g && <p className="text-xs text-text-muted">{t('guestsWs.noGuests')}</p>}
       {g && (
         <>
           <dl className="grid grid-cols-4 gap-2 text-center">
             {tiles.map(([label, n]) => (
-              <div key={label} className="flex flex-col-reverse rounded-sm bg-surface-2 p-2">
-                <dt className="text-xs text-text-muted">{label}</dt>
-                <dd className="text-xl font-bold">{n}</dd>
+              <div key={label} className="flex flex-col rounded-xl bg-surface-2/60 p-2.5 border border-black/5">
+                <dt className="text-[0.68rem] sm:text-xs text-text-muted font-medium mb-1 truncate">{label}</dt>
+                <dd className="text-xl sm:text-2xl font-bold text-gray-900 leading-tight">{n}</dd>
               </div>
             ))}
           </dl>
-          <p><span className="font-bold">{t('guestsWs.people', { n: g.peopleComing })}</span> · {t('guestsWs.peopleDetail', { adults: g.adultsComing, children: g.childrenComing, jain: g.jainComing })}</p>
-          {g.peopleWaiting > 0 && <p className="text-sm text-text-muted">{t('guestsWs.upTo', { n: g.peopleUpTo })}</p>}
-          <Link to={`/guests?event=${g.event.id}`} className="tap inline-flex items-center gap-2 self-start font-bold text-primary"><Users aria-hidden="true" size={20} />{t('guestsWs.open')}</Link>
+          <p className="text-xs sm:text-sm text-gray-700">
+            <span className="font-bold">{t('guestsWs.people', { n: g.peopleComing })}</span> · {t('guestsWs.peopleDetail', { adults: g.adultsComing, children: g.childrenComing, jain: g.jainComing })}
+          </p>
+          {g.peopleWaiting > 0 && <p className="text-xs text-text-muted">{t('guestsWs.upTo', { n: g.peopleUpTo })}</p>}
+          <Link
+            to={`/guests?event=${g.event.id}`}
+            className="tap inline-flex items-center gap-1.5 self-start text-xs sm:text-sm font-semibold text-[#861C32] hover:text-[#5b0e1d] transition-colors"
+          >
+            <Users aria-hidden="true" size={16} />
+            {t('guestsWs.open')}
+          </Link>
         </>
       )}
-      <label className="flex flex-col gap-1 border-t border-border pt-3">
-        <span className="font-bold">{t('guestsWs.notes')}</span>
-        <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} maxLength={5000} placeholder={t('guestsWs.notesPlaceholder')}
-          className="rounded-sm border-[1.5px] border-border-strong bg-surface p-3 text-base text-text" />
+      <label className="flex flex-col gap-1.5 border-t border-gray-100 pt-3">
+        <span className="font-bold text-sm text-gray-900">{t('guestsWs.notes')}</span>
+        <textarea
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          rows={3}
+          maxLength={5000}
+          placeholder="Seating, VIPs, pickups..."
+          className="rounded-xl border border-black/10 bg-surface p-3 text-sm text-text focus:ring-2 focus:ring-[#861C32] transition"
+        />
       </label>
-      <Button variant="secondary" needsInternet onClick={save} loading={busy} disabled={(notes.trim() || null) === (ws.guestNotes ?? null)}>{t('guestsWs.saveNotes')}</Button>
+      <Button
+        variant="primary"
+        needsInternet
+        onClick={save}
+        loading={busy}
+        disabled={(notes.trim() || null) === (ws.guestNotes ?? null)}
+        className="w-full rounded-full bg-[#861C32] hover:bg-[#701528] text-white py-2.5 text-sm font-semibold shadow-xs"
+      >
+        {t('guestsWs.saveNotes')}
+      </Button>
     </section>
   );
 }
@@ -236,7 +267,27 @@ function StepSheet({ ws, step = null, first = false, last = false, onClose, refr
   );
 }
 
-export function TimelineSection({ ws, title }) {
+function getTimelineIcon(purpose = '') {
+  const p = purpose.toLowerCase();
+  if (p.includes('guest') || p.includes('arrive') || p.includes('entry') || p.includes('welcome')) {
+    return Users;
+  }
+  if (p.includes('puja') || p.includes('pooja') || p.includes('ganesh') || p.includes('mandap') || p.includes('phere') || p.includes('hawan')) {
+    return Flower2;
+  }
+  if (p.includes('ring') || p.includes('sagai') || p.includes('engage')) {
+    return CircleDot;
+  }
+  if (p.includes('photo') || p.includes('shoot') || p.includes('camera') || p.includes('blessing')) {
+    return Camera;
+  }
+  if (p.includes('lunch') || p.includes('dinner') || p.includes('food') || p.includes('snack') || p.includes('breakfast') || p.includes('eat') || p.includes('buffet')) {
+    return UtensilsCrossed;
+  }
+  return Sparkles;
+}
+
+export function TimelineSection({ ws, title, children }) {
   const refresh = useRefresh();
   const tl = ws.planning?.timeline ?? { steps: [], totalMin: 0 };
   const [sheet, setSheet] = useState(null); // {id} | {add:true}
@@ -247,38 +298,86 @@ export function TimelineSection({ ws, title }) {
     try { await withRelogin(() => api('POST', `/workspaces/${ws.id}/timeline/suggested`, { body: {}, idemKey: newIdemKey() })); refresh(); } catch (e) { showToast(e.message || t('errors.server')); } finally { setBusy(false); }
   }
   return (
-    <section id="timeline" aria-labelledby="ws-timeline" className="flex flex-col gap-3 rounded-md bg-surface p-4 shadow-card">
+    <section id="timeline" aria-labelledby="ws-timeline" className="flex flex-col gap-4 rounded-3xl bg-white p-5 shadow-sm border border-black/5">
       <div className="flex items-baseline justify-between gap-2">
-        <h2 id="ws-timeline" className="text-lg font-bold">{title}</h2>
-        {tl.totalMin > 0 && <span className="text-sm text-text-muted">{t('timeline.total', { d: duration(tl.totalMin) })}</span>}
+        <h2 id="ws-timeline" className="text-lg font-bold text-gray-900">{title}</h2>
+        {tl.totalMin > 0 && <span className="text-xs text-text-muted font-medium">{t('timeline.total', { d: duration(tl.totalMin) })}</span>}
       </div>
       {tl.steps.length === 0 && (
         <>
-          <p className="text-text-muted">{t('timeline.empty')}</p>
-          <Button variant="secondary" needsInternet onClick={suggested} loading={busy}><Sparkles aria-hidden="true" size={18} />{t('timeline.suggested')}</Button>
+          <p className="text-xs text-text-muted">{t('timeline.empty')}</p>
+          <Button
+            variant="secondary"
+            needsInternet
+            onClick={suggested}
+            loading={busy}
+            className="rounded-full bg-[#FBEAEB] border border-[#F5C2C7] text-[#861C32] py-2.5 text-sm font-semibold hover:bg-[#F5D5D8] transition active:scale-95 shadow-xs flex items-center justify-center gap-1.5"
+          >
+            <Sparkles aria-hidden="true" size={16} />
+            {t('timeline.suggested')}
+          </Button>
         </>
       )}
       {tl.steps.length > 0 && (
-        <ol className="flex flex-col gap-2" aria-label={title}>
-          {tl.steps.map((s) => {
-            const when = s.starts ? (s.estimated ? t('timeline.about', { time: formatHhmm(s.starts) }) : formatHhmm(s.starts)) : t('timeline.noTime');
-            return (
-              <li key={s.id}>
-                <button type="button" onClick={() => setSheet({ id: s.id })} aria-label={`${s.purpose}, ${when}, ${duration(s.durationMin)}`}
-                  className="flex min-h-14 w-full items-center gap-3 rounded-md border border-border px-3 py-2 text-left">
-                  <span className={`w-20 shrink-0 text-sm ${s.estimated ? 'text-text-muted' : 'font-bold'}`}>{s.starts ? `${s.estimated ? '≈ ' : ''}${formatHhmm(s.starts)}` : '—'}</span>
-                  <span className="flex min-w-0 flex-1 flex-col">
-                    <span className="truncate font-bold">{s.purpose}</span>
-                    <span className="truncate text-sm text-text-muted">{duration(s.durationMin)}{s.note ? ` · ${s.note}` : ''}{s.attachments.length ? ` · 📎 ${s.attachments.length}` : ''}{s.tasks.length ? ` · ✓ ${s.tasks.length}` : ''}</span>
-                  </span>
-                  <ChevronRight aria-hidden="true" size={18} className="text-text-muted" />
-                </button>
-              </li>
-            );
-          })}
-        </ol>
+        <div className="relative pl-6 py-1">
+          {/* Continuous vertical timeline connector line */}
+          <div className="absolute left-[7px] top-6 bottom-6 w-[2px] bg-[#E8B4B8]" aria-hidden="true" />
+
+          <ol className="flex flex-col gap-2" aria-label={title}>
+            {tl.steps.map((s) => {
+              const when = s.starts ? (s.estimated ? t('timeline.about', { time: formatHhmm(s.starts) }) : formatHhmm(s.starts)) : t('timeline.noTime');
+              const StepIcon = getTimelineIcon(s.purpose);
+              return (
+                <li key={s.id} className="relative flex items-center">
+                  {/* Node dot on the vertical track */}
+                  <span className="absolute -left-6 top-1/2 -translate-y-1/2 size-2.5 rounded-full bg-[#861C32] ring-4 ring-white shrink-0 z-10" aria-hidden="true" />
+
+                  <button
+                    type="button"
+                    onClick={() => setSheet({ id: s.id })}
+                    aria-label={`${s.purpose}, ${when}, ${duration(s.durationMin)}`}
+                    className="flex w-full items-center gap-3 py-1.5 px-1 text-left rounded-xl hover:bg-surface-2/40 transition-colors"
+                  >
+                    {/* Time prefix for screen readers and accessibility */}
+                    <span className="sr-only">
+                      {s.starts ? `${s.estimated ? '≈ ' : ''}${formatHhmm(s.starts)}` : '—'}
+                    </span>
+
+                    {/* Circular icon with soft gradient */}
+                    <span className="size-11 rounded-full bg-gradient-to-br from-[#FDE8E9] to-[#F8D2D5] flex items-center justify-center shrink-0 text-[#861C32] shadow-xs" aria-hidden="true">
+                      <StepIcon size={20} />
+                    </span>
+
+                    {/* Title & subtitle details */}
+                    <span className="flex min-w-0 flex-1 flex-col">
+                      <span className="truncate font-bold text-sm text-gray-900">{s.purpose}</span>
+                      <span className="truncate text-xs text-text-muted font-medium">
+                        {duration(s.durationMin)}
+                        {s.note ? ` · ${s.note}` : ''}
+                        {s.attachments.length ? ` · 📎 ${s.attachments.length}` : ''}
+                        {s.tasks.length ? ` · ✓ ${s.tasks.length}` : ''}
+                      </span>
+                    </span>
+
+                    {/* Chevron */}
+                    <ChevronRight aria-hidden="true" size={18} className="text-gray-400 shrink-0" />
+                  </button>
+                </li>
+              );
+            })}
+          </ol>
+        </div>
       )}
-      <Button variant="secondary" needsInternet onClick={() => setSheet({ add: true })}><Plus aria-hidden="true" size={20} />{t('timeline.add')}</Button>
+      <Button
+        variant="secondary"
+        needsInternet
+        onClick={() => setSheet({ add: true })}
+        className="w-full rounded-full bg-[#FBEAEB] border border-[#F5C2C7] text-[#861C32] py-2.5 text-sm font-semibold hover:bg-[#F5D5D8] transition active:scale-95 shadow-xs flex items-center justify-center gap-1.5"
+      >
+        <Plus aria-hidden="true" size={17} />
+        {t('timeline.add')}
+      </Button>
+      {children}
       {sheet?.add && <StepSheet ws={ws} refresh={refresh} onClose={() => setSheet(null)} />}
       {idx >= 0 && <StepSheet ws={ws} step={tl.steps[idx]} first={idx === 0} last={idx === tl.steps.length - 1} refresh={refresh} onClose={() => setSheet(null)} />}
     </section>

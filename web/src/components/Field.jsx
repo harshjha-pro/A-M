@@ -20,7 +20,7 @@ export function FieldShell({ id, label, help, error, children }) {
   );
 }
 
-const inputClass = 'tap w-full rounded-sm border-[1.5px] bg-surface px-4 text-base text-text min-h-[3.25rem] focus:border-primary';
+const inputClass = 'tap w-full rounded-2xl border border-stone-200/90 dark:border-white/10 bg-white/95 dark:bg-stone-900/60 px-4 text-sm sm:text-base text-stone-900 dark:text-stone-100 min-h-[3rem] shadow-2xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#861C32]/30 transition-all';
 
 // Icon (optional, 1.0.23): a decorative lucide icon inside the field on the left.
 function WithIcon({ Icon, children }) {
@@ -74,7 +74,7 @@ export function PasswordField({ label, help, error, value, onChange, autoComplet
           className={`${inputClass} flex-1 ${Icon ? 'pl-12' : ''} ${error ? 'border-danger' : 'border-border-strong'}`}
           {...rest}
         /></WithIcon>
-        <button type="button" className="tap rounded-sm border-[1.5px] border-border-strong bg-surface px-3 font-bold text-primary" onClick={() => setShown(!shown)} aria-pressed={shown}>
+        <button type="button" className="tap rounded-2xl border border-stone-200/90 dark:border-white/10 bg-white px-4 font-bold text-primary" onClick={() => setShown(!shown)} aria-pressed={shown}>
           {shown ? t('hide') : t('show')}
         </button>
       </div>
@@ -87,12 +87,19 @@ export function ChoiceChips({ label, options, value, onChange, error, help }) {
   const id = useId();
   return (
     <fieldset className="flex flex-col gap-2" aria-describedby={error ? `${id}-error` : undefined}>
-      <legend className="mb-1 font-bold">{label}</legend>
+      <legend className="mb-1 font-bold text-stone-900 dark:text-stone-100 text-sm sm:text-base">{label}</legend>
       <div className="flex flex-wrap gap-2">
         {options.map((o) => {
           const on = value === o.value;
           return (
-            <label key={o.value} className={`tap inline-flex cursor-pointer items-center gap-2 rounded-full border-[1.5px] px-4 py-2 ${on ? 'glass-blush font-bold text-primary' : 'border-border bg-surface'}`}>
+            <label
+              key={o.value}
+              className={`tap inline-flex cursor-pointer items-center gap-1.5 rounded-full border px-4 py-2 text-sm transition-all ${
+                on
+                  ? 'bg-[#861C32] text-white font-bold border-[#861C32] shadow-xs'
+                  : 'bg-white dark:bg-stone-900 border-stone-200/90 dark:border-white/10 text-stone-700 dark:text-stone-300 hover:border-stone-400'
+              }`}
+            >
               <input type="radio" name={id} value={o.value} checked={on} onChange={() => onChange(o.value)} className="sr-only" />
               <span aria-hidden="true">{on ? '✓' : ''}</span>
               <span>{o.label}</span>
@@ -100,8 +107,8 @@ export function ChoiceChips({ label, options, value, onChange, error, help }) {
           );
         })}
       </div>
-      {help && <p className="text-sm text-text-muted">{help}</p>}
-      {error && <p id={`${id}-error`} className="text-sm text-danger">{error}</p>}
+      {help && <p className="text-xs text-stone-500 dark:text-stone-400">{help}</p>}
+      {error && <p id={`${id}-error`} className="text-xs font-semibold text-rose-600 dark:text-rose-400">{error}</p>}
     </fieldset>
   );
 }

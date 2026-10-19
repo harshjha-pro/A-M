@@ -3,7 +3,7 @@
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { UserPlus, Users } from 'lucide-react';
-import Screen from '../../components/Screen.jsx';
+import Screen, { ScreenLoader } from '../../components/Screen.jsx';
 import EmptyState from '../../components/EmptyState.jsx';
 import { Notice } from '../../components/Field.jsx';
 import { api } from '../../api/client.js';
@@ -29,7 +29,7 @@ export default function Members() {
           <UserPlus aria-hidden="true" size={22} /> {t('members.add')}
         </Link>
       )}
-      {q.isPending && <p aria-busy="true">…</p>}
+      {q.isPending && <ScreenLoader />}
       {q.isError && <Notice kind="danger">{t('errors.loadFailed')}</Notice>}
       {q.data && q.data.length <= 1 && <EmptyState Icon={Users} text={t('members.empty')} />}
       {q.data && (

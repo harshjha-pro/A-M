@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { IndianRupee, ChevronRight, Receipt, Store, Plus } from 'lucide-react';
-import Screen from '../../components/Screen.jsx';
+import Screen, { ScreenLoader } from '../../components/Screen.jsx';
 import Sheet from '../../components/Sheet.jsx';
 import Button from '../../components/Button.jsx';
 import MoneyField, { readAmount } from '../../components/MoneyField.jsx';
@@ -125,7 +125,7 @@ export default function Money() {
   if (lost) return <Screen title={t('money.title')} back="/more"><Notice kind="danger">{t('money.noAccess')}</Notice></Screen>;
   return (
     <Screen title={t('money.title')} back="/more">
-      {q.isPending && <p aria-busy="true">…</p>}
+      {q.isPending && <ScreenLoader />}
       {q.isError && <Notice kind="danger">{q.error.message || t('errors.loadFailed')}</Notice>}
       {q.data && <Totals s={q.data} />}
       <nav className="grid grid-cols-2 gap-3" aria-label={t('money.title')}>

@@ -36,7 +36,7 @@ export default function TaskDetail() {
   const task = q.data;
   const canEdit = Boolean(permissions?.edit);
 
-  if (q.isPending) return <Screen title={t('tasks.title')} back="/tasks"><p aria-busy="true">…</p></Screen>;
+  if (q.isPending) return <Screen title={t('tasks.title')} back="/tasks" loading />;
   if (q.isError) return <Screen title={t('tasks.title')} back="/tasks"><Notice kind="danger">{q.error.message || t('errors.loadFailed')}</Notice></Screen>;
 
   const queuedNote = (res) => { if (res.queued) showToast(t('outbox.queuedToast')); };

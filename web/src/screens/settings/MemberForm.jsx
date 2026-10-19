@@ -178,7 +178,7 @@ function EditMember({ id }) {
   });
 
   if (q.isError) return <Screen title={t('members.title')} back="/settings/members"><Notice kind="danger">{t('errors.loadFailed')}</Notice></Screen>;
-  if (q.isPending || !form.editing) return <Screen title={t('members.title')} back="/settings/members"><p aria-busy="true">…</p></Screen>;
+  if (q.isPending || !form.editing) return <Screen title={t('members.title')} back="/settings/members" loading />;
 
   if (form.conflict) {
     const labels = { name: t('members.name'), phone: t('members.phone'), role: t('members.role'), canSeeMoney: t('members.money'), accessEndsOn: t('members.endsOn'), isActive: t('members.active') };

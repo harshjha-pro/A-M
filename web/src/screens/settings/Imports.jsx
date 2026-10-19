@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Upload } from 'lucide-react';
-import Screen from '../../components/Screen.jsx';
+import Screen, { ScreenLoader } from '../../components/Screen.jsx';
 import Button from '../../components/Button.jsx';
 import ConfirmDialog from '../../components/ConfirmDialog.jsx';
 import EmptyState from '../../components/EmptyState.jsx';
@@ -36,7 +36,7 @@ export default function Imports() {
 
   return (
     <Screen title={t('imports.title')} back="/settings">
-      {q.isPending && <p aria-busy="true">…</p>}
+      {q.isPending && <ScreenLoader />}
       {q.isError && <Notice kind="danger">{q.error.message || t('errors.loadFailed')}</Notice>}
       {q.isSuccess && q.data.length === 0 && <EmptyState Icon={Upload} text={t('imports.empty')} />}
       {q.data?.length > 0 && (

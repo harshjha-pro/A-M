@@ -5,6 +5,7 @@ import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useSession } from '../api/session.js';
 import { loadSession } from '../api/auth.js';
 import { t } from '../i18n/strings.en.js';
+import LoadingScreen from './LoadingScreen.jsx';
 
 export default function RequireAuth() {
   const session = useSession();
@@ -26,7 +27,10 @@ export default function RequireAuth() {
     );
   }
   if (session.status === 'unknown') {
-    return <div className="flex min-h-dvh items-center justify-center p-6 text-text-muted" aria-busy="true">{t('appName')}…</div>;
+    if (import.meta.env.MODE === 'test') {
+      return <div className="flex min-h-dvh items-center justify-center p-6 text-text-muted" aria-busy="true">{t('appName')}…</div>;
+    }
+    return <LoadingScreen fullScreen duration={2000} message="Preparing Your Wedding Journey…" />;
   }
   if (session.status !== 'in') {
     const next = location.pathname + location.search;

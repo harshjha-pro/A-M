@@ -20,7 +20,7 @@ export default function More() {
   const { permissions } = useSession();
   const rows = ROWS.filter((r) => (!r.money || permissions?.money) && (!r.admin || permissions?.admin) && (!r.workspace || canSeeWorkspace(permissions)));
   return (
-    <Screen title={t('more.title')}>
+    <Screen main title={t('more.title')}>
       <ul className="overflow-hidden rounded-md bg-surface shadow-card">
         {rows.map(({ to, label, Icon }) => (
           <li key={to} className="border-b border-border last:border-b-0">

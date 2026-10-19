@@ -2,7 +2,7 @@
 // the whole batch back. Admins only. Nothing is purged in R1.
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { Trash2 } from 'lucide-react';
-import Screen from '../../components/Screen.jsx';
+import Screen, { ScreenLoader } from '../../components/Screen.jsx';
 import { Notice } from '../../components/Field.jsx';
 import EmptyState from '../../components/EmptyState.jsx';
 import { api, newIdemKey } from '../../api/client.js';
@@ -36,7 +36,7 @@ export default function DeletedItems() {
   return (
     <Screen title={t('trash.title')} back="/settings">
       <p className="text-text-muted">{t('trash.note')}</p>
-      {q.isPending && <p aria-busy="true">…</p>}
+      {q.isPending && <ScreenLoader />}
       {q.isError && <Notice kind="danger">{q.error.message || t('errors.loadFailed')}</Notice>}
       {q.isSuccess && rows.length === 0 && <EmptyState Icon={Trash2} text={t('trash.empty')} />}
       {rows.length > 0 && (

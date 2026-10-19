@@ -179,7 +179,7 @@ export const strings = {
     add: 'Add',
     addTask: 'Add task',
     editTask: 'Edit task',
-    search: 'Search tasks or ID',
+    search: 'Search tasks...',
     views: { mine: 'My tasks', all: 'All', today: 'Today', week: 'This week', overdue: 'Overdue', no_date: 'No date', closed: 'Done & cancelled' },
     status: { todo: 'To do', doing: 'Doing', waiting: 'Waiting', done: 'Done', cancelled: 'Cancelled' },
     priority: { urgent: 'Urgent', normal: 'Normal', low: 'Low' },

@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { Search, SlidersHorizontal, Star, Users, PhoneOff, Copy, MessageCircle, CheckSquare, FileDown, Upload } from 'lucide-react';
-import Screen from '../../components/Screen.jsx';
+import Screen, { ScreenLoader } from '../../components/Screen.jsx';
 import ChipFilter, { MultiChips } from '../../components/ChipFilter.jsx';
 import AddButton from '../../components/AddButton.jsx';
 import EmptyState from '../../components/EmptyState.jsx';
@@ -119,7 +119,7 @@ export default function GuestList() {
   const anyFilter = q || Object.values(query).some(Boolean);
 
   return (
-    <Screen title={t('guests.title')}>
+    <Screen main title={t('guests.title')}>
       {meta && (
         <p className="text-lg font-bold" aria-live="polite">
           {t('guests.header', { families: formatCount(meta.total), people: formatCount(meta.totals.people) })}
@@ -182,7 +182,7 @@ export default function GuestList() {
         </section>
       )}
       {!permissions?.edit && <p className="text-text-muted">{t('guests.viewerNote')}</p>}
-      {list.isPending && <p aria-busy="true">…</p>}
+      {list.isPending && <ScreenLoader />}
       {list.isError && <Notice kind="danger">{list.error.message || t('errors.loadFailed')}</Notice>}
       {list.isSuccess && rows.length === 0 && <EmptyState Icon={Users} text={anyFilter ? t('guests.emptyFilter') : t('guests.empty')} />}
       {list.isSuccess && rows.length === 0 && !anyFilter && permissions?.admin && (

@@ -63,7 +63,7 @@ export default function WeddingDetails() {
     onSaved: (saved) => { if (saved) qc.setQueryData(['settings'], saved); else qc.invalidateQueries({ queryKey: ['settings'] }); },
   });
 
-  if (q.isPending) return <Screen title={t('wedding.title')} back="/settings"><p aria-busy="true">…</p></Screen>;
+  if (q.isPending) return <Screen title={t('wedding.title')} back="/settings" loading />;
   if (q.isError) return <Screen title={t('wedding.title')} back="/settings"><Notice kind="danger">{t('errors.loadFailed')}</Notice></Screen>;
 
   if (f.conflict) {

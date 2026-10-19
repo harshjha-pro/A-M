@@ -49,11 +49,23 @@ final class DashboardController
         );
         if ($editor) {
             $out['my_tasks'] = self::myTasks($app, $db, $refs, (int) $viewer['id'], $today, $now);
-            $out['overdue'] = ['total' => (int) $db->value(
+            $totalOverdue = (int) $db->value(
                 "SELECT COUNT(*) FROM tasks t WHERE t.deleted_at IS NULL AND t.status IN ('todo','doing','waiting')
                    AND (t.due_date < ? OR (t.due_date = ? AND t.due_time IS NOT NULL AND t.due_time < ?))",
                 [$today, $today, "$now:00"],
-            )];
+            );
+            $limit = 6;
+            $overdueRows = $db->all(
+                "SELECT t.* FROM tasks t WHERE t.deleted_at IS NULL AND t.status IN ('todo','doing','waiting')
+                   AND (t.due_date < ? OR (t.due_date = ? AND t.due_time IS NOT NULL AND t.due_time < ?))
+                 ORDER BY (t.due_date < ? OR (t.due_time IS NOT NULL AND t.due_time < ?)) DESC,
+                  t.due_date, t.due_time IS NULL, t.due_time, t.priority, t.id DESC LIMIT $limit",
+                [$today, $today, "$now:00", $today, "$now:00"],
+            );
+            $out['overdue'] = [
+                'total' => $totalOverdue,
+                'items' => TaskView::summaries($app, $db, $refs, $overdueRows),
+            ];
         }
         if ($money) {
             $out['payments_due'] = self::paymentsDue($db, $refs, $today, (int) $window);

@@ -11,6 +11,7 @@ import { routes } from '../../routes.jsx';
 import { fakeApi, ok, fail, signInAs, signOut } from '../../test/helpers.js';
 import { dismiss } from '../../undo/undoStore.js';
 import { reminderText, waUrl, greetName } from '../../data/guests.js';
+import './GuestList.jsx';
 
 const FAM = '01JA7Q3M2K8V5R1T9W4X6Y0H01';
 const FAM2 = '01JA7Q3M2K8V5R1T9W4X6Y0H02';
