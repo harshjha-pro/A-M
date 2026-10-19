@@ -16,7 +16,7 @@ import { Notice } from '../../components/Field.jsx';
 import { addDays } from '../../components/DateField.jsx';
 import { api } from '../../api/client.js';
 import { useSession } from '../../api/session.js';
-import { todayIst, formatMonth } from '../../format/ist.js';
+import { todayIst, formatMonth, formatDateOnly } from '../../format/ist.js';
 import { DayList, UndatedList, AgendaDayList, AgendaUndatedList } from './CalendarItems.jsx';
 import { t } from '../../i18n/strings.en.js';
 

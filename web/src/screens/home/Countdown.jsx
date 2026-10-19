@@ -17,10 +17,10 @@ function useNow(stepMs = 60000) {
 function Unit({ n, label }) {
   return (
     <div className="flex flex-1 flex-col items-center">
-      <span className="font-display text-[2rem] sm:text-[2.25rem] font-bold leading-none text-[#861C32] dark:text-[#F2A7AF]">
+      <span className="font-display text-[2rem] sm:text-[2.25rem] font-bold leading-none text-[#861C32]">
         {String(n).padStart(2, '0')}
       </span>
-      <span className="mt-1 text-[0.68rem] sm:text-xs font-medium tracking-wider text-[#493C38] dark:text-[#C9BBAA]">
+      <span className="mt-1 text-[0.68rem] sm:text-xs font-medium tracking-wider text-[#493C38]">
         {label}
       </span>
     </div>
@@ -50,7 +50,7 @@ export default function Countdown({ data, name, hero = false }) {
       className={
         hero
           ? 'flex flex-col items-center gap-2 w-full max-w-sm mx-auto'
-          : 'flex flex-col gap-3 rounded-2xl border border-white/60 bg-white/75 p-4 shadow-sm backdrop-blur-md dark:border-white/10 dark:bg-[#1E1714]/75'
+          : 'flex flex-col gap-3 rounded-2xl border border-white/60 bg-white/75 p-4 shadow-sm backdrop-blur-md'
       }
       aria-label={t('home.countdown')}
     >
@@ -71,13 +71,13 @@ export default function Countdown({ data, name, hero = false }) {
             )}
           </div>
           {hero && <HeartDivider className="my-0.5" />}
-          <p className="self-center text-xs sm:text-sm font-semibold tracking-wide text-[#861C32] dark:text-[#F2A7AF]">
+          <p className="self-center text-xs sm:text-sm font-semibold tracking-wide text-[#861C32]">
             {t('home.toTheWedding', { date: formatDateOnly(weddingStartDate) })}
           </p>
         </>
       )}
       {day != null && (
-        <p className="self-start font-display text-3xl font-bold text-[#861C32] dark:text-[#F2A7AF]">
+        <p className="self-start font-display text-3xl font-bold text-[#861C32]">
           {t('home.weddingDay', { n: day, total })}
         </p>
       )}
