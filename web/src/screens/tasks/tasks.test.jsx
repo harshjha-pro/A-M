@@ -302,3 +302,43 @@ describe('Task IDs (1.0.22)', () => {
     expect(await screen.findByText('TSK-7K3F9Q')).toBeInTheDocument();
   });
 });
+
+
+describe('Task form advanced details', () => {
+  test('More details opens clear sections and newly added tags can be removed before saving', async () => {
+    signInAs('ayush');
+    const user = userEvent.setup();
+    const tagId = '01M4DK5T41SEEQHBHV1XDA0R7D';
+    fakeApi({
+      'GET /tasks': () => listReply([]),
+      'GET /tags': () => ok([{ id: tagId, name: 'Decor' }]),
+      'GET /members': () => ok(members),
+      'GET /events': () => ok([{ id: 'event-1', name: 'Engagement' }]),
+      'GET /workspaces': () => ok([{ id: 'workspace-1', name: 'Engagement' }]),
+    });
+    const { container } = renderAt('/tasks/new');
+    await screen.findByLabelText('What needs doing?');
+
+    const summary = screen.getByText('More details');
+    const details = summary.closest('details');
+    expect(details).not.toBeNull();
+    expect(details.open).toBe(false);
+    await user.click(summary);
+    expect(details.open).toBe(true);
+
+    expect(screen.getByLabelText('Event (optional)')).toBeInTheDocument();
+    expect(screen.getByLabelText('Workspace')).toBeInTheDocument();
+    expect(screen.getByRole('group', { name: 'Priority' })).toBeInTheDocument();
+    expect(screen.getByRole('group', { name: 'Tags' })).toBeInTheDocument();
+    expect(screen.getByLabelText('New tag')).toBeInTheDocument();
+    expect(screen.getByLabelText('Notes')).toBeInTheDocument();
+
+    await user.type(screen.getByLabelText('New tag'), 'Mehndi');
+    await user.click(screen.getByRole('button', { name: 'Add tag' }));
+    expect(screen.getByText('Mehndi')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Remove new tag: Mehndi' }));
+    expect(screen.queryByText('Mehndi')).toBeNull();
+
+    expect(await axe(container)).toHaveNoViolations();
+  });
+});
