@@ -333,12 +333,13 @@ export default function TaskForm() {
                   </span>
                   <span className="min-w-0">
                     <h3 id="task-notes-heading" className="font-bold text-text">{t('tasks.notesSection')}</h3>
-                    <p className="text-sm text-text-muted">{t('tasks.notesHelp')}</p>
+                    <p id="task-notes-help" className="text-sm text-text-muted">{t('tasks.notesHelp')}</p>
                   </span>
                 </div>
                 <label htmlFor="task-notes-input" className="sr-only">{t('tasks.notes')}</label>
                 <textarea
                   id="task-notes-input"
+                  aria-describedby="task-notes-help"
                   value={v.notes}
                   onChange={(e) => f.set('notes')(e.target.value)}
                   rows={4}
