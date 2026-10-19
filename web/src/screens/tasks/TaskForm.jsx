@@ -3,7 +3,7 @@
 // only + If-Match, a draft on this phone, the conflict screen on a clash.
 import { canEditWorkspace } from '../../api/workspaceAccess.js';
 import { useEffect, useRef, useState } from 'react';
-import { CalendarDays, ChevronDown, Clock3, Flag, LayoutGrid, StickyNote, Tags as TagsIcon, X } from 'lucide-react';
+import { CalendarDays, ChevronDown, Clock3, Flag, StickyNote, Tags as TagsIcon, X } from 'lucide-react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Screen from '../../components/Screen.jsx';
