@@ -3,6 +3,7 @@
 // only + If-Match, a draft on this phone, the conflict screen on a clash.
 import { canEditWorkspace } from '../../api/workspaceAccess.js';
 import { useEffect, useRef, useState } from 'react';
+import { CalendarDays, ChevronDown, Clock3, Flag, LayoutGrid, StickyNote, Tags as TagsIcon, X } from 'lucide-react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Screen from '../../components/Screen.jsx';
@@ -55,6 +56,7 @@ export default function TaskForm() {
   const presetEvent = search.get('event');
   const presetWorkspace = search.get('workspace'); // + Add task inside a workspace (1.0.17)
   const presetSection = search.get('section');
+  const [moreDetailsOpen, setMoreDetailsOpen] = useState(() => Boolean(id || presetEvent || presetWorkspace));
   // 1.0.18: + Add task on an outfit, an accessory or a timeline step; back = where to return
   const presetTarget = search.get('outfit') ? { outfitId: search.get('outfit') } : search.get('accessory') ? { accessoryId: search.get('accessory') }
     : search.get('outfitStep') ? { outfitStepId: search.get('outfitStep') } : search.get('menuItem') ? { menuItemId: search.get('menuItem') } // 1.0.19: a dish
@@ -174,45 +176,177 @@ export default function TaskForm() {
           <MultiChips label={t('tasks.assignees')} options={activeMembers.map((m) => ({ value: m.id, label: m.id === user?.id ? `${m.name} (me)` : m.name }))}
             value={v.assigneeIds} onChange={f.set('assigneeIds')} error={errors.assigneeIds} />
         )}
-        <details className="flex flex-col gap-5 rounded-md bg-surface p-4 shadow-card" open={Boolean(id || presetEvent || presetWorkspace)}>
-          <summary className="tap cursor-pointer font-bold text-primary">{t('tasks.moreDetails')}</summary>
-          <div className="mt-4 flex flex-col gap-5">
-            {v.dueDate && <TextField type="time" label={t('tasks.time')} value={v.dueTime} onChange={f.set('dueTime')} error={errors.dueTime} />}
-            {(events.data ?? []).length > 0 && (
-              <label className="flex flex-col gap-1">
-                <span className="font-bold">{t('tasks.eventLabel')}</span>
-                <select value={v.eventId} onChange={(e) => f.set('eventId')(e.target.value)} className="tap rounded-sm border-[1.5px] border-border-strong bg-surface px-3 text-base text-text">
-                  <option value="">{t('tasks.noEvent')}</option>
-                  {events.data.map((ev) => <option key={ev.id} value={ev.id}>{ev.name}</option>)}
-                </select>
-              </label>
-            )}
-            {canEditWorkspace(permissions) && (workspaces.data ?? []).length > 0 && (
-              <label className="flex flex-col gap-1">
-                <span className="font-bold">{t('nav.workspace')}</span>
-                <select value={v.workspaceId} onChange={(e) => f.set('workspaceId')(e.target.value)} className="tap rounded-sm border-[1.5px] border-border-strong bg-surface px-3 text-base text-text">
-                  <option value="">{t('workspace.noEvent')}</option>
-                  {workspaces.data.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}
-                </select>
-              </label>
-            )}
-            <ChoiceChips label={t('tasks.priorityLabel')} options={['urgent', 'normal', 'low'].map((p) => ({ value: p, label: t(`tasks.priority.${p}`) }))} value={v.priority} onChange={f.set('priority')} />
-            {id && <ChoiceChips label={t('tasks.statusLabel')} options={['todo', 'doing', 'waiting', 'done', 'cancelled'].map((s) => ({ value: s, label: t(`tasks.status.${s}`) }))} value={v.status} onChange={f.set('status')} />}
-            {(tags.data ?? []).length > 0 && (
-              <MultiChips label={t('tasks.tags')} options={(tags.data ?? []).slice().sort((a, b) => a.name.localeCompare(b.name)).map((g) => ({ value: g.id, label: g.name }))}
-                value={v.tagIds} onChange={f.set('tagIds')} error={errors.tagIds} />
-            )}
-            {v.newTags.length > 0 && <p className="text-sm">{t('tasks.newTag')}: {v.newTags.join(', ')}</p>}
-            <div className="flex items-end gap-2">
-              <div className="flex-1"><TextField label={t('tasks.newTag')} value={tagText} onChange={setTagText} maxLength={30} error={errors.newTags}
-                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addTag(); } }} /></div>
-              <Button variant="secondary" onClick={addTag}>{t('tasks.addTag')}</Button>
+
+        <details
+          className="group overflow-hidden rounded-2xl border border-border bg-surface shadow-card"
+          open={moreDetailsOpen}
+          onToggle={(event) => setMoreDetailsOpen(event.currentTarget.open)}
+        >
+          <summary className="tap flex list-none cursor-pointer items-center justify-between gap-3 px-4 py-4 [&::marker]:hidden [&::-webkit-details-marker]:hidden">
+            <span className="min-w-0">
+              <span className="block font-bold text-text">{t('tasks.moreDetails')}</span>
+              <span className="mt-1 block text-sm font-normal text-text-muted">{t('tasks.detailsIntro')}</span>
+            </span>
+            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-primary-soft text-primary">
+              <ChevronDown aria-hidden="true" size={20} className="transition-transform group-open:rotate-180" />
+            </span>
+          </summary>
+
+          <div className="border-t border-border px-4 pb-5 pt-5">
+            <div className="flex flex-col gap-6">
+              {v.dueDate && (
+                <section className="flex flex-col gap-3" aria-labelledby="task-time-heading">
+                  <div className="flex items-start gap-3">
+                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary-soft text-primary">
+                      <Clock3 aria-hidden="true" size={18} />
+                    </span>
+                    <span className="min-w-0">
+                      <h3 id="task-time-heading" className="font-bold text-text">{t('tasks.timingSection')}</h3>
+                      <p className="text-sm text-text-muted">{t('tasks.timeHelp')}</p>
+                    </span>
+                  </div>
+                  <TextField type="time" label={t('tasks.time')} value={v.dueTime} onChange={f.set('dueTime')} error={errors.dueTime} />
+                </section>
+              )}
+
+              {((events.data ?? []).length > 0 || (canEditWorkspace(permissions) && (workspaces.data ?? []).length > 0)) && (
+                <section className="flex flex-col gap-4 border-t border-border pt-5" aria-labelledby="task-links-heading">
+                  <div className="flex items-start gap-3">
+                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary-soft text-primary">
+                      <CalendarDays aria-hidden="true" size={18} />
+                    </span>
+                    <span className="min-w-0">
+                      <h3 id="task-links-heading" className="font-bold text-text">{t('tasks.linksSection')}</h3>
+                      <p className="text-sm text-text-muted">{t('tasks.linksHelp')}</p>
+                    </span>
+                  </div>
+
+                  {(events.data ?? []).length > 0 && (
+                    <label className="flex flex-col gap-1.5">
+                      <span className="font-bold">{t('tasks.eventLabel')}</span>
+                      <select
+                        value={v.eventId}
+                        onChange={(e) => f.set('eventId')(e.target.value)}
+                        aria-describedby="task-event-help"
+                        className="tap min-h-[3.25rem] w-full rounded-xl border-[1.5px] border-border-strong bg-surface px-4 text-base text-text focus:border-primary focus:outline-none"
+                      >
+                        <option value="">{t('tasks.noEvent')}</option>
+                        {events.data.map((ev) => <option key={ev.id} value={ev.id}>{ev.name}</option>)}
+                      </select>
+                      <span id="task-event-help" className="text-sm text-text-muted">{t('tasks.eventHelp')}</span>
+                    </label>
+                  )}
+
+                  {canEditWorkspace(permissions) && (workspaces.data ?? []).length > 0 && (
+                    <label className="flex flex-col gap-1.5">
+                      <span className="font-bold">{t('nav.workspace')}</span>
+                      <select
+                        value={v.workspaceId}
+                        onChange={(e) => f.set('workspaceId')(e.target.value)}
+                        aria-describedby="task-workspace-help"
+                        className="tap min-h-[3.25rem] w-full rounded-xl border-[1.5px] border-border-strong bg-surface px-4 text-base text-text focus:border-primary focus:outline-none"
+                      >
+                        <option value="">{t('tasks.noWorkspace')}</option>
+                        {workspaces.data.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}
+                      </select>
+                      <span id="task-workspace-help" className="text-sm text-text-muted">{t('tasks.workspaceHelp')}</span>
+                    </label>
+                  )}
+                </section>
+              )}
+
+              <section className="flex flex-col gap-4 border-t border-border pt-5" aria-labelledby="task-priority-heading">
+                <div className="flex items-start gap-3">
+                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary-soft text-primary">
+                    <Flag aria-hidden="true" size={18} />
+                  </span>
+                  <span className="min-w-0">
+                    <h3 id="task-priority-heading" className="font-bold text-text">{t('tasks.prioritySection')}</h3>
+                    <p className="text-sm text-text-muted">{t('tasks.priorityHelp')}</p>
+                  </span>
+                </div>
+                <ChoiceChips label={t('tasks.priorityLabel')} options={['urgent', 'normal', 'low'].map((p) => ({ value: p, label: t(`tasks.priority.${p}`) }))} value={v.priority} onChange={f.set('priority')} />
+                {id && <ChoiceChips label={t('tasks.statusLabel')} options={['todo', 'doing', 'waiting', 'done', 'cancelled'].map((s) => ({ value: s, label: t(`tasks.status.${s}`) }))} value={v.status} onChange={f.set('status')} />}
+              </section>
+
+              <section className="flex flex-col gap-4 border-t border-border pt-5" aria-labelledby="task-tags-heading">
+                <div className="flex items-start gap-3">
+                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary-soft text-primary">
+                    <TagsIcon aria-hidden="true" size={18} />
+                  </span>
+                  <span className="min-w-0">
+                    <h3 id="task-tags-heading" className="font-bold text-text">{t('tasks.tagsSection')}</h3>
+                    <p className="text-sm text-text-muted">{t('tasks.tagsHelp')}</p>
+                  </span>
+                </div>
+
+                {(tags.data ?? []).length > 0 && (
+                  <MultiChips
+                    label={t('tasks.tags')}
+                    options={(tags.data ?? []).slice().sort((a, b) => a.name.localeCompare(b.name)).map((g) => ({ value: g.id, label: g.name }))}
+                    value={v.tagIds}
+                    onChange={f.set('tagIds')}
+                    error={errors.tagIds}
+                  />
+                )}
+
+                {v.newTags.length > 0 && (
+                  <div className="flex flex-col gap-2">
+                    <p className="text-sm font-bold text-text">{t('tasks.newTagsAdded')}</p>
+                    <div className="flex flex-wrap gap-2">
+                      {v.newTags.map((name) => (
+                        <span key={name} className="inline-flex min-h-10 items-center gap-1 rounded-full border border-primary/30 bg-primary-soft pl-3 pr-1 text-sm font-bold text-primary">
+                          <span>{name}</span>
+                          <button
+                            type="button"
+                            className="tap inline-flex h-8 w-8 items-center justify-center rounded-full hover:bg-surface"
+                            aria-label={t('tasks.removeNewTag', { name })}
+                            onClick={() => f.set('newTags')(v.newTags.filter((tag) => tag !== name))}
+                          >
+                            <X aria-hidden="true" size={15} />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex items-end gap-2">
+                  <div className="min-w-0 flex-1">
+                    <TextField
+                      label={t('tasks.newTag')}
+                      value={tagText}
+                      onChange={setTagText}
+                      maxLength={30}
+                      error={errors.newTags}
+                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addTag(); } }}
+                    />
+                  </div>
+                  <Button variant="secondary" className="shrink-0 px-4" onClick={addTag}>{t('tasks.addTag')}</Button>
+                </div>
+              </section>
+
+              <section className="flex flex-col gap-3 border-t border-border pt-5" aria-labelledby="task-notes-heading">
+                <div className="flex items-start gap-3">
+                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary-soft text-primary">
+                    <StickyNote aria-hidden="true" size={18} />
+                  </span>
+                  <span className="min-w-0">
+                    <h3 id="task-notes-heading" className="font-bold text-text">{t('tasks.notesSection')}</h3>
+                    <p className="text-sm text-text-muted">{t('tasks.notesHelp')}</p>
+                  </span>
+                </div>
+                <label htmlFor="task-notes-input" className="sr-only">{t('tasks.notes')}</label>
+                <textarea
+                  id="task-notes-input"
+                  value={v.notes}
+                  onChange={(e) => f.set('notes')(e.target.value)}
+                  rows={4}
+                  maxLength={5000}
+                  className="min-h-28 w-full resize-y rounded-xl border-[1.5px] border-border-strong bg-surface px-4 py-3 text-base text-text focus:border-primary focus:outline-none"
+                />
+              </section>
             </div>
-            <label className="flex flex-col gap-1">
-              <span className="font-bold">{t('tasks.notes')}</span>
-              <textarea value={v.notes} onChange={(e) => f.set('notes')(e.target.value)} rows={4} maxLength={5000}
-                className="w-full rounded-sm border-[1.5px] border-border-strong bg-surface p-3 text-base text-text" />
-            </label>
           </div>
         </details>
         <SavedIndicator {...f.save} />
