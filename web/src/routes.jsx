@@ -9,9 +9,11 @@ import LoadingScreen from './components/LoadingScreen.jsx';
 
 const page = (load) => {
   const C = lazy(load);
-  const fallback = import.meta.env.MODE === 'test'
-    ? <div className="p-6 text-text-muted" aria-busy="true">…</div>
-    : <LoadingScreen fullScreen duration={2000} message="Preparing Your Wedding Journey…" />;
+  const fallback = (
+    <div className="flex min-h-[50vh] w-full items-center justify-center py-12" aria-busy="true">
+      <div className="size-8 animate-spin rounded-full border-2 border-[#861C32] border-t-transparent" />
+    </div>
+  );
   return (
     <Suspense fallback={fallback}>
       <C />

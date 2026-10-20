@@ -8,7 +8,7 @@ import { cleanup } from '@testing-library/react';
 
 expect.extend(axeMatchers);
 afterEach(() => cleanup());
-globalThis.__APP_VERSION__ = '1.0.25';
+globalThis.__APP_VERSION__ = '1.0.26';
 
 // Node 24 jsdom compatibility: React Router navigations create internal Requests with jsdom AbortSignal
 if (globalThis.Request) {
